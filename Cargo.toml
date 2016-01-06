@@ -1,0 +1,13 @@
+[package]
+name = "jvmti"
+version = "0.1.0"
+authors = [ "Alex Pecsi <alex.pecsi@gmail.com>" ]
+description = "Rust bindings for the JVM TI"
+keywords = [ "java", "jvm", "jvmti", "debugger" ]
+
+[lib]
+crate_type = [ "dylib" ]
+
+[dependencies]
+libc = "0.2.4"
+log = "0.3.4"
