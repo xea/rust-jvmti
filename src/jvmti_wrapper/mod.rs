@@ -1,22 +1,23 @@
 extern crate libc;
 
 pub mod jvm_agent;
+pub mod jvmti_environment;
+pub mod agent_capabilities;
+pub mod event_callbacks;
 mod jvmti_native;
 mod error;
 
 pub use self::error::*;
 use self::jvmti_native::jvmti_native::*;
+use libc::c_void;
 
+// Mutable pointer to a JVM Environment
 pub type JavaVMPtr = *mut JavaVM;
+// Mutable pointer to a JVMT Environment
+pub type EnvPtr = *mut jvmtiEnv;
 /// Standard return value type for JVMTI functions
 pub type ReturnValue = jint;
-
-/// A type-safe representation of possible errors
-///
-pub enum NativeError {
-    NoError = 0
-}
-
-pub fn translate_error(error: NativeError) -> String {
-    return error_code(error as u32);
-}
+/// Typed alias to C void *'s
+pub type VoidPtr = *mut c_void;
+/// Typed alias to pointers to Java objects
+pub type ObjectPtr = *mut Struct__jobject;

@@ -1,8 +1,11 @@
 extern crate libc;
 
 use libc::c_char;
-use libc::c_void;
-use jvmti_wrapper::{JavaVMPtr, ReturnValue};
+use jvmti_wrapper::{JavaVMPtr, NativeError, ReturnValue, VoidPtr};
+use jvmti_wrapper::{translate_error, wrap_error};
+use jvmti_wrapper::agent_capabilities::AgentCapabilities;
+use jvmti_wrapper::event_callbacks::{EventCallbacks, VMEvent};
+use jvmti_wrapper::jvmti_environment::JvmtiEnvironment;
 use jvmti_wrapper::jvm_agent::JvmAgent;
 
 mod jvmti_wrapper;
@@ -10,14 +13,71 @@ mod jvmti_wrapper;
 #[no_mangle]
 #[allow(non_snake_case)]
 #[allow(unused_variables)]
-pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: *mut c_char, reserved: *mut c_void) -> ReturnValue {
+pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: *mut c_char, reserved: VoidPtr) -> ReturnValue {
     let agent = JvmAgent::new(vm);
-    println!("{}", agent.to_string());
-    return 0;
+    println!("Loading {}", agent.to_string());
+
+    let result = agent.get_environment();
+
+    match result {
+        Result::Ok(env) => setup_environment(env),
+        Result::Err(err) => {
+            println!("Error during obtaining JVMTI Environment: {}", translate_error(&err));
+            return wrap_error(err as u32) as ReturnValue;
+        }
+    }
+
+    return NativeError::NoError as ReturnValue;
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 #[allow(unused_variables)]
 pub extern fn Agent_OnUnload(vm: JavaVMPtr) -> () {
+}
+
+#[no_mangle]
+pub extern fn on_method_entry() -> () {
+
+}
+
+#[no_mangle]
+pub extern fn on_vm_object_alloc() -> () {
+
+}
+
+///
+fn setup_environment(env: JvmtiEnvironment) -> () {
+    let mut caps = AgentCapabilities::new();
+    caps.can_generate_method_entry_events = true;
+    caps.can_generate_vm_object_alloc_events = true;
+
+    match env.add_capabilities(caps) {
+        Ok(_) => {
+            println!("Agent capabilities were addedd successfully");
+            register_callbacks(&env);
+        },
+        Err(err) => println!("Error during adding agent capabilities: {}", translate_error(&err))
+    }
+
+    println!("Successfully obtained JVMTI Environment");
+}
+
+fn register_callbacks(env: &JvmtiEnvironment) -> () {
+    let mut callbacks = EventCallbacks::new();
+
+    callbacks.vm_object_alloc = Some(on_vm_object_alloc);
+    callbacks.method_entry = Some(on_method_entry);
+
+    match env.set_event_callbacks(callbacks) {
+        None => {
+            env.set_event_notification_mode(VMEvent::VMObjectAlloc, true);
+            env.set_event_notification_mode(VMEvent::VMStart, true);
+            env.set_event_notification_mode(VMEvent::MethodEntry, true);
+            println!("Setting event callbacks was successful");
+        },
+        Some(err) => println!("Error during setting event callbacks: {}", translate_error(&err))
+    }
+    //    a = (**envPtr).SetEventNotificationMode.unwrap()(envPtr, JVMTI_ENABLE, JVMTI_EVENT_VM_START, sptr);
+    //    a = (**envPtr).SetEventNotificationMode.unwrap()(envPtr, JVMTI_ENABLE, JVMTI_EVENT_VM_OBJECT_ALLOC, sptr);
 }

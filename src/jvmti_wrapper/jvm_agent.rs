@@ -1,12 +1,16 @@
-//use super::jvmti_native::jvmti_native::JavaVM;
-use super::JavaVMPtr;
+use super::jvmti_native::jvmti_native::*;
+use super::jvmti_environment::JvmtiEnvironment;
+use super::{JavaVMPtr, NativeError};
+use super::error::wrap_error;
+use libc::c_void;
+use std::ptr;
 
 const JVM_AGENT_VERSION: u32 = 0x00000001;
 
 /// Encapsulates a native JVMTI JVM environment structure for more Rust-idiomatic functionality
 pub struct JvmAgent {
     version: u32,
-    jvmPtr: JavaVMPtr
+    vm: JavaVMPtr
 }
 
 impl JvmAgent {
@@ -14,8 +18,41 @@ impl JvmAgent {
     pub fn new(jvm_ptr: JavaVMPtr) -> JvmAgent {
         JvmAgent {
             version: JVM_AGENT_VERSION,
-            jvmPtr: jvm_ptr
+            vm: jvm_ptr
         }
+    }
+
+    // TODO consider if we should hide EnvPtr instead
+    pub fn get_environment(&self) -> Result<JvmtiEnvironment, NativeError> {
+        unsafe {
+            let mut void_ptr: *mut c_void = ptr::null_mut() as *mut c_void;
+            let penv_ptr: *mut *mut c_void = &mut void_ptr as *mut *mut c_void;
+            let result = (**self.vm).GetEnv.unwrap()(self.vm, penv_ptr, JVMTI_VERSION);
+
+            if result == 0 {
+                let env_ptr: *mut jvmtiEnv = *penv_ptr as *mut jvmtiEnv;
+                let env = JvmtiEnvironment::new(env_ptr);
+                return Result::Ok(env);
+            }
+
+            return Result::Err(wrap_error(result as u32));
+        }
+        /*
+        println!("RUST Fptr {:p}", vm);
+        let fnp = (**vm).GetEnv.unwrap();
+        let dnp = (**vm).DestroyJavaVM.unwrap();
+        println!("FNP {:p}", fnp);
+        println!("DNP {:p}", dnp);
+        println!("PENVPTR {:p} {:p}", penvPtr, *penvPtr);
+        println!("Maybe? {:p} {:p}", penvPtr, *penvPtr);
+
+        if result == 0 {
+            // --------
+            let envPtr: *mut jvmtiEnv = *penvPtr as *mut jvmtiEnv;
+            println!("Got environment ptr: {:p} / {:p}", envPtr, *envPtr);
+            //jvmti::on_init(*envPtr);
+            C_dostuff(envPtr);
+        }*/
     }
 
     /// Return a string representation of this instance
