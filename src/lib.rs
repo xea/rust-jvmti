@@ -7,6 +7,7 @@ use jvmti_wrapper::agent_capabilities::AgentCapabilities;
 use jvmti_wrapper::event_callbacks::{EventCallbacks, VMEvent};
 use jvmti_wrapper::jvmti_environment::JvmtiEnvironment;
 use jvmti_wrapper::jvm_agent::JvmAgent;
+use jvmti_wrapper::method::Method;
 
 mod jvmti_wrapper;
 
@@ -37,13 +38,16 @@ pub extern fn Agent_OnUnload(vm: JavaVMPtr) -> () {
 }
 
 #[no_mangle]
-pub extern fn on_method_entry() -> () {
-
+pub extern fn on_method_entry(method: Method) -> () {
+    match method.get_class() {
+        Err(err) => println!("Errro fasz {}", translate_error(&err)),
+        Ok(class) => println!("Class signature: {}", class.get_signature())
+    }
 }
 
 #[no_mangle]
 pub extern fn on_vm_object_alloc() -> () {
-
+    //println!("On object alloc");
 }
 
 ///
@@ -70,6 +74,7 @@ fn register_callbacks(env: &JvmtiEnvironment) -> () {
     callbacks.method_entry = Some(on_method_entry);
 
     match env.set_event_callbacks(callbacks) {
+
         None => {
             env.set_event_notification_mode(VMEvent::VMObjectAlloc, true);
             env.set_event_notification_mode(VMEvent::VMStart, true);
@@ -78,6 +83,4 @@ fn register_callbacks(env: &JvmtiEnvironment) -> () {
         },
         Some(err) => println!("Error during setting event callbacks: {}", translate_error(&err))
     }
-    //    a = (**envPtr).SetEventNotificationMode.unwrap()(envPtr, JVMTI_ENABLE, JVMTI_EVENT_VM_START, sptr);
-    //    a = (**envPtr).SetEventNotificationMode.unwrap()(envPtr, JVMTI_ENABLE, JVMTI_EVENT_VM_OBJECT_ALLOC, sptr);
 }

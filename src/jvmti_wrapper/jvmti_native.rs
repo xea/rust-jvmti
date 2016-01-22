@@ -283,7 +283,8 @@ pub mod jvmti_native {
     pub type jfloat = ::libc::c_float;
     pub type jdouble = ::libc::c_double;
     pub type jsize = jint;
-    pub enum Struct__jobject { }
+    #[repr(C)]
+    pub struct Struct__jobject { pub _hacky_hack_workaround: u32 }
     pub type jobject = *mut Struct__jobject;
     pub type jclass = jobject;
     pub type jthrowable = jobject;

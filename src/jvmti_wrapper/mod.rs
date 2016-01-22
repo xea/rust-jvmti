@@ -4,6 +4,8 @@ pub mod jvm_agent;
 pub mod jvmti_environment;
 pub mod agent_capabilities;
 pub mod event_callbacks;
+pub mod class;
+pub mod method;
 mod jvmti_native;
 mod error;
 
@@ -21,3 +23,5 @@ pub type ReturnValue = jint;
 pub type VoidPtr = *mut c_void;
 /// Typed alias to pointers to Java objects
 pub type ObjectPtr = *mut Struct__jobject;
+
+pub type JObject = Struct__jobject;

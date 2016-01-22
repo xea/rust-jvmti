@@ -1,8 +1,11 @@
 use super::jvmti_native::jvmti_native::*;
+use super::jvmti_environment::JvmtiEnvironment;
 use super::error::NativeError;
+use super::method::Method;
 
+/// The following are function type declaration for wrapped callback methods
 pub type FnVMInit = extern fn() -> ();
-pub type FnMethodEntry = extern fn() -> ();
+pub type FnMethodEntry = extern fn(method: Method) -> ();
 pub type FnVMObjectAlloc = extern fn() -> ();
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
@@ -74,19 +77,15 @@ impl EventCallbacks {
 }
 
 unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, object_klass: jclass, size: jlong) -> () {
-    println!("ALLOOALSDFASDF");
-
     match CALLBACK_TABLE.vm_object_alloc {
         Some(function) => function(),
-        None => println!("No dynamic callback method was found")
+        None => println!("No dynamic callback method was found for VM object allocation")
     }
 }
 
 unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID) -> () {
-    println!("METHOD ENTRY");
-
     match CALLBACK_TABLE.method_entry {
-        Some(function) => function(),
-        None => println!("No dynamic callback method was found")
+        Some(function) => function(Method::new(&JvmtiEnvironment::new(jvmti_env), method)),
+        None => println!("No dynamic callback method was found for method entry")
     }
 }
