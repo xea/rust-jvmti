@@ -8,9 +8,11 @@ use super::event_callbacks::{EventCallbacks, VMEvent, CALLBACK_TABLE};
 use super::jvmti_native::jvmti_native::*;
 use super::class::Class;
 use super::method::Method;
+use super::method_signature::MethodSignature;
 use std::ffi::CStr;
 use std::mem::size_of;
 use std::ptr;
+use libc::c_char;
 
 pub struct JvmtiEnvironment {
     env: EnvPtr
@@ -81,12 +83,28 @@ impl JvmtiEnvironment {
             let p1: *mut *mut libc::c_char = &mut sig;
             let p2: *mut *mut libc::c_char = &mut native_sig;
 
-            let result = match wrap_error((**self.env).GetClassSignature.unwrap()(self.env, class.id, p1, p2)) {
+            match wrap_error((**self.env).GetClassSignature.unwrap()(self.env, class.id, p1, p2)) {
                 NativeError::NoError => Ok(CStr::from_ptr(sig).to_str().unwrap().to_string()),
                 err @ _ => Err(err)
-            };
+            }
+        }
+    }
 
-            result
+    pub fn get_method_name(&self, method: &Method) -> Result<MethodSignature, NativeError> {
+        unsafe {
+            let mut method_name = ptr::null_mut();
+            let mut method_ptr = &mut method_name;
+
+            let mut signature: *mut c_char = ptr::null_mut();
+            let mut signature_ptr = &mut signature;
+
+            let mut generic_sig: *mut c_char = ptr::null_mut();
+            let mut generic_sig_ptr = &mut generic_sig;
+
+            match wrap_error((**self.env).GetMethodName.unwrap()(self.env, method.id(), method_ptr, signature_ptr, generic_sig_ptr)) {
+                NativeError::NoError => Ok(MethodSignature::new(self.stringify(*method_ptr), self.stringify(*signature_ptr), self.stringify(*generic_sig_ptr))),
+                err @ _ => Err(err)
+            }
         }
     }
 
@@ -97,6 +115,16 @@ impl JvmtiEnvironment {
             match wrap_error((**self.env).IsInterface.unwrap()(self.env, class.id, Box::into_raw(Box::new(interface)))) {
                 NativeError::NoError => Ok(interface > 0),
                 err@_ => Err(err)
+            }
+        }
+    }
+
+    fn stringify(&self, input: *mut c_char) -> String {
+        unsafe {
+            if input != ptr::null_mut() {
+                CStr::from_ptr(input).to_str().unwrap().to_string()
+            } else {
+                "".to_string()
             }
         }
     }

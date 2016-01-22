@@ -41,7 +41,7 @@ pub extern fn Agent_OnUnload(vm: JavaVMPtr) -> () {
 pub extern fn on_method_entry(method: Method) -> () {
     match method.get_class() {
         Err(err) => println!("Errro fasz {}", translate_error(&err)),
-        Ok(class) => println!("Class signature: {}", class.get_signature())
+        Ok(class) => println!("signature: {} -> {}", class.get_signature(), method.name())
     }
 }
 

@@ -6,6 +6,7 @@ pub mod agent_capabilities;
 pub mod event_callbacks;
 pub mod class;
 pub mod method;
+pub mod method_signature;
 mod jvmti_native;
 mod error;
 
