@@ -41,7 +41,15 @@ pub extern fn Agent_OnUnload(vm: JavaVMPtr) -> () {
 pub extern fn on_method_entry(method: Method) -> () {
     match method.get_class() {
         Err(err) => println!("Errro fasz {}", translate_error(&err)),
-        Ok(class) => println!("signature: {} -> {}", class.get_signature(), method.name())
+        Ok(class) => println!("> signature: {} -> {}", class.get_signature(), method.name())
+    }
+}
+
+#[no_mangle]
+pub extern fn on_method_exit(method: Method) -> () {
+    match method.get_class() {
+        Err(err) => println!("Cannot find class for method {}", translate_error(&err)),
+        Ok(class) => println!("< signature: {} -> {}", class.get_signature(), method.name())
     }
 }
 
@@ -54,6 +62,7 @@ pub extern fn on_vm_object_alloc() -> () {
 fn setup_environment(env: JvmtiEnvironment) -> () {
     let mut caps = AgentCapabilities::new();
     caps.can_generate_method_entry_events = true;
+    caps.can_generate_method_exit_events = true;
     caps.can_generate_vm_object_alloc_events = true;
 
     match env.add_capabilities(caps) {
@@ -72,6 +81,7 @@ fn register_callbacks(env: &JvmtiEnvironment) -> () {
 
     callbacks.vm_object_alloc = Some(on_vm_object_alloc);
     callbacks.method_entry = Some(on_method_entry);
+    callbacks.method_exit = Some(on_method_exit);
 
     match env.set_event_callbacks(callbacks) {
 
@@ -79,6 +89,7 @@ fn register_callbacks(env: &JvmtiEnvironment) -> () {
             env.set_event_notification_mode(VMEvent::VMObjectAlloc, true);
             env.set_event_notification_mode(VMEvent::VMStart, true);
             env.set_event_notification_mode(VMEvent::MethodEntry, true);
+            env.set_event_notification_mode(VMEvent::MethodExit, true);
             println!("Setting event callbacks was successful");
         },
         Some(err) => println!("Error during setting event callbacks: {}", translate_error(&err))

@@ -6,25 +6,29 @@ use super::method::Method;
 /// The following are function type declaration for wrapped callback methods
 pub type FnVMInit = extern fn() -> ();
 pub type FnMethodEntry = extern fn(method: Method) -> ();
+pub type FnMethodExit = extern fn(method: Method) -> ();
 pub type FnVMObjectAlloc = extern fn() -> ();
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
     vm_object_alloc: None,
-    method_entry: None
+    method_entry: None,
+    method_exit: None
 };
 
 #[derive(Default)]
 pub struct EventCallbacks {
     pub vm_init: Option<FnVMInit>,
     pub vm_object_alloc: Option<FnVMObjectAlloc>,
-    pub method_entry: Option<FnMethodEntry>
+    pub method_entry: Option<FnMethodEntry>,
+    pub method_exit: Option<FnMethodExit>
 }
 
 pub enum VMEvent {
     VMObjectAlloc = JVMTI_EVENT_VM_OBJECT_ALLOC as isize,
     VMStart = JVMTI_EVENT_VM_START as isize,
-    MethodEntry = JVMTI_EVENT_METHOD_ENTRY as isize
+    MethodEntry = JVMTI_EVENT_METHOD_ENTRY as isize,
+    MethodExit = JVMTI_EVENT_METHOD_EXIT as isize
 }
 
 impl EventCallbacks {
@@ -53,7 +57,7 @@ impl EventCallbacks {
             FieldAccess: None, //jvmtiEventFieldAccess,
             FieldModification: None, //jvmtiEventFieldModification,
             MethodEntry: Some(local_cb_method_entry), //jvmtiEventMethodEntry,
-            MethodExit: None, //jvmtiEventMethodExit,
+            MethodExit: Some(local_cb_method_exit), //jvmtiEventMethodExit,
             NativeMethodBind: None, //jvmtiEventNativeMethodBind,
             CompiledMethodLoad: None, //jvmtiEventCompiledMethodLoad,
             CompiledMethodUnload: None, //jvmtiEventCompiledMethodUnload,
@@ -87,5 +91,12 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
     match CALLBACK_TABLE.method_entry {
         Some(function) => function(Method::new(&JvmtiEnvironment::new(jvmti_env), method)),
         None => println!("No dynamic callback method was found for method entry")
+    }
+}
+
+unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, was_popped_by_exception: jboolean, return_value: jvalue) -> () {
+    match CALLBACK_TABLE.method_exit {
+        Some(function) => function(Method::new(&JvmtiEnvironment::new(jvmti_env), method)),
+        None => println!("No dynamic callback method was found for method exit")
     }
 }
