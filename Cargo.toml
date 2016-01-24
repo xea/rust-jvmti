@@ -9,5 +9,6 @@ keywords = [ "java", "jvm", "jvmti", "debugger" ]
 crate_type = [ "dylib" ]
 
 [dependencies]
-libc = "0.2.4"
-log = "0.3.4"
+libc = "0.2.*"
+log = "0.3.*"
+chrono = "0.2"

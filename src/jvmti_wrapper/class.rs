@@ -1,8 +1,6 @@
 use super::jvmti_native::jvmti_native::*;
 use super::jvmti_environment::JvmtiEnvironment;
-use super::EnvPtr;
 use super::error::translate_error;
-use std::ptr;
 
 /// Represents a Java class
 pub struct Class<'a> {
@@ -23,7 +21,7 @@ impl<'a> Class<'a> {
 
         match self.env.get_class_signature(self) {
             Ok(signature) => signature,
-            Err(error) => "ERROR: Can't get class signature".to_string()
+            Err(error) => format!("ERROR: Can't get class signature: {}", translate_error(&error))
         }
     }
 
@@ -32,9 +30,5 @@ impl<'a> Class<'a> {
             Ok(result) => result,
             Err(error) => { println!("Error volt: {}", translate_error(&error)); false}
         }
-    }
-
-    pub fn to_string(&self) -> String {
-        "CLASS".to_string()
     }
 }

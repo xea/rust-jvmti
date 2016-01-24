@@ -2,7 +2,7 @@ use super::jvmti_native::jvmti_native::*;
 use super::class::Class;
 use super::error::NativeError;
 use super::jvmti_environment::JvmtiEnvironment;
-use super::method_signature::MethodSignature;
+use super::thread::Thread;
 
 pub struct Method<'a> {
     id: jmethodID,
@@ -32,7 +32,4 @@ impl<'a> Method<'a> {
         self.env.get_method_declaring_class(self)
     }
 
-    pub fn to_string(&self) -> String {
-        "Method".to_string()
-    }
 }

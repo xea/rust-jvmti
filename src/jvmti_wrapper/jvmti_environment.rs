@@ -9,6 +9,7 @@ use super::jvmti_native::jvmti_native::*;
 use super::class::Class;
 use super::method::Method;
 use super::method_signature::MethodSignature;
+use super::thread::{Thread, ThreadInfo};
 use std::ffi::CStr;
 use std::mem::size_of;
 use std::ptr;
@@ -27,6 +28,9 @@ impl JvmtiEnvironment {
         }
     }
 
+    /// Set new capabilities by adding the capabilities whose values are set to true in new_caps.
+    /// All previous capabilities are retained.
+    /// Some virtual machines may allow a limited set of capabilities to be added in the live phase.
     pub fn add_capabilities(&self, new_caps: AgentCapabilities) -> Result<AgentCapabilities, NativeError> {
         unsafe {
             match wrap_error((**self.env).AddCapabilities.unwrap()(self.env, &new_caps.to_native())) {
@@ -37,6 +41,12 @@ impl JvmtiEnvironment {
         }
     }
 
+    /// Set the functions to be called for each event. The callbacks are specified by supplying a
+    /// replacement function table. The function table is copied--changes to the local copy of the
+    /// table have no effect. This is an atomic action, all callbacks are set at once. No events
+    /// are sent before this function is called. When an entry is None no event is sent.
+    /// An event must be enabled and have a callback in order to be sent--the order in which this
+    /// function and set_event_notification_mode are called does not affect the result.
     pub fn set_event_callbacks(&self, callbacks: EventCallbacks) -> Option<NativeError> {
         unsafe {
             CALLBACK_TABLE.vm_object_alloc = callbacks.vm_object_alloc;
@@ -109,12 +119,30 @@ impl JvmtiEnvironment {
         }
     }
 
+    #[allow(dead_code)]
     pub fn is_interface(&self, class: &Class) -> Result<bool, NativeError> {
         unsafe {
             let interface:u8 = 0;
 
             match wrap_error((**self.env).IsInterface.unwrap()(self.env, class.id, Box::into_raw(Box::new(interface)))) {
                 NativeError::NoError => Ok(interface > 0),
+                err@_ => Err(err)
+            }
+        }
+    }
+
+    //pub GetThreadInfo: ::std::option::Option<unsafe extern "C" fn(env: *mut jvmtiEnv, thread: jthread, info_ptr: *mut jvmtiThreadInfo)
+    pub fn get_thread_info(&self, thread: jthread) -> Result<ThreadInfo, NativeError> {
+        unsafe {
+            let mut info = Struct__jvmtiThreadInfo { name: ptr::null_mut(), priority: 0, is_daemon: 0, thread_group: ptr::null_mut(), context_class_loader: ptr::null_mut()};
+            let mut info_ptr = &mut info;
+
+            match wrap_error((**self.env).GetThreadInfo.unwrap()(self.env, thread, info_ptr)) {
+                NativeError::NoError => Ok(ThreadInfo {
+                    name: self.stringify((*info_ptr).name),
+                    priority: (*info_ptr).priority as u32,
+                    is_daemon: if (*info_ptr).is_daemon > 0 { true } else { false }
+                }),
                 err@_ => Err(err)
             }
         }

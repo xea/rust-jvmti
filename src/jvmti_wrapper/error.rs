@@ -9,8 +9,7 @@ pub enum NativeError {
     UnexpectedInternalError = 113,
     ThreadNotAttached = 115,
     Disconnected = 116,
-    UnknownError,
-    Lofasz
+    UnknownError
 }
 
 /// Turn a native error code into a type-safe error
@@ -41,7 +40,6 @@ pub fn translate_error(code: &NativeError) -> String {
         &NativeError::UnexpectedInternalError => "An unexpected internal error has occurred.",
         &NativeError::ThreadNotAttached => "The thread being used to call this function is not attached to the virtual machine. Calls must be made from attached threads.",
         &NativeError::Disconnected => "The JVM TI environment provided is no longer connected or is not an environment.",
-        &NativeError::UnknownError => "Unknown error.",
-        &NativeError::Lofasz => "Belebutt a gyasz"
+        &NativeError::UnknownError => "Unknown error."
     }.to_string()
 }

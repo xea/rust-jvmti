@@ -1,5 +1,6 @@
 extern crate libc;
 
+use std::sync::Arc;
 use libc::c_char;
 use jvmti_wrapper::{JavaVMPtr, NativeError, ReturnValue, VoidPtr};
 use jvmti_wrapper::{translate_error, wrap_error};
@@ -8,39 +9,19 @@ use jvmti_wrapper::event_callbacks::{EventCallbacks, VMEvent};
 use jvmti_wrapper::jvmti_environment::JvmtiEnvironment;
 use jvmti_wrapper::jvm_agent::JvmAgent;
 use jvmti_wrapper::method::Method;
+use jvmti_wrapper::thread::Thread;
 
 mod jvmti_wrapper;
+mod registry;
 
+/// Callback method that triggers when a JVM thread is entering a method
 #[no_mangle]
-#[allow(non_snake_case)]
-#[allow(unused_variables)]
-pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: *mut c_char, reserved: VoidPtr) -> ReturnValue {
-    let agent = JvmAgent::new(vm);
-    println!("Loading {}", agent.to_string());
+pub extern fn on_method_entry(method: Method, thread: Thread) -> () {
+    let shared_thread = Arc::new(thread);
+    let copy = shared_thread.clone();
 
-    let result = agent.get_environment();
-
-    match result {
-        Result::Ok(env) => setup_environment(env),
-        Result::Err(err) => {
-            println!("Error during obtaining JVMTI Environment: {}", translate_error(&err));
-            return wrap_error(err as u32) as ReturnValue;
-        }
-    }
-
-    return NativeError::NoError as ReturnValue;
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-#[allow(unused_variables)]
-pub extern fn Agent_OnUnload(vm: JavaVMPtr) -> () {
-}
-
-#[no_mangle]
-pub extern fn on_method_entry(method: Method) -> () {
     match method.get_class() {
-        Err(err) => println!("Errro fasz {}", translate_error(&err)),
+        Err(err) => println!("Can't resolve class for method {} because: {}", method.name(), translate_error(&err)),
         Ok(class) => println!("> signature: {} -> {}", class.get_signature(), method.name())
     }
 }
@@ -48,14 +29,16 @@ pub extern fn on_method_entry(method: Method) -> () {
 #[no_mangle]
 pub extern fn on_method_exit(method: Method) -> () {
     match method.get_class() {
-        Err(err) => println!("Cannot find class for method {}", translate_error(&err)),
+        Err(err) => println!("Cannot find class for method {} because: {}", method.name(), translate_error(&err)),
         Ok(class) => println!("< signature: {} -> {}", class.get_signature(), method.name())
     }
 }
 
 #[no_mangle]
-pub extern fn on_vm_object_alloc() -> () {
-    //println!("On object alloc");
+pub extern fn on_vm_object_alloc(size: u64) -> () {
+    if size > 1024000 {
+        println!("Oi oi, allocating large objects");
+    }
 }
 
 ///
@@ -94,4 +77,30 @@ fn register_callbacks(env: &JvmtiEnvironment) -> () {
         },
         Some(err) => println!("Error during setting event callbacks: {}", translate_error(&err))
     }
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+#[allow(unused_variables)]
+pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: *mut c_char, reserved: VoidPtr) -> ReturnValue {
+    let agent = JvmAgent::new(vm);
+    println!("Loading {}", agent.to_string());
+
+    let result = agent.get_environment();
+
+    match result {
+        Result::Ok(env) => setup_environment(env),
+        Result::Err(err) => {
+            println!("Error during obtaining JVMTI Environment: {}", translate_error(&err));
+            return wrap_error(err as u32) as ReturnValue;
+        }
+    }
+
+    return NativeError::NoError as ReturnValue;
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+#[allow(unused_variables)]
+pub extern fn Agent_OnUnload(vm: JavaVMPtr) -> () {
 }

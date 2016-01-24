@@ -26,7 +26,6 @@ pub mod jvmti_native {
             let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
             ::std::mem::transmute(raw.offset(0))
         }
-        #[allow(non_snake_case)]
         pub unsafe fn _mbstateL(&mut self) -> *mut ::libc::c_longlong {
             let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
             ::std::mem::transmute(raw.offset(0))

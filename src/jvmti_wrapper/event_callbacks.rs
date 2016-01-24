@@ -1,13 +1,13 @@
 use super::jvmti_native::jvmti_native::*;
 use super::jvmti_environment::JvmtiEnvironment;
-use super::error::NativeError;
 use super::method::Method;
+use super::thread::Thread;
 
 /// The following are function type declaration for wrapped callback methods
 pub type FnVMInit = extern fn() -> ();
-pub type FnMethodEntry = extern fn(method: Method) -> ();
+pub type FnMethodEntry = extern fn(method: Method, thread: Thread) -> ();
 pub type FnMethodExit = extern fn(method: Method) -> ();
-pub type FnVMObjectAlloc = extern fn() -> ();
+pub type FnVMObjectAlloc = extern fn(size: u64) -> ();
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
@@ -24,11 +24,27 @@ pub struct EventCallbacks {
     pub method_exit: Option<FnMethodExit>
 }
 
+#[allow(dead_code)]
 pub enum VMEvent {
+    VMInit = JVMTI_EVENT_VM_INIT as isize,
+    VMDeath = JVMTI_EVENT_VM_DEATH as isize,
     VMObjectAlloc = JVMTI_EVENT_VM_OBJECT_ALLOC as isize,
     VMStart = JVMTI_EVENT_VM_START as isize,
     MethodEntry = JVMTI_EVENT_METHOD_ENTRY as isize,
-    MethodExit = JVMTI_EVENT_METHOD_EXIT as isize
+    MethodExit = JVMTI_EVENT_METHOD_EXIT as isize,
+    ThreadStart = JVMTI_EVENT_THREAD_START as isize,
+    ThreadEnd = JVMTI_EVENT_THREAD_END as isize,
+    Exception = JVMTI_EVENT_EXCEPTION as isize,
+    ExceptionCatch = JVMTI_EVENT_EXCEPTION_CATCH as isize,
+    MonitorWait = JVMTI_EVENT_MONITOR_WAIT as isize,
+    MonitorWaited = JVMTI_EVENT_MONITOR_WAITED as isize,
+    MonitorContendedEnter = JVMTI_EVENT_MONITOR_CONTENDED_ENTER as isize,
+    MonitorContendedEntered = JVMTI_EVENT_MONITOR_CONTENDED_ENTERED as isize,
+    FieldAccess = JVMTI_EVENT_FIELD_ACCESS as isize,
+    FieldModification = JVMTI_EVENT_FIELD_MODIFICATION as isize,
+    GarbageCollectionStart = JVMTI_EVENT_GARBAGE_COLLECTION_START as isize,
+    GarbageCollectionFinish = JVMTI_EVENT_GARBAGE_COLLECTION_FINISH as isize
+    // TODO add remaining events
 }
 
 impl EventCallbacks {
@@ -80,20 +96,28 @@ impl EventCallbacks {
     }
 }
 
+#[allow(unused_variables)]
 unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, object_klass: jclass, size: jlong) -> () {
     match CALLBACK_TABLE.vm_object_alloc {
-        Some(function) => function(),
+        Some(function) => function(size as u64),
         None => println!("No dynamic callback method was found for VM object allocation")
     }
 }
 
+#[allow(unused_variables)]
 unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID) -> () {
+    let environment = JvmtiEnvironment::new(jvmti_env);
+    let thread_info = environment.get_thread_info(thread).ok().unwrap();
+
+    println!("Current thread info: {}", thread_info.name);
+
     match CALLBACK_TABLE.method_entry {
-        Some(function) => function(Method::new(&JvmtiEnvironment::new(jvmti_env), method)),
+        Some(function) => function(Method::new(&environment, method), Thread::new(thread)),
         None => println!("No dynamic callback method was found for method entry")
     }
 }
 
+#[allow(unused_variables)]
 unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, was_popped_by_exception: jboolean, return_value: jvalue) -> () {
     match CALLBACK_TABLE.method_exit {
         Some(function) => function(Method::new(&JvmtiEnvironment::new(jvmti_env), method)),

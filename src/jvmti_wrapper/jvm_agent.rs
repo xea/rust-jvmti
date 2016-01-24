@@ -37,22 +37,6 @@ impl JvmAgent {
 
             return Result::Err(wrap_error(result as u32));
         }
-        /*
-        println!("RUST Fptr {:p}", vm);
-        let fnp = (**vm).GetEnv.unwrap();
-        let dnp = (**vm).DestroyJavaVM.unwrap();
-        println!("FNP {:p}", fnp);
-        println!("DNP {:p}", dnp);
-        println!("PENVPTR {:p} {:p}", penvPtr, *penvPtr);
-        println!("Maybe? {:p} {:p}", penvPtr, *penvPtr);
-
-        if result == 0 {
-            // --------
-            let envPtr: *mut jvmtiEnv = *penvPtr as *mut jvmtiEnv;
-            println!("Got environment ptr: {:p} / {:p}", envPtr, *envPtr);
-            //jvmti::on_init(*envPtr);
-            C_dostuff(envPtr);
-        }*/
     }
 
     /// Return a string representation of this instance
