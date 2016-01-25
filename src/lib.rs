@@ -41,12 +41,23 @@ pub extern fn on_vm_object_alloc(size: u64) -> () {
     }
 }
 
+#[no_mangle]
+pub extern fn on_exception() -> () {
+    println!("Thrown exception");
+}
+
+#[no_mangle]
+pub extern fn on_exception_catch() -> () {
+    println!("Caught exception");
+}
+
 ///
 fn setup_environment(env: JvmtiEnvironment) -> () {
     let mut caps = AgentCapabilities::new();
     caps.can_generate_method_entry_events = true;
     caps.can_generate_method_exit_events = true;
     caps.can_generate_vm_object_alloc_events = true;
+    caps.can_generate_exception_events = true;
 
     match env.add_capabilities(caps) {
         Ok(_) => {
@@ -65,6 +76,8 @@ fn register_callbacks(env: &JvmtiEnvironment) -> () {
     callbacks.vm_object_alloc = Some(on_vm_object_alloc);
     callbacks.method_entry = Some(on_method_entry);
     callbacks.method_exit = Some(on_method_exit);
+    callbacks.exception = Some(on_exception);
+    callbacks.exception_catch = Some(on_exception_catch);
 
     match env.set_event_callbacks(callbacks) {
 
@@ -73,6 +86,8 @@ fn register_callbacks(env: &JvmtiEnvironment) -> () {
             env.set_event_notification_mode(VMEvent::VMStart, true);
             env.set_event_notification_mode(VMEvent::MethodEntry, true);
             env.set_event_notification_mode(VMEvent::MethodExit, true);
+            env.set_event_notification_mode(VMEvent::Exception, true);
+            env.set_event_notification_mode(VMEvent::ExceptionCatch, true);
             println!("Setting event callbacks was successful");
         },
         Some(err) => println!("Error during setting event callbacks: {}", translate_error(&err))

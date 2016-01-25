@@ -1,19 +1,24 @@
 use super::jvmti_native::jvmti_native::*;
 use super::jvmti_environment::JvmtiEnvironment;
+use super::jni_environment::JniEnvironment;
 use super::method::Method;
 use super::thread::Thread;
 
 /// The following are function type declaration for wrapped callback methods
-pub type FnVMInit = extern fn() -> ();
+pub type FnException = extern fn() -> ();
+pub type FnExceptionCatch = extern fn() -> ();
 pub type FnMethodEntry = extern fn(method: Method, thread: Thread) -> ();
 pub type FnMethodExit = extern fn(method: Method) -> ();
+pub type FnVMInit = extern fn() -> ();
 pub type FnVMObjectAlloc = extern fn(size: u64) -> ();
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
     vm_object_alloc: None,
     method_entry: None,
-    method_exit: None
+    method_exit: None,
+    exception: None,
+    exception_catch: None
 };
 
 #[derive(Default)]
@@ -21,7 +26,9 @@ pub struct EventCallbacks {
     pub vm_init: Option<FnVMInit>,
     pub vm_object_alloc: Option<FnVMObjectAlloc>,
     pub method_entry: Option<FnMethodEntry>,
-    pub method_exit: Option<FnMethodExit>
+    pub method_exit: Option<FnMethodExit>,
+    pub exception: Option<FnException>,
+    pub exception_catch: Option<FnExceptionCatch>
 }
 
 #[allow(dead_code)]
@@ -65,8 +72,8 @@ impl EventCallbacks {
             ClassLoad: None, //jvmtiEventClassLoad,
             ClassPrepare: None, //jvmtiEventClassPrepare,
             VMStart: None, //jvmtiEventVMStart,
-            Exception: None, //jvmtiEventException,
-            ExceptionCatch: None, //jvmtiEventExceptionCatch,
+            Exception: Some(local_cb_exception), //jvmtiEventException,
+            ExceptionCatch: Some(local_cb_exception_catch), //jvmtiEventExceptionCatch,
             SingleStep: None, //jvmtiEventSingleStep,
             FramePop: None, //jvmtiEventFramePop,
             Breakpoint: None, //jvmtiEventBreakpoint,
@@ -122,5 +129,23 @@ unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mu
     match CALLBACK_TABLE.method_exit {
         Some(function) => function(Method::new(&JvmtiEnvironment::new(jvmti_env), method)),
         None => println!("No dynamic callback method was found for method exit")
+    }
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_exception(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation, exception: jobject, catch_method: jmethodID, catch_location: jlocation) -> () {
+    let jni = JniEnvironment::new(jni_env);
+
+    match CALLBACK_TABLE.exception {
+        Some(function) => function(),
+        None => println!("No dynamic callback method was found for exception")
+    }
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_exception_catch(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation, exception: jobject) -> () {
+    match CALLBACK_TABLE.exception_catch {
+        Some(function) => function(),
+        None => println!("No dynamic callback method was found for exception catch")
     }
 }

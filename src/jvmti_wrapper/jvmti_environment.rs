@@ -53,6 +53,8 @@ impl JvmtiEnvironment {
             CALLBACK_TABLE.vm_init = callbacks.vm_init;
             CALLBACK_TABLE.method_entry = callbacks.method_entry;
             CALLBACK_TABLE.method_exit = callbacks.method_exit;
+            CALLBACK_TABLE.exception = callbacks.exception;
+            CALLBACK_TABLE.exception_catch = callbacks.exception_catch;
 
             match wrap_error((**self.env).SetEventCallbacks.unwrap()(self.env, &callbacks.to_native(), size_of::<jvmtiEventCallbacks>() as i32)) {
                 NativeError::NoError => None,
