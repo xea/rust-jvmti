@@ -2,16 +2,20 @@ use super::native::jvmti_native::*;
 use super::environment::{Environment, JVMTIEnvironment, JNIEnvironment};
 
 /// The following are function type declaration for wrapped callback methods
-pub type FnException = extern fn() -> ();
-pub type FnExceptionCatch = extern fn() -> ();
+pub type FnException = fn() -> ();
+pub type FnExceptionCatch = fn() -> ();
+pub type FnMethodEntry = fn() -> ();
+pub type FnMethodExit = fn() -> ();
 //pub type FnMethodEntry = extern fn(method: Method, thread: Thread) -> ();
 //pub type FnMethodExit = extern fn(method: Method) -> ();
-pub type FnVMInit = extern fn() -> ();
-pub type FnVMObjectAlloc = extern fn(size: u64) -> ();
+pub type FnVMInit = fn() -> ();
+pub type FnVMObjectAlloc = fn(size: u64) -> ();
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
     vm_object_alloc: None,
+    method_entry: None,
+    method_exit: None,
     exception: None,
     exception_catch: None
 };
@@ -43,8 +47,8 @@ pub enum VMEvent {
 pub struct EventCallbacks {
     pub vm_init: Option<FnVMInit>,
     pub vm_object_alloc: Option<FnVMObjectAlloc>,
-//    pub method_entry: Option<FnMethodEntry>,
-//    pub method_exit: Option<FnMethodExit>,
+    pub method_entry: Option<FnMethodEntry>,
+    pub method_exit: Option<FnMethodExit>,
     pub exception: Option<FnException>,
     pub exception_catch: Option<FnExceptionCatch>
 }
@@ -118,6 +122,15 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
         None => println!("No dynamic callback method was found for method entry")
     }
     */
+
+    let jni = JNIEnvironment::new(jni_env);
+    let jvmti = JVMTIEnvironment::new(jvmti_env);
+    let env = Environment::new(jvmti, jni);
+
+    match CALLBACK_TABLE.method_entry {
+        Some(function) => function(),
+        None => println!("No dynamic callback method was found for method entry")
+    }
 }
 
 #[allow(unused_variables)]

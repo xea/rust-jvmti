@@ -4,7 +4,7 @@ use std::ptr;
 use wrapper::native::jvmti_native::*;
 use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObjectPtr};
 use wrapper::agent_capabilities::AgentCapabilities;
-use wrapper::event::{EventCallbacks, VMEvent};
+use wrapper::event::{EventCallbacks, VMEvent, CALLBACK_TABLE};
 use super::error::{NativeError, wrap_error};
 
 pub trait JVMTI {
@@ -27,7 +27,8 @@ pub trait JVMTI {
 pub trait JNI {
 }
 
-/// Type for unifying the JVMTI and JNI APIs.
+/// Unified trait for accessing both the JVMTI and the JNI native APIs. This type does not implement
+/// any of the provided behaviours itself, only delegates the calls to their respective handlers.
 pub struct Environment {
     jvmti: JVMTIEnvironment,
     jni: JNIEnvironment
@@ -81,14 +82,12 @@ impl JVMTI for JVMTIEnvironment {
 
     fn set_event_callbacks(&self, callbacks: EventCallbacks) -> Option<NativeError> {
         unsafe {
-            /*
             CALLBACK_TABLE.vm_object_alloc = callbacks.vm_object_alloc;
-            CALLBACK_TABLE.vm_init = callbacks.vm_init;
+//            CALLBACK_TABLE.vm_init = callbacks.vm_init;
             CALLBACK_TABLE.method_entry = callbacks.method_entry;
             CALLBACK_TABLE.method_exit = callbacks.method_exit;
             CALLBACK_TABLE.exception = callbacks.exception;
             CALLBACK_TABLE.exception_catch = callbacks.exception_catch;
-            */
 
             match wrap_error((**self.jvmti).SetEventCallbacks.unwrap()(self.jvmti, &callbacks.to_native(), size_of::<jvmtiEventCallbacks>() as i32)) {
                 NativeError::NoError => None,

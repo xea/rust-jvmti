@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use super::native::jvmti_native::*;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct AgentCapabilities {
     /// Can set and get tags
     pub can_tag_objects: bool,
