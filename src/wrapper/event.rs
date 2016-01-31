@@ -1,12 +1,14 @@
 use super::native::jvmti_native::*;
 use super::environment::{Environment, JVMTIEnvironment, JNIEnvironment, JVMTI};
 use super::method::*;
+use super::native::JavaThread;
+use super::thread::Thread;
 
 /// The following are function type declaration for wrapped callback methods
 pub type FnException = fn() -> ();
 pub type FnExceptionCatch = fn() -> ();
-pub type FnMethodEntry = fn(method: Method) -> ();
-pub type FnMethodExit = fn() -> ();
+pub type FnMethodEntry = fn(method: Method, thread: Thread) -> ();
+pub type FnMethodExit = fn(method: Method, thread: Thread) -> ();
 //pub type FnMethodEntry = extern fn(method: Method, thread: Thread) -> ();
 //pub type FnMethodExit = extern fn(method: Method) -> ();
 pub type FnVMInit = fn() -> ();
@@ -114,27 +116,16 @@ unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env:
 }
 
 #[allow(unused_variables)]
-unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID) -> () {
+unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, method: jmethodID) -> () {
     let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+    let current_thread = env.get_thread_info(&thread).ok().unwrap();
     let method_id = MethodId { native_id : method };
-
-
-/*    let environment = JvmtiEnvironment::new(jvmti_env);
-    let thread_info = environment.get_thread_info(thread).ok().unwrap();
-
-    println!("Current thread info: {}", thread_info.name);
-
-    match CALLBACK_TABLE.method_entry {
-        Some(function) => function(Method::new(&environment, method), Thread::new(thread)),
-        None => println!("No dynamic callback method was found for method entry")
-    }
-    */
 
     match CALLBACK_TABLE.method_entry {
         Some(function) => {
             match env.get_method_name(&method_id) {
-                Ok(signature) => function(Method::new(method_id, signature)),
-                Err(_) => function(Method::new(method_id, MethodSignature::new("<unknown>".to_string(), "<unknown signature>".to_string())))
+                Ok(signature) => function(Method::new(method_id, signature), current_thread),
+                Err(_) => function(Method::unknown(), current_thread)
             }
         },
         None => println!("No dynamic callback method was found for method entry")
@@ -143,15 +134,19 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, was_popped_by_exception: jboolean, return_value: jvalue) -> () {
-    let jni = JNIEnvironment::new(jni_env);
-    let jvmti = JVMTIEnvironment::new(jvmti_env);
-    let env = Environment::new(jvmti, jni);
-    /*
+    let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+    let current_thread = env.get_thread_info(&thread).ok().unwrap();
+    let method_id = MethodId { native_id : method };
+
     match CALLBACK_TABLE.method_exit {
-        Some(function) => function(Method::new(&JvmtiEnvironment::new(jvmti_env), method)),
+        Some(function) => {
+            match env.get_method_name(&method_id) {
+                Ok(signature) => function(Method::new(method_id, signature), current_thread),
+                Err(_) => function(Method::unknown(), current_thread)
+            }
+        }
         None => println!("No dynamic callback method was found for method exit")
     }
-    */
 }
 
 #[allow(unused_variables)]

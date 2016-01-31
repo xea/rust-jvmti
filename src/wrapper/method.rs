@@ -1,14 +1,12 @@
 use super::native::jvmti_native::*;
-use super::class::Class;
-use super::error::NativeError;
-use super::environment::JVMTIEnvironment;
+use std::ptr;
 
 pub struct MethodId {
     pub native_id: jmethodID
 }
 
 pub struct Method {
-    id: MethodId,
+    pub id: MethodId,
     pub signature: MethodSignature
 }
 
@@ -18,10 +16,6 @@ impl Method {
             id: method_id,
             signature: signature
         }
-    }
-
-    pub fn id(&self) -> &MethodId {
-        &self.id
     }
 
 /*
@@ -35,6 +29,17 @@ impl Method {
     pub fn get_class(&self) -> Result<Class, NativeError> {
         self.env.get_method_declaring_class(self)
     }*/
+
+    ///
+    /// Return a Method instance encapsulating an unknown method (ie. a method that cannot be resolved)
+    /// In theory, such methods should never occur.
+    ///
+    pub fn unknown() -> Method {
+        Method {
+            id: MethodId { native_id: ptr::null_mut() },
+            signature: MethodSignature::new("<Unknown method>".to_string(), "<Unknown signature>".to_string())
+        }
+    }
 }
 pub struct MethodSignature {
     pub name: String,

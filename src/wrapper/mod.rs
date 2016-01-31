@@ -9,6 +9,7 @@ pub mod error;
 pub mod event;
 pub mod method;
 pub mod native;
+pub mod thread;
 
 pub fn stringify(input: MutString) -> String {
     unsafe {

@@ -23,6 +23,7 @@ pub type MutString = *mut c_char;
 /// Typed alias to pointers to Java objects
 pub type JavaObjectPtr = *mut jvmti_native::Struct__jobject;
 pub type JavaObject = jvmti_native::Struct__jobject;
+pub type JavaThread = jvmti_native::jthread;
 
 #[allow(dead_code)]
 #[allow(bad_style)]

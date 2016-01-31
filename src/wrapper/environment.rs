@@ -2,10 +2,11 @@ use libc::{c_char, c_void};
 use std::mem::size_of;
 use std::ptr;
 use wrapper::native::jvmti_native::*;
-use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObjectPtr};
+use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObjectPtr, JavaThread};
 use wrapper::agent_capabilities::AgentCapabilities;
 use wrapper::event::{EventCallbacks, VMEvent, CALLBACK_TABLE};
 use wrapper::method::{MethodId, MethodSignature};
+use wrapper::thread::{Thread, ThreadId};
 use super::error::{NativeError, wrap_error};
 use super::stringify;
 
@@ -24,6 +25,7 @@ pub trait JVMTI {
     fn set_event_callbacks(&self, callbacks: EventCallbacks) -> Option<NativeError>;
     fn set_event_notification_mode(&self, event: VMEvent, mode: bool) -> Option<NativeError>;
     fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError>;
+    fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError>;
 }
 
 pub trait JNI {
@@ -68,6 +70,10 @@ impl JVMTI for Environment {
 
     fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError> {
         self.jvmti.get_method_name(method_id)
+    }
+
+    fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError> {
+        self.jvmti.get_thread_info(thread_id)
     }
 }
 
@@ -128,6 +134,23 @@ impl JVMTI for JVMTIEnvironment {
             match wrap_error((**self.jvmti).GetMethodName.unwrap()(self.jvmti, method_id.native_id, method_ptr, signature_ptr, generic_sig_ptr)) {
                 NativeError::NoError => Ok(MethodSignature::new(stringify(*method_ptr), stringify(*signature_ptr))),
                 err @ _ => Err(err)
+            }
+        }
+    }
+
+    fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError> {
+        unsafe {
+            let mut info = Struct__jvmtiThreadInfo { name: ptr::null_mut(), priority: 0, is_daemon: 0, thread_group: ptr::null_mut(), context_class_loader: ptr::null_mut()};
+            let mut info_ptr = &mut info;
+
+            match wrap_error((**self.jvmti).GetThreadInfo.unwrap()(self.jvmti, *thread_id, info_ptr)) {
+                NativeError::NoError => Ok(Thread {
+                    id: ThreadId { native_id: *thread_id },
+                    name: stringify((*info_ptr).name),
+                    priority: (*info_ptr).priority as u32,
+                    is_daemon: if (*info_ptr).is_daemon > 0 { true } else { false }
+                }),
+                err@_ => Err(err)
             }
         }
     }

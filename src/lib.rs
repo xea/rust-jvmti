@@ -7,6 +7,7 @@ use wrapper::native::{JavaVMPtr, VoidPtr, MutString, ReturnValue};
 //use wrapper::environment::{JVMTI, JVMTIEnvironment};
 use wrapper::error::*;
 use wrapper::method::Method;
+use wrapper::thread::Thread;
 use agent::Agent;
 
 mod agent;
@@ -29,12 +30,12 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
     return NativeError::NoError as ReturnValue;
 }
 
-fn on_method_entry(method: Method) -> () {
-    println!("Method entry: {}{}", method.signature.name, method.signature.signature)
+fn on_method_entry(method: Method, thread: Thread) -> () {
+    println!("Method entry: {}: {}{}", thread.name, method.signature.name, method.signature.signature)
 }
 
-fn on_method_exit() -> () {
-    println!("Method exit")
+fn on_method_exit(method: Method, thread: Thread) -> () {
+    println!("Method exit: {}: {}{}", thread.name, method.signature.name, method.signature.signature)
 }
 
 fn on_exception() -> () {

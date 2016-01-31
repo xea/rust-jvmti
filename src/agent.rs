@@ -3,7 +3,6 @@ use super::wrapper::environment::*;
 use super::wrapper::event::*;
 use super::wrapper::error::{translate_error};
 use super::wrapper::native::{JavaVMPtr};
-use super::error::Error;
 
 ///
 /// Provides a type-safe and Rust-idiomatic (I only hope at this point) interface for accessing
