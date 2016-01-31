@@ -1,10 +1,14 @@
 use super::wrapper::agent_capabilities::AgentCapabilities;
 use super::wrapper::environment::*;
 use super::wrapper::event::*;
-use super::wrapper::error::{translate_error, wrap_error};
-use super::wrapper::native::{JavaVMPtr, ReturnValue};
+use super::wrapper::error::{translate_error};
+use super::wrapper::native::{JavaVMPtr};
 use super::error::Error;
 
+///
+/// Provides a type-safe and Rust-idiomatic (I only hope at this point) interface for accessing
+/// JVMTI and JNI functionality withouth having to deal with obscure API calls.
+///
 pub struct Agent {
     jvm: JVMAgent,
     capabilities: AgentCapabilities,
@@ -13,6 +17,7 @@ pub struct Agent {
 
 impl Agent {
 
+    /// Return an empty but initialised JVM agent without any registered event handler callbacks
     pub fn new(jvm: JavaVMPtr) -> Agent {
         Agent {
             jvm: JVMAgent::new(jvm),
@@ -21,6 +26,7 @@ impl Agent {
         }
     }
 
+    /// Register a handler method that is called when
     pub fn on_method_entry(&mut self, handler: Option<FnMethodEntry>) -> () {
         self.callbacks.method_entry = handler;
 
@@ -61,6 +67,16 @@ impl Agent {
         }
     }
 
+    pub fn on_vm_object_alloc(&mut self, handler: Option<FnVMObjectAlloc>) -> () {
+        self.callbacks.vm_object_alloc = handler;
+
+        if handler.is_some() {
+            self.capabilities.can_generate_vm_object_alloc_events = true;
+        } else {
+            self.capabilities.can_generate_vm_object_alloc_events = false;
+        }
+    }
+
     pub fn start(&self) -> () {
         match self.jvm.get_environment() {
             Result::Ok(env) => self.setup_environment(env),
@@ -73,10 +89,6 @@ impl Agent {
     }
 
     fn setup_environment(&self, env: JVMTIEnvironment) -> () {
-        /*
-        //caps.can_generate_vm_object_alloc_events = true;
-        */
-
         match env.add_capabilities(self.capabilities.clone()) {
             Ok(_) => {
                 println!("Agent capabilities were added successfully");
@@ -91,13 +103,12 @@ impl Agent {
     fn register_callbacks(&self, env: JVMTIEnvironment) -> () {
         match env.set_event_callbacks(self.callbacks.clone()) {
             None => {
-                env.set_event_notification_mode(VMEvent::VMObjectAlloc, false);
+                env.set_event_notification_mode(VMEvent::VMObjectAlloc, self.callbacks.vm_object_alloc.is_some());
                 env.set_event_notification_mode(VMEvent::VMStart, false);
-                env.set_event_notification_mode(VMEvent::MethodEntry, true);
-                env.set_event_notification_mode(VMEvent::MethodExit, true);
-                env.set_event_notification_mode(VMEvent::Exception, true);
-                env.set_event_notification_mode(VMEvent::ExceptionCatch, true);
-                println!("Setting event callbacks was successful");
+                env.set_event_notification_mode(VMEvent::MethodEntry, self.callbacks.method_entry.is_some());
+                env.set_event_notification_mode(VMEvent::MethodExit, self.callbacks.method_exit.is_some());
+                env.set_event_notification_mode(VMEvent::Exception, self.callbacks.exception.is_some());
+                env.set_event_notification_mode(VMEvent::ExceptionCatch, self.callbacks.exception_catch.is_some());
             },
             Some(err) => println!("Error during setting event callbacks: {}", translate_error(&err))
         }

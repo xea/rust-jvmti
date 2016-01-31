@@ -1,3 +1,1 @@
-pub struct Class {
-    
-}
+pub struct Class;

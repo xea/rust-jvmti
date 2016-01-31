@@ -1,14 +1,15 @@
-use libc::c_void;
+use libc::{c_char, c_void};
 use std::mem::size_of;
 use std::ptr;
 use wrapper::native::jvmti_native::*;
 use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObjectPtr};
 use wrapper::agent_capabilities::AgentCapabilities;
 use wrapper::event::{EventCallbacks, VMEvent, CALLBACK_TABLE};
+use wrapper::method::{MethodId, MethodSignature};
 use super::error::{NativeError, wrap_error};
+use super::stringify;
 
 pub trait JVMTI {
-
     /// Set new capabilities by adding the capabilities whose values are set to true in new_caps.
     /// All previous capabilities are retained.
     /// Some virtual machines may allow a limited set of capabilities to be added in the live phase.
@@ -22,6 +23,7 @@ pub trait JVMTI {
     /// function and set_event_notification_mode are called does not affect the result.
     fn set_event_callbacks(&self, callbacks: EventCallbacks) -> Option<NativeError>;
     fn set_event_notification_mode(&self, event: VMEvent, mode: bool) -> Option<NativeError>;
+    fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError>;
 }
 
 pub trait JNI {
@@ -62,6 +64,10 @@ impl JVMTI for Environment {
 
     fn set_event_notification_mode(&self, event: VMEvent, mode: bool) -> Option<NativeError> {
         self.jvmti.set_event_notification_mode(event, mode)
+    }
+
+    fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError> {
+        self.jvmti.get_method_name(method_id)
     }
 }
 
@@ -104,6 +110,24 @@ impl JVMTI for JVMTIEnvironment {
             match wrap_error((**self.jvmti).SetEventNotificationMode.unwrap()(self.jvmti, mode_i, event as u32, sptr)) {
                 NativeError::NoError => None,
                 err @ _ => Some(err)
+            }
+        }
+    }
+
+    fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError> {
+        unsafe {
+            let mut method_name = ptr::null_mut();
+            let mut method_ptr = &mut method_name;
+
+            let mut signature: *mut c_char = ptr::null_mut();
+            let mut signature_ptr = &mut signature;
+
+            let mut generic_sig: *mut c_char = ptr::null_mut();
+            let mut generic_sig_ptr = &mut generic_sig;
+
+            match wrap_error((**self.jvmti).GetMethodName.unwrap()(self.jvmti, method_id.native_id, method_ptr, signature_ptr, generic_sig_ptr)) {
+                NativeError::NoError => Ok(MethodSignature::new(stringify(*method_ptr), stringify(*signature_ptr))),
+                err @ _ => Err(err)
             }
         }
     }

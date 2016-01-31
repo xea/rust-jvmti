@@ -4,8 +4,9 @@ extern crate libc;
 /// This is the main module of the JVMTI native agent.
 ///
 use wrapper::native::{JavaVMPtr, VoidPtr, MutString, ReturnValue};
-use wrapper::environment::{JVMTI, JVMTIEnvironment};
+//use wrapper::environment::{JVMTI, JVMTIEnvironment};
 use wrapper::error::*;
+use wrapper::method::Method;
 use agent::Agent;
 
 mod agent;
@@ -22,13 +23,14 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
     agent.on_method_exit(Some(on_method_exit));
     agent.on_exception(Some(on_exception));
     agent.on_exception_catch(Some(on_exception_catch));
+    agent.on_vm_object_alloc(Some(on_vm_object_alloc));
 
     agent.start();
     return NativeError::NoError as ReturnValue;
 }
 
-fn on_method_entry() -> () {
-    println!("Method entry")
+fn on_method_entry(method: Method) -> () {
+    println!("Method entry: {}{}", method.signature.name, method.signature.signature)
 }
 
 fn on_method_exit() -> () {
@@ -44,5 +46,5 @@ fn on_exception_catch() -> () {
 }
 
 fn on_vm_object_alloc(size: u64) -> () {
-
+    println!("Allocated an object of size: {}", size)
 }
