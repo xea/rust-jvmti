@@ -5,6 +5,7 @@ extern crate libc;
 ///
 use wrapper::native::{JavaVMPtr, VoidPtr, MutString, ReturnValue};
 //use wrapper::environment::{JVMTI, JVMTIEnvironment};
+use wrapper::class::*;
 use wrapper::error::*;
 use wrapper::method::Method;
 use wrapper::thread::Thread;
@@ -30,16 +31,16 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
     return NativeError::NoError as ReturnValue;
 }
 
-fn on_method_entry(method: Method, thread: Thread) -> () {
-    println!("Method entry: {}: {}{}", thread.name, method.signature.name, method.signature.signature)
+fn on_method_entry(method: Method, class: Class, thread: Thread) -> () {
+    println!("Method entry: {}: {}.{}{}", thread.name, class.signature.signature, method.signature.name, method.signature.signature)
 }
 
 fn on_method_exit(method: Method, thread: Thread) -> () {
     println!("Method exit: {}: {}{}", thread.name, method.signature.name, method.signature.signature)
 }
 
-fn on_exception() -> () {
-    println!("Exception event")
+fn on_exception(exception_class: Class) -> () {
+    println!("Exception event: {}", exception_class.signature.signature)
 }
 
 fn on_exception_catch() -> () {

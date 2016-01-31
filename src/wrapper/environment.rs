@@ -1,8 +1,10 @@
 use libc::{c_char, c_void};
 use std::mem::size_of;
 use std::ptr;
+use std::ffi::CStr;
+use wrapper::class::*;
 use wrapper::native::jvmti_native::*;
-use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObjectPtr, JavaThread};
+use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObject, JavaObjectPtr, JavaThread, MutString};
 use wrapper::agent_capabilities::AgentCapabilities;
 use wrapper::event::{EventCallbacks, VMEvent, CALLBACK_TABLE};
 use wrapper::method::{MethodId, MethodSignature};
@@ -25,10 +27,13 @@ pub trait JVMTI {
     fn set_event_callbacks(&self, callbacks: EventCallbacks) -> Option<NativeError>;
     fn set_event_notification_mode(&self, event: VMEvent, mode: bool) -> Option<NativeError>;
     fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError>;
+    fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError>;
     fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError>;
+    fn get_class_signature(&self, class: &ClassId) -> Result<ClassSignature, NativeError>;
 }
 
 pub trait JNI {
+    fn get_object_class(&self, object_id: JavaObjectPtr) -> ClassId;
 }
 
 /// Unified trait for accessing both the JVMTI and the JNI native APIs. This type does not implement
@@ -52,6 +57,9 @@ pub struct JVMAgent {
 
 impl JNI for Environment {
 
+    fn get_object_class(&self, object_id: JavaObjectPtr) -> ClassId {
+        self.jni.get_object_class(object_id)
+    }
 }
 
 impl JVMTI for Environment {
@@ -75,9 +83,25 @@ impl JVMTI for Environment {
     fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError> {
         self.jvmti.get_thread_info(thread_id)
     }
+
+    fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError> {
+        self.jvmti.get_class_signature(class_id)
+    }
+
+    fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError> {
+        self.jvmti.get_method_declaring_class(method_id)
+    }
 }
 
 impl JNI for JNIEnvironment {
+    fn get_object_class(&self, object_id: JavaObjectPtr) -> ClassId {
+        println!("Ez nem nagyon jo");
+        unsafe {
+            let class_id = (**self.jni).GetObjectClass.unwrap()(self.jni, object_id);
+
+            ClassId { native_id: class_id }
+        }
+    }
 }
 
 impl JVMTI for JVMTIEnvironment {
@@ -154,12 +178,47 @@ impl JVMTI for JVMTIEnvironment {
             }
         }
     }
+
+    fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError> {
+        unsafe {
+            let mut jstruct: Struct__jobject = Struct__jobject { _hacky_hack_workaround: 0 };
+            let mut jclass_instance: jclass = &mut jstruct;
+            let meta_ptr: *mut jclass = &mut jclass_instance;
+
+            match wrap_error((**self.jvmti).GetMethodDeclaringClass.unwrap()(self.jvmti, method_id.native_id, meta_ptr)) {
+                NativeError::NoError => Ok(ClassId { native_id: *meta_ptr }),
+                err @ _ => Err(err)
+            }
+        }
+    }
+
+    fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError> {
+        unsafe {
+            let mut native_sig: MutString = ptr::null_mut();
+            let mut sig: MutString = ptr::null_mut();
+            let p1: *mut MutString = &mut sig;
+            let p2: *mut MutString = &mut native_sig;
+
+            match wrap_error((**self.jvmti).GetClassSignature.unwrap()(self.jvmti, class_id.native_id, p1, p2)) {
+                NativeError::NoError => Ok(ClassSignature { signature: stringify(sig) }),
+                err @ _ => Err(err)
+            }
+        }
+    }
 }
 
 impl Environment {
 
     pub fn new(jvmti: JVMTIEnvironment, jni: JNIEnvironment) -> Environment {
         Environment { jvmti: jvmti, jni: jni }
+    }
+
+    pub fn get_object_class(&self, object_id: JavaObjectPtr) -> Class {
+        let class_id = self.jni.get_object_class(object_id);
+        let class_sig = self.jvmti.get_class_signature(&class_id);
+        println!("Ez a jo");
+
+        Class { id: class_id, signature: class_sig.ok().unwrap() }
     }
 }
 
