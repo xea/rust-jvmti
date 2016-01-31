@@ -11,4 +11,5 @@ crate_type = [ "dylib" ]
 [dependencies]
 libc = "0.2.*"
 log = "0.3.*"
-chrono = "0.2"
+#chrono = "0.2"
+time = "0.1.34"

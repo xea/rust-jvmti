@@ -1,3 +1,4 @@
+
 /// A type-safe representation of possible errors
 pub enum NativeError {
     NoError = 0,
