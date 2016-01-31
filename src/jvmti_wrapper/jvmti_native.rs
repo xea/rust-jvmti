@@ -26,7 +26,6 @@ pub mod jvmti_native {
             let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
             ::std::mem::transmute(raw.offset(0))
         }
-        #[allow(non_snake_case)]
         pub unsafe fn _mbstateL(&mut self) -> *mut ::libc::c_longlong {
             let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
             ::std::mem::transmute(raw.offset(0))
@@ -283,7 +282,8 @@ pub mod jvmti_native {
     pub type jfloat = ::libc::c_float;
     pub type jdouble = ::libc::c_double;
     pub type jsize = jint;
-    pub enum Struct__jobject { }
+    #[repr(C)]
+    pub struct Struct__jobject { pub _hacky_hack_workaround: u32 }
     pub type jobject = *mut Struct__jobject;
     pub type jclass = jobject;
     pub type jthrowable = jobject;
@@ -4439,6 +4439,7 @@ pub mod jvmti_native {
     }
     #[allow(non_snake_case)]
     extern "C" {
+        /*
         pub fn renameat(arg1: ::libc::c_int, arg2: *const ::libc::c_char,
                         arg3: ::libc::c_int, arg4: *const ::libc::c_char)
          -> ::libc::c_int;
@@ -4602,7 +4603,7 @@ pub mod jvmti_native {
         pub fn __vsnprintf_chk(arg1: *mut ::libc::c_char, arg2: size_t,
                                arg3: ::libc::c_int, arg4: size_t,
                                arg5: *const ::libc::c_char, arg6: va_list)
-         -> ::libc::c_int;
+         -> ::libc::c_int;*/
         pub fn JNI_GetDefaultJavaVMInitArgs(args: *mut ::libc::c_void) -> jint;
         pub fn JNI_CreateJavaVM(pvm: *mut *mut JavaVM, penv: *mut *mut ::libc::c_void, args: *mut ::libc::c_void) -> jint;
         pub fn JNI_GetCreatedJavaVMs(arg1: *mut *mut JavaVM, arg2: jsize, arg3: *mut jsize) -> jint;

@@ -6,7 +6,7 @@
 
 //     jint (JNICALL *GetEnv)(JavaVM *vm, void **penv, jint version);
 
-jint JNICALL localGetEnv(JavaVM *vm, void **penv, jint version);
+static jint JNICALL localGetEnv(JavaVM *vm, void **penv, jint version);
 jint JNICALL localDestroyJavaVM(JavaVM *vm);
 jvmtiError localAddCapabilities(const jvmtiCapabilities* capabilities_ptr);
 extern int test_call(int (*fptr)());
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-jint JNICALL localGetEnv(JavaVM *vm, void **penv, jint version) {
+static jint JNICALL localGetEnv(JavaVM *vm, void **penv, jint version) {
     printf("C: GetEnv PENV %p\n", penv);
     printf("C: GetEnv %p\n", &env);
 
