@@ -3,6 +3,7 @@ use std::sync::RwLock;
 
 lazy_static! {
     static ref BENCHMARK_DATA: RwLock<HashMap<BenchmarkKey, BenchmarkValue>> = RwLock::new(HashMap::new());
+    static ref BENCHMARK_TIME: RwLock<HashMap<BenchmarkKey, Benchmark>> = RwLock::new(HashMap::new());
 }
 
 #[derive(Eq, PartialEq, Hash, Clone)]
@@ -18,7 +19,7 @@ pub struct BenchmarkValue {
 
 #[derive(Clone)]
 pub struct Benchmark {
-    id: u32
+    pub key: BenchmarkKey,
 }
 
 impl Benchmark {

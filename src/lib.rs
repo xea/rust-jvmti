@@ -44,7 +44,7 @@ fn on_method_entry(method: Method, class: Class, thread: Thread) -> () {
         None => 0
     };
     Benchmark::update(key.clone(), BenchmarkValue { value: no + 1 });
-    println!("Method entry: {}: {}.{}{} = {}", thread.name, class.signature.fqn(), method.signature.name, method.signature.signature, no);
+    println!("Method entry: {}: {}.{}{} = {}", thread.name, class.signature.fqn(), method.signature.name, method.signature.signature, no + 1);
 }
 
 fn on_method_exit(method: Method, class: Class, thread: Thread) -> () {
@@ -56,7 +56,7 @@ fn on_method_exit(method: Method, class: Class, thread: Thread) -> () {
         None => 0
     };
     Benchmark::update(key.clone(), BenchmarkValue { value: no - 1 });
-    println!("Method exit: {}: {}.{}{} = {}", thread.name, class.signature.fqn(), method.signature.name, method.signature.signature, no);
+    println!("Method exit: {}: {}.{}{} = {}", thread.name, class.signature.fqn(), method.signature.name, method.signature.signature, no - 1);
 }
 
 fn on_exception(exception_class: Class) -> () {
