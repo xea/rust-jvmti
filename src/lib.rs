@@ -1,4 +1,6 @@
 extern crate libc;
+#[macro_use]
+extern crate lazy_static;
 
 ///
 /// This is the main module of the JVMTI native agent.
@@ -10,10 +12,12 @@ use wrapper::error::*;
 use wrapper::method::Method;
 use wrapper::thread::Thread;
 use agent::Agent;
+use benchmark::{Benchmark, BenchmarkKey, BenchmarkValue};
 
 mod agent;
-mod error;
+mod benchmark;
 mod wrapper;
+
 
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -32,11 +36,27 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
 }
 
 fn on_method_entry(method: Method, class: Class, thread: Thread) -> () {
-    println!("Method entry: {}: {}.{}{}", thread.name, class.signature.signature, method.signature.name, method.signature.signature)
+    let key = BenchmarkKey { category: "method".to_string(), id: "TEST".to_string() };
+    let r = Benchmark::get(&key);
+
+    let no = match r {
+        Some(value) => value.value,
+        None => 0
+    };
+    Benchmark::update(key.clone(), BenchmarkValue { value: no + 1 });
+    println!("Method entry: {}: {}.{}{} = {}", thread.name, class.signature.fqn(), method.signature.name, method.signature.signature, no);
 }
 
-fn on_method_exit(method: Method, thread: Thread) -> () {
-    println!("Method exit: {}: {}{}", thread.name, method.signature.name, method.signature.signature)
+fn on_method_exit(method: Method, class: Class, thread: Thread) -> () {
+    let key = BenchmarkKey { category: "method".to_string(), id: "TEST".to_string() };
+    let r = Benchmark::get(&key);
+
+    let no = match r {
+        Some(value) => value.value,
+        None => 0
+    };
+    Benchmark::update(key.clone(), BenchmarkValue { value: no - 1 });
+    println!("Method exit: {}: {}.{}{} = {}", thread.name, class.signature.fqn(), method.signature.name, method.signature.signature, no);
 }
 
 fn on_exception(exception_class: Class) -> () {

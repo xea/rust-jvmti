@@ -9,9 +9,7 @@ use super::thread::Thread;
 pub type FnException = fn(exception_class: Class) -> ();
 pub type FnExceptionCatch = fn() -> ();
 pub type FnMethodEntry = fn(method: Method, class: Class, thread: Thread) -> ();
-pub type FnMethodExit = fn(method: Method, thread: Thread) -> ();
-//pub type FnMethodEntry = extern fn(method: Method, thread: Thread) -> ();
-//pub type FnMethodExit = extern fn(method: Method) -> ();
+pub type FnMethodExit = fn(method: Method, class: Class, thread: Thread) -> ();
 pub type FnVMInit = fn() -> ();
 pub type FnVMObjectAlloc = fn(size: u64) -> ();
 
@@ -108,24 +106,24 @@ impl EventCallbacks {
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, object_klass: jclass, size: jlong) -> () {
-    let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-
     match CALLBACK_TABLE.vm_object_alloc {
-        Some(function) => function(size as u64),
+        Some(function) => {
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            function(size as u64) },
         None => println!("No dynamic callback method was found for VM object allocation")
     }
 }
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, method: jmethodID) -> () {
-    let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-    let current_thread = env.get_thread_info(&thread).ok().unwrap();
-    let method_id = MethodId { native_id : method };
-    let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
-    let class_sig = env.get_class_signature(&class_id).ok().unwrap();
-
     match CALLBACK_TABLE.method_entry {
         Some(function) => {
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let current_thread = env.get_thread_info(&thread).ok().unwrap();
+            let method_id = MethodId { native_id : method };
+            let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
+            let class_sig = env.get_class_signature(&class_id).ok().unwrap();
+
             match env.get_method_name(&method_id) {
                 Ok(signature) => function(Method::new(method_id, signature), Class::new(class_id, class_sig), current_thread),
                 Err(_) => function(Method::unknown(), Class::unknown(), current_thread)
@@ -137,15 +135,17 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, was_popped_by_exception: jboolean, return_value: jvalue) -> () {
-    let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-    let current_thread = env.get_thread_info(&thread).ok().unwrap();
-    let method_id = MethodId { native_id : method };
-
     match CALLBACK_TABLE.method_exit {
         Some(function) => {
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let method_id = MethodId { native_id : method };
+            let current_thread = env.get_thread_info(&thread).ok().unwrap();
+            let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
+            let class_sig = env.get_class_signature(&class_id).ok().unwrap();
+
             match env.get_method_name(&method_id) {
-                Ok(signature) => function(Method::new(method_id, signature), current_thread),
-                Err(_) => function(Method::unknown(), current_thread)
+                Ok(signature) => function(Method::new(method_id, signature), Class::new(class_id, class_sig), current_thread),
+                Err(_) => function(Method::unknown(), Class::unknown(), current_thread)
             }
         }
         None => println!("No dynamic callback method was found for method exit")
@@ -154,26 +154,29 @@ unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mu
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_exception(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation, exception: JavaObjectPtr, catch_method: jmethodID, catch_location: jlocation) -> () {
-    let jni = JNIEnvironment::new(jni_env);
-    let jvmti = JVMTIEnvironment::new(jvmti_env);
-    let env = Environment::new(jvmti, jni);
-
-    let exception_class: Class = env.get_object_class(exception);
-
     match CALLBACK_TABLE.exception {
-        Some(function) => function(exception_class),
+        Some(function) => {
+            let jni = JNIEnvironment::new(jni_env);
+            let jvmti = JVMTIEnvironment::new(jvmti_env);
+            let env = Environment::new(jvmti, jni);
+            let exception_class: Class = env.get_object_class(exception);
+
+            function(exception_class)
+        },
         None => println!("No dynamic callback method was found for exception")
     }
 }
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_exception_catch(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation, exception: jobject) -> () {
-    let jni = JNIEnvironment::new(jni_env);
-    let jvmti = JVMTIEnvironment::new(jvmti_env);
-    let env = Environment::new(jvmti, jni);
-
     match CALLBACK_TABLE.exception_catch {
-        Some(function) => function(),
+        Some(function) => {
+            let jni = JNIEnvironment::new(jni_env);
+            let jvmti = JVMTIEnvironment::new(jvmti_env);
+            let env = Environment::new(jvmti, jni);
+
+            function()
+        },
         None => println!("No dynamic callback method was found for exception catch")
     }
 }

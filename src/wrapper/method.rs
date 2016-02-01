@@ -1,4 +1,5 @@
 use super::native::jvmti_native::*;
+use super::class::TypeSignature;
 use std::ptr;
 
 pub struct MethodId {
@@ -17,18 +18,6 @@ impl Method {
             signature: signature
         }
     }
-
-/*
-    pub fn name(&self) -> String {
-        match self.env.get_method_name(&self) {
-            Ok(sign) => format!("{} {}", sign.name, sign.signature),
-            Err(_) => "<Signature unavailable>".to_string()
-        }
-    }
-
-    pub fn get_class(&self) -> Result<Class, NativeError> {
-        self.env.get_method_declaring_class(self)
-    }*/
 
     ///
     /// Return a Method instance encapsulating an unknown method (ie. a method that cannot be resolved)
@@ -53,5 +42,14 @@ impl MethodSignature {
             name: name,
             signature: signature
         }
+    }
+
+    pub fn argument_types(&self) -> Vec<TypeSignature> {
+//        self.signature.chars().map(|c| TypeSignature::unknown()).collect()
+        let mut chars = self.signature.chars();
+        // dropping the leading '('
+        chars.next();
+
+        vec![]
     }
 }

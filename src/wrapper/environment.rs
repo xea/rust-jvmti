@@ -1,10 +1,9 @@
 use libc::{c_char, c_void};
 use std::mem::size_of;
 use std::ptr;
-use std::ffi::CStr;
 use wrapper::class::*;
 use wrapper::native::jvmti_native::*;
-use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObject, JavaObjectPtr, JavaThread, MutString};
+use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObjectPtr, JavaThread, MutString};
 use wrapper::agent_capabilities::AgentCapabilities;
 use wrapper::event::{EventCallbacks, VMEvent, CALLBACK_TABLE};
 use wrapper::method::{MethodId, MethodSignature};
@@ -29,7 +28,7 @@ pub trait JVMTI {
     fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError>;
     fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError>;
     fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError>;
-    fn get_class_signature(&self, class: &ClassId) -> Result<ClassSignature, NativeError>;
+    fn get_class_signature(&self, class: &ClassId) -> Result<TypeSignature, NativeError>;
 }
 
 pub trait JNI {
@@ -84,7 +83,7 @@ impl JVMTI for Environment {
         self.jvmti.get_thread_info(thread_id)
     }
 
-    fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError> {
+    fn get_class_signature(&self, class_id: &ClassId) -> Result<TypeSignature, NativeError> {
         self.jvmti.get_class_signature(class_id)
     }
 
@@ -192,7 +191,7 @@ impl JVMTI for JVMTIEnvironment {
         }
     }
 
-    fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError> {
+    fn get_class_signature(&self, class_id: &ClassId) -> Result<TypeSignature, NativeError> {
         unsafe {
             let mut native_sig: MutString = ptr::null_mut();
             let mut sig: MutString = ptr::null_mut();
@@ -200,7 +199,7 @@ impl JVMTI for JVMTIEnvironment {
             let p2: *mut MutString = &mut native_sig;
 
             match wrap_error((**self.jvmti).GetClassSignature.unwrap()(self.jvmti, class_id.native_id, p1, p2)) {
-                NativeError::NoError => Ok(ClassSignature { signature: stringify(sig) }),
+                NativeError::NoError => Ok(TypeSignature { signature: stringify(sig) }),
                 err @ _ => Err(err)
             }
         }
