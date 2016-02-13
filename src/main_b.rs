@@ -1,10 +1,7 @@
-#[macro_use]
-extern crate lazy_static;
-use std::thread;
-use std::sync::{Arc, Mutex, Once, ONCE_INIT, RwLock};
-use std::collections::HashMap;
-use std::time::Duration;
-
+fn main() {
+    
+}
+/*
 lazy_static! {
     static ref DATA: RwLock<HashMap<String, u32>> = RwLock::new(HashMap::new());
 }
@@ -47,6 +44,7 @@ fn main() -> () {
     thread::sleep(Duration::new(5, 0));
 //    println!("A: {}", DATA.lock().unwrap().get(&"A".to_string()).unwrap());
 }
+*/
 
 /*
 extern crate regex;

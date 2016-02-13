@@ -21,10 +21,10 @@ pub type ReturnValue = jvmti_native::jint;
 pub type VoidPtr = *mut c_void;
 pub type MutString = *mut c_char;
 /// Typed alias to pointers to Java objects
-pub type JavaObjectPtr = *mut jvmti_native::Struct__jobject;
-pub type JavaObject = jvmti_native::Struct__jobject;
+pub type JavaObject = *mut jvmti_native::Struct__jobject;
 pub type JavaThread = jvmti_native::jthread;
 pub type JavaClass = jvmti_native::jclass;
+pub type TagId = jvmti_native::jlong;
 
 #[allow(dead_code)]
 #[allow(bad_style)]

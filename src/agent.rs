@@ -25,7 +25,7 @@ impl Agent {
         }
     }
 
-    /// Register a handler method that is called when
+    /// Register a handler method that is called when the Java code is about to enter a method
     pub fn on_method_entry(&mut self, handler: Option<FnMethodEntry>) -> () {
         self.callbacks.method_entry = handler;
 

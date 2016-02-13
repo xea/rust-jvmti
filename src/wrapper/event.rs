@@ -2,7 +2,7 @@ use super::class::*;
 use super::environment::{Environment, JVMTIEnvironment, JNIEnvironment, JVMTI};
 use super::method::*;
 use super::native::jvmti_native::*;
-use super::native::{JavaObjectPtr, JavaThread};
+use super::native::{JavaObject, JavaThread};
 use super::thread::Thread;
 
 /// The following are function type declaration for wrapped callback methods
@@ -12,15 +12,10 @@ pub type FnMethodEntry = fn(method: Method, class: Class, thread: Thread) -> ();
 pub type FnMethodExit = fn(method: Method, class: Class, thread: Thread) -> ();
 pub type FnVMInit = fn() -> ();
 pub type FnVMObjectAlloc = fn(size: u64) -> ();
-
-pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
-    vm_init: None,
-    vm_object_alloc: None,
-    method_entry: None,
-    method_exit: None,
-    exception: None,
-    exception_catch: None
-};
+pub type FnMonitorWait = fn() -> ();
+pub type FnMonitorEntered = fn() -> ();
+pub type FnMonitorContendedEnter = fn() -> ();
+pub type FnMonitorContendedEntered = fn() -> ();
 
 #[allow(dead_code)]
 pub enum VMEvent {
@@ -45,6 +40,19 @@ pub enum VMEvent {
     // TODO add remaining events
 }
 
+pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
+    vm_init: None,
+    vm_object_alloc: None,
+    method_entry: None,
+    method_exit: None,
+    exception: None,
+    exception_catch: None,
+    monitor_wait: None,
+    monitor_entered: None,
+    monitor_contended_enter: None,
+    monitor_contended_entered: None
+};
+
 #[derive(Default, Clone)]
 pub struct EventCallbacks {
     pub vm_init: Option<FnVMInit>,
@@ -52,7 +60,11 @@ pub struct EventCallbacks {
     pub method_entry: Option<FnMethodEntry>,
     pub method_exit: Option<FnMethodExit>,
     pub exception: Option<FnException>,
-    pub exception_catch: Option<FnExceptionCatch>
+    pub exception_catch: Option<FnExceptionCatch>,
+    pub monitor_wait: Option<FnMonitorWait>,
+    pub monitor_entered: Option<FnMonitorEntered>,
+    pub monitor_contended_enter: Option<FnMonitorContendedEnter>,
+    pub monitor_contended_entered: Option<FnMonitorContendedEntered>
 }
 
 impl EventCallbacks {
@@ -88,10 +100,10 @@ impl EventCallbacks {
             DynamicCodeGenerated: None, //jvmtiEventDynamicCodeGenerated,
             DataDumpRequest: None, //jvmtiEventDataDumpRequest,
             reserved72: None, //jvmtiEventReserved,
-            MonitorWait: None, //jvmtiEventMonitorWait,
-            MonitorWaited: None, //jvmtiEventMonitorWaited,
-            MonitorContendedEnter: None, //jvmtiEventMonitorContendedEnter,
-            MonitorContendedEntered: None, //jvmtiEventMonitorContendedEntered,
+            MonitorWait: Some(local_cb_monitor_wait), //jvmtiEventMonitorWait,
+            MonitorWaited: Some(local_cb_monitor_entered), //jvmtiEventMonitorWaited,
+            MonitorContendedEnter: Some(local_cb_monitor_contended_enter), //jvmtiEventMonitorContendedEnter,
+            MonitorContendedEntered: Some(local_cb_monitor_contended_entered), //jvmtiEventMonitorContendedEntered,
             reserved77: None, //jvmtiEventReserved,
             reserved78: None, //jvmtiEventReserved,
             reserved79: None, //jvmtiEventReserved,
@@ -153,12 +165,10 @@ unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mu
 }
 
 #[allow(unused_variables)]
-unsafe extern "C" fn local_cb_exception(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation, exception: JavaObjectPtr, catch_method: jmethodID, catch_location: jlocation) -> () {
+unsafe extern "C" fn local_cb_exception(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation, exception: JavaObject, catch_method: jmethodID, catch_location: jlocation) -> () {
     match CALLBACK_TABLE.exception {
         Some(function) => {
-            let jni = JNIEnvironment::new(jni_env);
-            let jvmti = JVMTIEnvironment::new(jvmti_env);
-            let env = Environment::new(jvmti, jni);
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let exception_class: Class = env.get_object_class(exception);
 
             function(exception_class)
@@ -171,12 +181,59 @@ unsafe extern "C" fn local_cb_exception(jvmti_env: *mut jvmtiEnv, jni_env: *mut 
 unsafe extern "C" fn local_cb_exception_catch(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation, exception: jobject) -> () {
     match CALLBACK_TABLE.exception_catch {
         Some(function) => {
-            let jni = JNIEnvironment::new(jni_env);
-            let jvmti = JVMTIEnvironment::new(jvmti_env);
-            let env = Environment::new(jvmti, jni);
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let current_thread = env.get_thread_info(&thread).ok().unwrap();
 
             function()
         },
         None => println!("No dynamic callback method was found for exception catch")
+    }
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_monitor_wait(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, timeout: jlong) -> () {
+    match CALLBACK_TABLE.monitor_wait {
+        Some(function) => {
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let current_thread = env.get_thread_info(&thread).ok().unwrap();
+            function()
+        },
+        None => println!("No dynamic callback method was found for monitor wait")
+    }
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_monitor_entered(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, timed_out: jboolean) -> () {
+    match CALLBACK_TABLE.monitor_wait {
+        Some(function) => {
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let current_thread = env.get_thread_info(&thread).ok().unwrap();
+            function()
+        },
+        None => println!("No dynamic callback method was found for monitor entered")
+    }
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_monitor_contended_enter(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject) -> () {
+    match CALLBACK_TABLE.monitor_contended_enter {
+        Some(function) => {
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let current_thread = env.get_thread_info(&thread).ok().unwrap();
+            function()
+        },
+        None => println!("No dynamic callback method was found for monitor contended enter")
+    }
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_monitor_contended_entered(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject) -> () {
+    match CALLBACK_TABLE.monitor_contended_entered {
+        Some(function) => {
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let current_thread = env.get_thread_info(&thread).ok().unwrap();
+            function()
+        },
+        None => println!("No dynamic callback method was found for monitor contended entered")
     }
 }

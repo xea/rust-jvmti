@@ -3,10 +3,11 @@ use std::mem::size_of;
 use std::ptr;
 use wrapper::class::*;
 use wrapper::native::jvmti_native::*;
-use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObjectPtr, JavaThread, MutString};
+use wrapper::native::{JVMTIEnvPtr, JNIEnvPtr, JavaVMPtr, JavaObject, JavaThread, MutString, TagId};
 use wrapper::agent_capabilities::AgentCapabilities;
 use wrapper::event::{EventCallbacks, VMEvent, CALLBACK_TABLE};
 use wrapper::method::{MethodId, MethodSignature};
+use wrapper::object::{ObjectId, Tag};
 use wrapper::thread::{Thread, ThreadId};
 use super::error::{NativeError, wrap_error};
 use super::stringify;
@@ -29,10 +30,12 @@ pub trait JVMTI {
     fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError>;
     fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError>;
     fn get_class_signature(&self, class: &ClassId) -> Result<TypeSignature, NativeError>;
+    fn get_tag(&self, object_id: &ObjectId) -> Result<Tag, NativeError>;
+    fn set_tag(&self, object_id: &ObjectId, tag: &Tag) -> Option<NativeError>;
 }
 
 pub trait JNI {
-    fn get_object_class(&self, object_id: JavaObjectPtr) -> ClassId;
+    fn get_object_class(&self, object_id: JavaObject) -> ClassId;
 }
 
 /// Unified trait for accessing both the JVMTI and the JNI native APIs. This type does not implement
@@ -56,7 +59,7 @@ pub struct JVMAgent {
 
 impl JNI for Environment {
 
-    fn get_object_class(&self, object_id: JavaObjectPtr) -> ClassId {
+    fn get_object_class(&self, object_id: JavaObject) -> ClassId {
         self.jni.get_object_class(object_id)
     }
 }
@@ -90,10 +93,18 @@ impl JVMTI for Environment {
     fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError> {
         self.jvmti.get_method_declaring_class(method_id)
     }
+
+    fn get_tag(&self, object_id: &ObjectId) -> Result<Tag, NativeError> {
+        self.jvmti.get_tag(object_id)
+    }
+
+    fn set_tag(&self, object_id: &ObjectId, tag: &Tag) -> Option<NativeError> {
+        self.jvmti.set_tag(object_id, tag)
+    }
 }
 
 impl JNI for JNIEnvironment {
-    fn get_object_class(&self, object_id: JavaObjectPtr) -> ClassId {
+    fn get_object_class(&self, object_id: JavaObject) -> ClassId {
         println!("Ez nem nagyon jo");
         unsafe {
             let class_id = (**self.jni).GetObjectClass.unwrap()(self.jni, object_id);
@@ -134,7 +145,7 @@ impl JVMTI for JVMTIEnvironment {
     fn set_event_notification_mode(&self, event: VMEvent, mode: bool) -> Option<NativeError> {
         unsafe {
             let mode_i = match mode { true => 1, false => 0 };
-            let sptr: JavaObjectPtr = ptr::null_mut();
+            let sptr: JavaObject = ptr::null_mut();
 
             match wrap_error((**self.jvmti).SetEventNotificationMode.unwrap()(self.jvmti, mode_i, event as u32, sptr)) {
                 NativeError::NoError => None,
@@ -204,6 +215,25 @@ impl JVMTI for JVMTIEnvironment {
             }
         }
     }
+
+    fn get_tag(&self, object_id: &ObjectId) -> Result<Tag, NativeError> {
+        unsafe {
+            let tag_ptr: *mut TagId = ptr::null_mut();
+            match wrap_error((**self.jvmti).GetTag.unwrap()(self.jvmti, object_id.native_id, tag_ptr)) {
+                NativeError::NoError => Ok(Tag::new(*tag_ptr)),
+                err @ _ => Err(err)
+            }
+        }
+    }
+
+    fn set_tag(&self, object_id: &ObjectId, tag: &Tag) -> Option<NativeError> {
+        unsafe {
+            match wrap_error((**self.jvmti).SetTag.unwrap()(self.jvmti, object_id.native_id, tag.native_id)) {
+                NativeError::NoError => None,
+                err @ _ => Some(err)
+            }
+        }
+    }
 }
 
 impl Environment {
@@ -212,7 +242,7 @@ impl Environment {
         Environment { jvmti: jvmti, jni: jni }
     }
 
-    pub fn get_object_class(&self, object_id: JavaObjectPtr) -> Class {
+    pub fn get_object_class(&self, object_id: JavaObject) -> Class {
         let class_id = self.jni.get_object_class(object_id);
         let class_sig = self.jvmti.get_class_signature(&class_id);
         println!("Ez a jo");

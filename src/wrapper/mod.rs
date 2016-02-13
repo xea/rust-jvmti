@@ -8,7 +8,9 @@ pub mod environment;
 pub mod error;
 pub mod event;
 pub mod method;
+pub mod monitor;
 pub mod native;
+pub mod object;
 pub mod thread;
 
 pub fn stringify(input: MutString) -> String {
