@@ -105,7 +105,6 @@ impl JVMTI for Environment {
 
 impl JNI for JNIEnvironment {
     fn get_object_class(&self, object_id: JavaObject) -> ClassId {
-        println!("Ez nem nagyon jo");
         unsafe {
             let class_id = (**self.jni).GetObjectClass.unwrap()(self.jni, object_id);
 
@@ -134,6 +133,10 @@ impl JVMTI for JVMTIEnvironment {
             CALLBACK_TABLE.method_exit = callbacks.method_exit;
             CALLBACK_TABLE.exception = callbacks.exception;
             CALLBACK_TABLE.exception_catch = callbacks.exception_catch;
+            CALLBACK_TABLE.monitor_wait = callbacks.monitor_wait;
+            CALLBACK_TABLE.monitor_entered = callbacks.monitor_entered;
+            CALLBACK_TABLE.monitor_contended_enter = callbacks.monitor_contended_enter;
+            CALLBACK_TABLE.monitor_contended_entered = callbacks.monitor_contended_entered;
 
             match wrap_error((**self.jvmti).SetEventCallbacks.unwrap()(self.jvmti, &callbacks.to_native(), size_of::<jvmtiEventCallbacks>() as i32)) {
                 NativeError::NoError => None,
@@ -245,7 +248,6 @@ impl Environment {
     pub fn get_object_class(&self, object_id: JavaObject) -> Class {
         let class_id = self.jni.get_object_class(object_id);
         let class_sig = self.jvmti.get_class_signature(&class_id);
-        println!("Ez a jo");
 
         Class { id: class_id, signature: class_sig.ok().unwrap() }
     }

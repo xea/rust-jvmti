@@ -32,7 +32,11 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
     agent.on_method_exit(Some(on_method_exit));
     agent.on_exception(Some(on_exception));
     agent.on_exception_catch(Some(on_exception_catch));
-    agent.on_vm_object_alloc(Some(on_vm_object_alloc));
+    //agent.on_vm_object_alloc(Some(on_vm_object_alloc));
+    agent.on_monitor_wait(Some(on_monitor_wait));
+    agent.on_monitor_enter(Some(on_monitor_enter));
+    agent.on_monitor_contended_wait(Some(on_contended_monitor_wait));
+    agent.on_monitor_contended_enter(Some(on_contended_monitor_enter));
 
     agent.start();
     return NativeError::NoError as ReturnValue;
@@ -44,10 +48,12 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
 pub extern fn Agent_OnUnload(vm: JavaVMPtr) -> () {
     let data = MethodCounter::get_all();
     for counter in data.keys() {
+        /*
         match data.get(counter) {
             Some(entry) => println!("{} {}", counter.key, entry),
             _ => ()
         }
+        */
     }
 }
 
@@ -80,6 +86,22 @@ fn on_exception(exception_class: Class) -> () {
 
 fn on_exception_catch() -> () {
     //println!("Phew")
+}
+
+fn on_monitor_wait(thread: Thread) -> () {
+    println!("Monitor wait {}", thread.name)
+}
+
+fn on_monitor_enter(thread: Thread) -> () {
+    println!("Monitor enter {}", thread.name)
+}
+
+fn on_contended_monitor_wait(thread: Thread) -> () {
+    println!("Contended monitor wait {}", thread.name)
+}
+
+fn on_contended_monitor_enter(thread: Thread) -> () {
+    println!("Contended monitor enter {}", thread.name)
 }
 
 fn on_vm_object_alloc(size: u64) -> () {

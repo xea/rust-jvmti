@@ -12,10 +12,10 @@ pub type FnMethodEntry = fn(method: Method, class: Class, thread: Thread) -> ();
 pub type FnMethodExit = fn(method: Method, class: Class, thread: Thread) -> ();
 pub type FnVMInit = fn() -> ();
 pub type FnVMObjectAlloc = fn(size: u64) -> ();
-pub type FnMonitorWait = fn() -> ();
-pub type FnMonitorEntered = fn() -> ();
-pub type FnMonitorContendedEnter = fn() -> ();
-pub type FnMonitorContendedEntered = fn() -> ();
+pub type FnMonitorWait = fn(thread: Thread) -> ();
+pub type FnMonitorEntered = fn(thread: Thread) -> ();
+pub type FnMonitorContendedEnter = fn(thread: Thread) -> ();
+pub type FnMonitorContendedEntered = fn(thread: Thread) -> ();
 
 #[allow(dead_code)]
 pub enum VMEvent {
@@ -196,7 +196,7 @@ unsafe extern "C" fn local_cb_monitor_wait(jvmti_env: *mut jvmtiEnv, jni_env: *m
         Some(function) => {
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            function()
+            function(current_thread)
         },
         None => println!("No dynamic callback method was found for monitor wait")
     }
@@ -208,7 +208,7 @@ unsafe extern "C" fn local_cb_monitor_entered(jvmti_env: *mut jvmtiEnv, jni_env:
         Some(function) => {
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            function()
+            function(current_thread)
         },
         None => println!("No dynamic callback method was found for monitor entered")
     }
@@ -220,7 +220,7 @@ unsafe extern "C" fn local_cb_monitor_contended_enter(jvmti_env: *mut jvmtiEnv, 
         Some(function) => {
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            function()
+            function(current_thread)
         },
         None => println!("No dynamic callback method was found for monitor contended enter")
     }
@@ -232,7 +232,7 @@ unsafe extern "C" fn local_cb_monitor_contended_entered(jvmti_env: *mut jvmtiEnv
         Some(function) => {
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            function()
+            function(current_thread)
         },
         None => println!("No dynamic callback method was found for monitor contended entered")
     }

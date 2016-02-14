@@ -66,6 +66,47 @@ impl Agent {
         }
     }
 
+    pub fn on_monitor_wait(&mut self, handler: Option<FnMonitorWait>) -> () {
+        self.callbacks.monitor_wait = handler;
+
+        if handler.is_some() {
+            self.capabilities.can_generate_monitor_events = true;
+        } else {
+            self.capabilities.can_generate_monitor_events = false;
+        }
+
+    }
+
+    pub fn on_monitor_enter(&mut self, handler: Option<FnMonitorEntered>) -> () {
+        self.callbacks.monitor_entered = handler;
+
+        if handler.is_some() {
+            self.capabilities.can_generate_monitor_events = true;
+        } else {
+            self.capabilities.can_generate_monitor_events = false;
+        }
+    }
+
+    pub fn on_monitor_contended_wait(&mut self, handler: Option<FnMonitorContendedEnter>) -> () {
+        self.callbacks.monitor_contended_enter = handler;
+
+        if handler.is_some() {
+            self.capabilities.can_generate_monitor_events = true;
+        } else {
+            self.capabilities.can_generate_monitor_events = false;
+        }
+    }
+
+    pub fn on_monitor_contended_enter(&mut self, handler: Option<FnMonitorContendedEntered>) -> () {
+        self.callbacks.monitor_contended_entered = handler;
+
+        if handler.is_some() {
+            self.capabilities.can_generate_monitor_events = true;
+        } else {
+            self.capabilities.can_generate_monitor_events = false;
+        }
+    }
+
     pub fn on_vm_object_alloc(&mut self, handler: Option<FnVMObjectAlloc>) -> () {
         self.callbacks.vm_object_alloc = handler;
 
@@ -108,6 +149,11 @@ impl Agent {
                 env.set_event_notification_mode(VMEvent::MethodExit, self.callbacks.method_exit.is_some());
                 env.set_event_notification_mode(VMEvent::Exception, self.callbacks.exception.is_some());
                 env.set_event_notification_mode(VMEvent::ExceptionCatch, self.callbacks.exception_catch.is_some());
+                env.set_event_notification_mode(VMEvent::ExceptionCatch, self.callbacks.exception_catch.is_some());
+                env.set_event_notification_mode(VMEvent::MonitorWait, self.callbacks.monitor_wait.is_some());
+                env.set_event_notification_mode(VMEvent::MonitorWaited, self.callbacks.monitor_entered.is_some());
+                env.set_event_notification_mode(VMEvent::MonitorContendedEnter, self.callbacks.monitor_contended_enter.is_some());
+                env.set_event_notification_mode(VMEvent::MonitorContendedEntered, self.callbacks.monitor_contended_entered.is_some());
             },
             Some(err) => println!("Error during setting event callbacks: {}", translate_error(&err))
         }
