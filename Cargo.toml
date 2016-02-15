@@ -1,6 +1,6 @@
 [package]
 name = "jvmti"
-version = "0.2.0"
+version = "0.3.0"
 authors = [ "Alex Pecsi <alex.pecsi@gmail.com>" ]
 description = "Rust bindings for the JVM TI"
 keywords = [ "java", "jvm", "jvmti", "debugger" ]
@@ -10,11 +10,6 @@ crate_type = [ "dylib", "rlib" ]
 
 [dependencies]
 libc = "0.2.*"
-log = "0.3.*"
-#chrono = "0.2"
 time = "0.1.34"
-regex = "0.1.*"
 lazy_static = "0.1.*"
 
-[dependencies.zmq]
-git = "https://github.com/erickt/rust-zmq.git"
