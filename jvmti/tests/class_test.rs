@@ -1,0 +1,36 @@
+extern crate jvmti;
+
+#[cfg(test)]
+mod tests {
+
+    use jvmti::class::Class;
+    use jvmti::class::JavaType;
+    use std::ptr;
+
+    #[test]
+    fn primitive_types_are_parsed_correctly() {
+        assert_eq!(Some(JavaType::Void), JavaType::parse("V"));
+        assert_eq!(Some(JavaType::Int), JavaType::parse("I"));
+        assert_eq!(Some(JavaType::Boolean), JavaType::parse("Z"));
+        assert_eq!(Some(JavaType::Short), JavaType::parse("S"));
+        assert_eq!(Some(JavaType::Long), JavaType::parse("L"));
+    }
+
+    #[test]
+    fn arrays_are_parsed_correctly() {
+        assert_eq!(Some(JavaType::Array(Box::new(JavaType::Int))), JavaType::parse("[I"));
+        assert_eq!(Some(JavaType::Array(Box::new(JavaType::Boolean))), JavaType::parse("[Z"));
+        assert_eq!(Some(JavaType::Array(Box::new(JavaType::Array(Box::new(JavaType::Int))))), JavaType::parse("[[I"));
+    }
+
+    #[test]
+    fn classes_are_parsed_correctly() {
+        assert_eq!(Some(JavaType::Class("Lso/blacklight/Test;")), JavaType::parse("Lso/blacklight/Test;"));
+        assert_eq!(Some(JavaType::Class("LTest;")), JavaType::parse("LTest;"));
+    }
+
+    #[test]
+    fn arrays_of_classes_are_parsed() {
+        assert_eq!(Some(JavaType::Array(Box::new(JavaType::Class("Lso/blacklight/Test;")))), JavaType::parse("[Lso/blacklight/Test;"));
+    }
+}

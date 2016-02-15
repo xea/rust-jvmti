@@ -14,7 +14,6 @@ pub mod native;
 /// Turns a C-style string pointer into a String instance. If the string pointer points to NULL,
 /// then a "(NULL)" string will be returned.
 ///
-#[allow(dead_code)] // TODO remove this once it's not needed any more
 pub fn stringify(input: MutString) -> String {
     unsafe {
         if input != ptr::null_mut() {
