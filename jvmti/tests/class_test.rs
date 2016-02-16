@@ -33,4 +33,14 @@ mod tests {
     fn arrays_of_classes_are_parsed() {
         assert_eq!(Some(JavaType::Array(Box::new(JavaType::Class("Lso/blacklight/Test;")))), JavaType::parse("[Lso/blacklight/Test;"));
     }
+
+    #[test]
+    fn java_types_are_stringified() {
+        assert_eq!("void", JavaType::to_string(&JavaType::Void));
+        assert_eq!("int", JavaType::to_string(&JavaType::Int));
+        assert_eq!("int[]", JavaType::to_string(&JavaType::Array(Box::new(JavaType::Int))));
+        assert_eq!("so.blacklight.Test", JavaType::to_string(&JavaType::Class("Lso/blacklight/Test;")));
+        assert_eq!("so.blacklight.Test[]", JavaType::to_string(&JavaType::Array(Box::new(JavaType::Class("Lso/blacklight/Test;")))));
+        assert_eq!("short[][]", JavaType::to_string(&JavaType::Array(Box::new(JavaType::Array(Box::new(JavaType::Short))))));
+    }
 }
