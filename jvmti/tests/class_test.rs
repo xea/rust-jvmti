@@ -3,9 +3,7 @@ extern crate jvmti;
 #[cfg(test)]
 mod tests {
 
-    use jvmti::class::Class;
     use jvmti::class::JavaType;
-    use std::ptr;
 
     #[test]
     fn primitive_types_are_parsed_correctly() {

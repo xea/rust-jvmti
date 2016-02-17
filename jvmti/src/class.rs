@@ -1,5 +1,4 @@
 use super::native::JavaClass;
-use std::ptr;
 
 ///
 /// Enumeration of the possible Java types.
@@ -89,9 +88,7 @@ pub struct Class<'a> {
 
 impl<'a> Class<'a> {
 
-    ///
     /// Constructs a new Class instance.
-    ///
     pub fn new(id: ClassId, signature: JavaType<'a>) -> Class {
         Class { id: id, signature: signature }
     }
