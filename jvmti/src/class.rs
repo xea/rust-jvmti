@@ -81,6 +81,9 @@ pub struct ClassId {
     pub native_id: JavaClass
 }
 
+///
+/// Represents a Java class
+///
 pub struct Class<'a> {
     pub id: ClassId,
     pub signature: JavaType<'a>
@@ -91,5 +94,10 @@ impl<'a> Class<'a> {
     /// Constructs a new Class instance.
     pub fn new(id: ClassId, signature: JavaType<'a>) -> Class {
         Class { id: id, signature: signature }
+    }
+
+    /// Returns the readable name of this class
+    pub fn to_string(&self) -> String {
+        JavaType::to_string(&self.signature)
     }
 }

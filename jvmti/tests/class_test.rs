@@ -3,7 +3,8 @@ extern crate jvmti;
 #[cfg(test)]
 mod tests {
 
-    use jvmti::class::JavaType;
+    use jvmti::class::{Class, ClassId, JavaType};
+    use std::ptr;
 
     #[test]
     fn primitive_types_are_parsed_correctly() {
@@ -40,5 +41,11 @@ mod tests {
         assert_eq!("so.blacklight.Test", JavaType::to_string(&JavaType::Class("Lso/blacklight/Test;")));
         assert_eq!("so.blacklight.Test[]", JavaType::to_string(&JavaType::Array(Box::new(JavaType::Class("Lso/blacklight/Test;")))));
         assert_eq!("short[][]", JavaType::to_string(&JavaType::Array(Box::new(JavaType::Array(Box::new(JavaType::Short))))));
+    }
+
+    #[test]
+    fn class_to_string_returns_the_fully_qualified_class_name() {
+        assert_eq!("so.blacklight.Test", Class::new(ClassId { native_id: ptr::null_mut() }, JavaType::Class("Lso/blacklight/Test;")).to_string());
+        assert_eq!("so.blacklight.Test$1", Class::new(ClassId { native_id: ptr::null_mut() }, JavaType::Class("Lso/blacklight/Test$1;")).to_string());
     }
 }

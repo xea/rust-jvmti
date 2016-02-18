@@ -9,3 +9,6 @@ jvmti = { path = "../jvmti" }
 libc = "0.2.*"
 time = "0.1.34"
 lazy_static = "0.1.*"
+
+[lib]
+crate_type = [ "rlib", "dylib" ]

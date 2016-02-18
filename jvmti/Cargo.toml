@@ -6,7 +6,7 @@ description = "Rust bindings for the JVM TI"
 keywords = [ "java", "jvm", "jvmti", "debugger" ]
 
 [lib]
-crate_type = [ "dylib", "rlib" ]
+crate_type = [ "rlib" ]
 
 [dependencies]
 libc = "0.2.*"
