@@ -1,6 +1,7 @@
 extern crate jvmti;
 
-mod class_test;
+mod class;
+mod emulator;
 
 #[cfg(test)]
 mod tests {

@@ -10,5 +10,5 @@ crate_type = [ "rlib" ]
 
 [dependencies]
 libc = "0.2.*"
-time = "0.1.34"
+time = "0.1.*"
 lazy_static = "0.1.*"

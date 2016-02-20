@@ -4,10 +4,13 @@ use std::ptr;
 use std::ffi::CStr;
 use self::native::MutString;
 
+pub mod agent_capabilities;
 pub mod class;
+pub mod emulator;
 pub mod environment;
 /// We're exporting native here, so that client code can access native types until this crate
 /// provides a stable interface to all JVM functions
+pub mod event;
 pub mod native;
 
 ///
