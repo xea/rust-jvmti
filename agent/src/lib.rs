@@ -1,5 +1,6 @@
 extern crate jvmti;
 
+use jvmti::capabilities::Capabilities;
 use jvmti::native::{JavaVMPtr, MutString, VoidPtr, ReturnValue};
 use handler::FnMethodEntry;
 
@@ -14,6 +15,7 @@ mod handler;
 pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr) -> ReturnValue {
 
     let agent = Agent::new(vm);
+    agent.on_method_entry(Some(on_method_entry));
 
     return 0;
 }
@@ -31,7 +33,8 @@ pub extern fn Agent_OnUnload(vm: JavaVMPtr) {
 ///
 pub struct Agent {
 
-    vm: JavaVMPtr
+    vm: JavaVMPtr,
+    capabilities: Capabilities
 }
 
 impl Agent {
@@ -47,4 +50,8 @@ impl Agent {
     pub fn on_method_entry(&self, handler: Option<FnMethodEntry>) {
 
     }
+}
+
+fn on_method_entry() -> () {
+
 }

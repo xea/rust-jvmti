@@ -4,7 +4,7 @@ use std::ptr;
 use std::ffi::CStr;
 use self::native::MutString;
 
-pub mod agent_capabilities;
+pub mod capabilities;
 pub mod class;
 pub mod emulator;
 pub mod environment;

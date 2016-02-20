@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use super::native::jvmti_native::*;
 
 #[derive(Default, Clone)]
-pub struct AgentCapabilities {
+pub struct Capabilities {
     /// Can set and get tags
     pub can_tag_objects: bool,
     /// Can set watchpoints on field modification
@@ -92,11 +92,58 @@ pub struct AgentCapabilities {
     pub can_generate_resource_exhaustion_threads_events: bool
 }
 
-impl AgentCapabilities {
+impl Capabilities {
 
-    pub fn new() -> AgentCapabilities {
-        AgentCapabilities {
+    pub fn new() -> Capabilities {
+        Capabilities {
             ..Default::default()
+        }
+    }
+
+    pub fn from_native(native_caps: &jvmtiCapabilities) -> Capabilities {
+        Capabilities {
+            can_tag_objects:                            native_caps._bindgen_bitfield_1_ & 0x00000001 > 0,
+            can_generate_field_modification_events:     native_caps._bindgen_bitfield_1_ & 0x00000002 > 0,
+            can_generate_field_access_events:           native_caps._bindgen_bitfield_1_ & 0x00000004 > 0,
+            can_get_bytecodes:                          native_caps._bindgen_bitfield_1_ & 0x00000008 > 0,
+            can_get_synthetic_attribute:                native_caps._bindgen_bitfield_1_ & 0x00000010 > 0,
+            can_get_owned_monitor_info:                 native_caps._bindgen_bitfield_1_ & 0x00000020 > 0,
+            can_get_current_contended_monitor:          native_caps._bindgen_bitfield_1_ & 0x00000040 > 0,
+            can_get_monitor_info:                       native_caps._bindgen_bitfield_1_ & 0x00000080 > 0,
+            can_pop_frame:                              native_caps._bindgen_bitfield_1_ & 0x00000100 > 0,
+            can_redefine_classes:                       native_caps._bindgen_bitfield_1_ & 0x00000200 > 0,
+            can_signal_thread:                          native_caps._bindgen_bitfield_1_ & 0x00000400 > 0,
+            can_get_source_file_name:                   native_caps._bindgen_bitfield_1_ & 0x00000800 > 0,
+            can_get_line_numbers:                       native_caps._bindgen_bitfield_1_ & 0x00001000 > 0,
+            can_get_source_debug_extension:             native_caps._bindgen_bitfield_1_ & 0x00002000 > 0,
+            can_access_local_variables:                 native_caps._bindgen_bitfield_1_ & 0x00004000 > 0,
+            can_maintain_original_method_order:         native_caps._bindgen_bitfield_1_ & 0x00008000 > 0,
+            can_generate_single_step_events:            native_caps._bindgen_bitfield_1_ & 0x00010000 > 0,
+            can_generate_exception_events:              native_caps._bindgen_bitfield_1_ & 0x00020000 > 0,
+            can_generate_frame_pop_events:              native_caps._bindgen_bitfield_1_ & 0x00040000 > 0,
+            can_generate_breakpoint_events:             native_caps._bindgen_bitfield_1_ & 0x00080000 > 0,
+            can_suspend:                                native_caps._bindgen_bitfield_1_ & 0x00100000 > 0,
+            can_redefine_any_class:                     native_caps._bindgen_bitfield_1_ & 0x00200000 > 0,
+            can_get_current_thread_cpu_time:            native_caps._bindgen_bitfield_1_ & 0x00400000 > 0,
+            can_get_thread_cpu_time:                    native_caps._bindgen_bitfield_1_ & 0x00800000 > 0,
+            can_generate_method_entry_events:           native_caps._bindgen_bitfield_1_ & 0x01000000 > 0,
+            can_generate_method_exit_events:            native_caps._bindgen_bitfield_1_ & 0x02000000 > 0,
+            can_generate_all_class_hook_events:         native_caps._bindgen_bitfield_1_ & 0x04000000 > 0,
+            can_generate_compiled_method_load_events:   native_caps._bindgen_bitfield_1_ & 0x08000000 > 0,
+            can_generate_monitor_events:                native_caps._bindgen_bitfield_1_ & 0x10000000 > 0,
+            can_generate_vm_object_alloc_events:        native_caps._bindgen_bitfield_1_ & 0x20000000 > 0,
+            can_generate_native_method_bind_events:     native_caps._bindgen_bitfield_1_ & 0x40000000 > 0,
+            can_generate_garbage_collection_events:     native_caps._bindgen_bitfield_1_ & 0x80000000 > 0,
+
+            can_generate_object_free_events:            native_caps._bindgen_bitfield_2_ & 0x00000001 > 0,
+            can_force_early_return:                     native_caps._bindgen_bitfield_2_ & 0x00000002 > 0,
+            can_get_owned_monitor_stack_depth_info:     native_caps._bindgen_bitfield_2_ & 0x00000004 > 0,
+            can_get_constant_pool:                      native_caps._bindgen_bitfield_2_ & 0x00000008 > 0,
+            can_set_native_method_prefix:               native_caps._bindgen_bitfield_2_ & 0x00000010 > 0,
+            can_retransform_classes:                    native_caps._bindgen_bitfield_2_ & 0x00000020 > 0,
+            can_retransform_any_class:                  native_caps._bindgen_bitfield_2_ & 0x00000040 > 0,
+            can_generate_resource_exhaustion_heap_events: native_caps._bindgen_bitfield_2_ & 0x00000080 > 0,
+            can_generate_resource_exhaustion_threads_events: native_caps._bindgen_bitfield_2_ & 0x00000100 > 0,
         }
     }
 
