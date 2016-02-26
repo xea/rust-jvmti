@@ -1,14 +1,11 @@
 [package]
-name = "void"
-version = "0.3.0"
+name = "jvmti"
+version = "0.4.0"
 authors = [ "Alex Pecsi <xea@blacklight.so>" ]
 description = "JVM Monitoring and profiling agent"
 keywords = [ "java", "jvm", "jvmti", "debugger" ]
 
 [lib]
 crate_type = [ "dylib", "rlib" ]
-path = "agent/src/lib.rs"
 
 [dependencies]
-jvmti = { path = "jvmti" }
-agent = { path = "agent" }
