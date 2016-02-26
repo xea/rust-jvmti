@@ -2,9 +2,12 @@ extern crate jvmti;
 
 use jvmti::capabilities::Capabilities;
 use jvmti::native::{JavaVMPtr, MutString, VoidPtr, ReturnValue};
-use handler::FnMethodEntry;
+use context::Context;
+use handler::{FnMethodEntry, FnMethodExit};
 
+mod context;
 mod handler;
+
 
 ///
 /// `Agent_OnLoad` is the actual entry point of the agent code and it is directly called by the
@@ -16,6 +19,9 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
 
     let agent = Agent::new(vm);
     agent.on_method_entry(Some(on_method_entry));
+    agent.on_method_exit(Some(on_method_exit));
+
+    agent.ready();
 
     return 0;
 }
@@ -40,7 +46,7 @@ pub struct Agent {
 impl Agent {
 
     pub fn new(vmptr: JavaVMPtr) -> Agent {
-        Agent { vm: vmptr }
+        Agent { vm: vmptr, capabilities: Capabilities::new() }
     }
 
     pub fn get_version(&self) -> u32 {
@@ -48,10 +54,25 @@ impl Agent {
     }
 
     pub fn on_method_entry(&self, handler: Option<FnMethodEntry>) {
+    }
+
+    pub fn on_method_exit(&self, handler: Option<FnMethodExit>) {
+
+    }
+
+    pub fn ready(&self) {
+        self.update_capabilities();
+    }
+
+    fn update_capabilities(&self) {
 
     }
 }
 
-fn on_method_entry() -> () {
+fn on_method_entry(context: Context) -> () {
+
+}
+
+fn on_method_exit(context: Context) -> () {
 
 }
