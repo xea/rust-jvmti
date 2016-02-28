@@ -1,6 +1,7 @@
 use super::event::*;
 use super::native::*;
 use super::native::jvmti_native::*;
+use libc::{c_char, c_uchar, c_void};
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
@@ -25,28 +26,28 @@ pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
 
 pub fn local_event_callbacks() -> jvmtiEventCallbacks {
     jvmtiEventCallbacks {
-        VMInit: None, //jvmtiEventVMInit,
-        VMDeath: None, //jvmtiEventVMDeath,
+        VMInit: Some(local_cb_vm_init), //jvmtiEventVMInit,
+        VMDeath: Some(local_cb_vm_death), //jvmtiEventVMDeath,
         ThreadStart: Some(local_cb_thread_start), //jvmtiEventThreadStart,
         ThreadEnd: Some(local_cb_thread_end), //jvmtiEventThreadEnd,
-        ClassFileLoadHook: None, //jvmtiEventClassFileLoadHook,
-        ClassLoad: None, //jvmtiEventClassLoad,
-        ClassPrepare: None, //jvmtiEventClassPrepare,
-        VMStart: None, //jvmtiEventVMStart,
+        ClassFileLoadHook: Some(local_cb_class_file_load_hook), //jvmtiEventClassFileLoadHook,
+        ClassLoad: Some(local_cb_class_load), //jvmtiEventClassLoad,
+        ClassPrepare: Some(local_cb_class_prepare), //jvmtiEventClassPrepare,
+        VMStart: Some(local_cb_vm_start), //jvmtiEventVMStart,
         Exception: Some(local_cb_exception), //jvmtiEventException,
         ExceptionCatch: Some(local_cb_exception_catch), //jvmtiEventExceptionCatch,
-        SingleStep: None, //jvmtiEventSingleStep,
-        FramePop: None, //jvmtiEventFramePop,
-        Breakpoint: None, //jvmtiEventBreakpoint,
-        FieldAccess: None, //jvmtiEventFieldAccess,
-        FieldModification: None, //jvmtiEventFieldModification,
+        SingleStep: Some(local_cb_single_step), //jvmtiEventSingleStep,
+        FramePop: Some(local_cb_frame_pop), //jvmtiEventFramePop,
+        Breakpoint: Some(local_cb_breakpoint), //jvmtiEventBreakpoint,
+        FieldAccess: Some(local_cb_field_access), //jvmtiEventFieldAccess,
+        FieldModification: Some(local_cb_field_modification), //jvmtiEventFieldModification,
         MethodEntry: Some(local_cb_method_entry), //jvmtiEventMethodEntry,
         MethodExit: Some(local_cb_method_exit), //jvmtiEventMethodExit,
-        NativeMethodBind: None, //jvmtiEventNativeMethodBind,
-        CompiledMethodLoad: None, //jvmtiEventCompiledMethodLoad,
-        CompiledMethodUnload: None, //jvmtiEventCompiledMethodUnload,
-        DynamicCodeGenerated: None, //jvmtiEventDynamicCodeGenerated,
-        DataDumpRequest: None, //jvmtiEventDataDumpRequest,
+        NativeMethodBind: Some(local_cb_native_method_bind), //jvmtiEventNativeMethodBind,
+        CompiledMethodLoad: Some(local_cb_compiled_method_load), //jvmtiEventCompiledMethodLoad,
+        CompiledMethodUnload: Some(local_cb_compiled_method_unload), //jvmtiEventCompiledMethodUnload,
+        DynamicCodeGenerated: Some(local_cb_dynamic_code_generated), //jvmtiEventDynamicCodeGenerated,
+        DataDumpRequest: Some(local_cb_data_dump_request), //jvmtiEventDataDumpRequest,
         reserved72: None, //jvmtiEventReserved,
         MonitorWait: Some(local_cb_monitor_wait), //jvmtiEventMonitorWait,
         MonitorWaited: Some(local_cb_monitor_waited), //jvmtiEventMonitorWaited,
@@ -55,10 +56,10 @@ pub fn local_event_callbacks() -> jvmtiEventCallbacks {
         reserved77: None, //jvmtiEventReserved,
         reserved78: None, //jvmtiEventReserved,
         reserved79: None, //jvmtiEventReserved,
-        ResourceExhausted: None, //jvmtiEventResourceExhausted,
-        GarbageCollectionStart: None, //jvmtiEventGarbageCollectionStart,
-        GarbageCollectionFinish: None, //jvmtiEventGarbageCollectionFinish,
-        ObjectFree: None, //jvmtiEventObjectFree,
+        ResourceExhausted: Some(local_cb_resource_exhausted), //jvmtiEventResourceExhausted,
+        GarbageCollectionStart: Some(local_cb_garbage_collection_start), //jvmtiEventGarbageCollectionStart,
+        GarbageCollectionFinish: Some(local_cb_garbage_collection_finish), //jvmtiEventGarbageCollectionFinish,
+        ObjectFree: Some(local_cb_object_free), //jvmtiEventObjectFree,
         VMObjectAlloc: Some(local_cb_vm_object_alloc) //jvmtiEventVMObjectAlloc,
     }
 }
@@ -205,11 +206,140 @@ unsafe extern "C" fn local_cb_monitor_contended_entered(jvmti_env: *mut jvmtiEnv
 }
 
 #[allow(unused_variables)]
-unsafe extern "C" fn local_cb_thread_end(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
+unsafe extern "C" fn local_cb_thread_start(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
+    match CALLBACK_TABLE.thread_start {
+        Some(function) => {
+
+        },
+        None => println!("No dynamic callback method was found for thread start events")
+    }
 
 }
 
 #[allow(unused_variables)]
-unsafe extern "C" fn local_cb_thread_start(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
+unsafe extern "C" fn local_cb_thread_end(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
+    match CALLBACK_TABLE.thread_end {
+        Some(function) => {
+
+        },
+        None => println!("No dynamic callback method was found for thread end events")
+    }
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_garbage_collection_start(jvmti_env: *mut jvmtiEnv) -> () {
+    match CALLBACK_TABLE.garbage_collection_start {
+        Some(function) => {
+
+        },
+        None => println!("No dynamic callback method was found for garbage collection start events")
+    }
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_garbage_collection_finish(jvmti_env: *mut jvmtiEnv) -> () {
+    match CALLBACK_TABLE.garbage_collection_finish {
+        Some(function) => {
+
+        },
+        None => println!("No dynamic callback method was found for garbage collection finish events")
+    }
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_breakpoint(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_class_file_load_hook(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, class_being_redefined: jclass, loader: jobject,
+                                                   name: *const c_char, protection_domain: jobject, class_data_len: jint, class_data: *const c_uchar,
+                                                   new_class_data_len: *mut jint, new_class_data: *mut *mut c_uchar) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_class_load(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, klass: jclass) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_class_prepare(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, klass: jclass) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_compiled_method_load(jvmti_env: *mut jvmtiEnv, method: jmethodID, code_size: jint, code_addr: *const c_void, map_length: jint,
+                                                   map: *const jvmtiAddrLocationMap, compile_info: *const c_void) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_compiled_method_unload(jvmti_env: *mut jvmtiEnv, method: jmethodID, code_addr: *const c_void) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_data_dump_request(jvmti_env: *mut jvmtiEnv) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_dynamic_code_generated(jvmti_env: *mut jvmtiEnv, name: *const c_char, address: *const c_void, length: jint) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_field_access(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation,
+                                                   field_klass: jclass, object: jobject, field: jfieldID) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_field_modification(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation,
+                                                   field_klass: jclass, object: jobject, field: jfieldID, signature_type: c_char, new_value: jvalue) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_frame_pop(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, was_popped_by_exception: jboolean) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_native_method_bind(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, address: *mut c_void,
+                                                   new_address_ptr: *mut *mut c_void) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_object_free(jvmti_env: *mut jvmtiEnv, tag: jlong) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_resource_exhausted(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, flags: jint, reserved: *const c_void, description: *const c_char) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_single_step(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_vm_death(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_vm_init(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
+
+}
+
+#[allow(unused_variables)]
+unsafe extern "C" fn local_cb_vm_start(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv) -> () {
 
 }
