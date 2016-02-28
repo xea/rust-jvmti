@@ -1,7 +1,27 @@
 use super::native::jvmti_native::*;
 
 pub type FnMethodEntry = fn() -> ();
+pub type FnMethodExit = fn() -> ();
+pub type FnVMInit = fn() -> ();
+pub type FnVMDeath = fn() -> ();
+pub type FnVMStart = fn() -> ();
+pub type FnVMObjectAlloc = fn() -> ();
+pub type FnThreadStart = fn() -> ();
+pub type FnThreadEnd = fn() -> ();
+pub type FnException = fn() -> ();
+pub type FnExceptionCatch = fn() -> ();
+pub type FnMonitorWait = fn() -> ();
+pub type FnMonitorWaited = fn() -> ();
+pub type FnMonitorContendedEnter = fn() -> ();
+pub type FnMonitorContendedEntered = fn() -> ();
+pub type FnFieldAccess = fn() -> ();
+pub type FnFieldModitification = fn() -> ();
+pub type FnGarbageCollectionStart = fn() -> ();
+pub type FnGarbageCollectionFinish = fn() -> ();
 
+///
+/// `VMEvent` represents events that can occur in JVM applications. These events can be handled
+/// using event handlers. For each event a corresponding handler will be called.
 ///
 #[allow(dead_code)]
 pub enum VMEvent {
@@ -26,7 +46,35 @@ pub enum VMEvent {
     // TODO add remaining events
 }
 
+///
+/// The `EventCallbacks` structure is used to define a set of event handlers that the JVM will call
+/// when an event fires.
+///
 #[derive(Default, Clone)]
 pub struct EventCallbacks {
-    pub method_entry: Option<FnMethodEntry>
+    pub vm_init: Option<FnVMInit>,
+    pub vm_death: Option<FnVMDeath>,
+    pub vm_object_alloc: Option<FnVMObjectAlloc>,
+    pub vm_start: Option<FnVMStart>,
+    pub method_entry: Option<FnMethodEntry>,
+    pub method_exit: Option<FnMethodExit>,
+    pub thread_start: Option<FnThreadStart>,
+    pub thread_end: Option<FnThreadEnd>,
+    pub exception: Option<FnException>,
+    pub exception_catch: Option<FnExceptionCatch>,
+    pub monitor_wait: Option<FnMonitorWait>,
+    pub monitor_waited: Option<FnMonitorWaited>,
+    pub monitor_contended_enter: Option<FnMonitorContendedEnter>,
+    pub monitor_contended_entered: Option<FnMonitorContendedEntered>,
+    pub field_access: Option<FnFieldAccess>,
+    pub field_modification: Option<FnFieldModitification>,
+    pub garbage_collection_start: Option<FnGarbageCollectionStart>,
+    pub garbage_collection_finish: Option<FnGarbageCollectionFinish>
+}
+
+impl EventCallbacks {
+
+    pub fn new() -> EventCallbacks {
+        EventCallbacks { ..Default::default() }
+    }
 }
