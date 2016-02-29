@@ -24,4 +24,22 @@ mod tests {
         let agent = Agent::new(get_vm_ptr());
         agent.shutdown();
     }
+
+    #[test]
+    fn agent_can_register_event_callback_method() {
+        let mut agent = Agent::new(get_vm_ptr());
+
+        assert_eq!(true, agent.on_method_entry(Some(test_callback_on_method_entry)));
+    }
+
+    #[test]
+    fn can_update_capabilities() {
+        let agent = Agent::new(get_vm_ptr());
+
+        agent.update();
+    }
+
+    fn test_callback_on_method_entry() {
+
+    }
 }

@@ -24,6 +24,9 @@ pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     garbage_collection_finish: None
 };
 
+///
+/// Generates a native `jvmtiEventCallbacks` structure holding the local extern even handler methods.
+///
 pub fn local_event_callbacks() -> jvmtiEventCallbacks {
     jvmtiEventCallbacks {
         VMInit: Some(local_cb_vm_init), //jvmtiEventVMInit,
@@ -165,7 +168,7 @@ unsafe extern "C" fn local_cb_monitor_wait(jvmti_env: *mut jvmtiEnv, jni_env: *m
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_monitor_waited(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, timed_out: jboolean) -> () {
-    match CALLBACK_TABLE.monitor_wait {
+    match CALLBACK_TABLE.monitor_waited {
         Some(function) => {
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));

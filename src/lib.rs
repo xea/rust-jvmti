@@ -13,6 +13,11 @@ pub mod event;
 pub mod event_handler;
 pub mod native;
 pub mod util;
+pub mod version;
+
+fn on_method_entry() {
+    println!("Method entry");
+}
 
 ///
 /// `Agent_OnLoad` is the actual entry point of the agent code and it is directly called by the
@@ -22,11 +27,10 @@ pub mod util;
 #[allow(non_snake_case, unused_variables)]
 pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr) -> ReturnValue {
 
-    let agent = Agent::new(vm);
-//    agent.on_method_entry(Some(on_method_entry));
-//    agent.on_method_exit(Some(on_method_exit));
+    let mut agent = Agent::new(vm);
+    agent.on_method_entry(Some(on_method_entry));
 
-//    agent.ready();
+    agent.update();
 
     return 0;
 }
