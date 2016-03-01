@@ -1,4 +1,5 @@
 extern crate jvmti;
+extern crate libc;
 
 mod agent;
 mod capabilities;

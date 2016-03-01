@@ -6,7 +6,7 @@ use super::native::JavaVMPtr;
 pub struct Agent {
     jvm: JVMAgent,
     capabilities: Capabilities,
-    callbacks: EventCallbacks
+    callbacks: EventCallbacks,
 }
 
 impl Agent {
@@ -15,7 +15,11 @@ impl Agent {
     /// Create a newly initialised but blank JVM `Agent` instance using the provided Java VM pointer.
     ///
     pub fn new(vm: JavaVMPtr) -> Agent {
-        Agent { jvm: JVMAgent::new(vm), capabilities: Capabilities::new(), callbacks: EventCallbacks::new() }
+        Agent {
+            jvm: JVMAgent::new(vm),
+            capabilities: Capabilities::new(),
+            callbacks: EventCallbacks::new(),
+        }
     }
 
     pub fn get_version(&self) -> u32 {
@@ -33,4 +37,5 @@ impl Agent {
         self.callbacks.method_entry = handler;
         true
     }
+
 }

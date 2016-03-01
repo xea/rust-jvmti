@@ -9,6 +9,7 @@ pub mod class;
 pub mod context;
 pub mod emulator;
 pub mod environment;
+pub mod error;
 pub mod event;
 pub mod event_handler;
 pub mod native;

@@ -3,6 +3,7 @@ use super::native::jvmti_native::*;
 ///
 /// Represents a Java API version structure.
 ///
+#[derive(Eq, PartialEq, Debug)]
 pub struct VersionNumber {
     pub major_version: u16,
     pub minor_version: u8,
@@ -24,5 +25,9 @@ impl VersionNumber {
             minor_version: minor_version,
             micro_version: micro_version
         }
+    }
+
+    pub fn unknown() -> VersionNumber {
+        VersionNumber { major_version: 0x7FFF, minor_version: 0xFF, micro_version: 0xFF }
     }
 }

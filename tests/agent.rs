@@ -39,6 +39,14 @@ mod tests {
         agent.update();
     }
 
+    #[test]
+    fn get_version_returns_enviroment_version_number() {
+        let agent = Agent::new(get_vm_ptr());
+
+        let version = agent.get_version();
+
+    }
+
     fn test_callback_on_method_entry() {
 
     }
