@@ -1,6 +1,6 @@
 use super::super::native::{JavaVMPtr, JVMTIEnvPtr};
 use super::super::native::jvmti_native::JVMTI_VERSION;
-use super::super::environment::jvmti::{JVMTI, JVMTIEnvironment};
+use super::super::environment::jvmti::{JVMTIEnvironment};
 use super::super::error::{wrap_error, NativeError};
 use libc::c_void;
 use std::ptr;

@@ -15,8 +15,12 @@ mod tests {
 
     #[test]
     fn agents_can_be_instantiated_using_new() {
-        let agent = Agent::new(get_vm_ptr());
-        assert_eq!(0xBABE, agent.get_version());
+        let mut emulator = Emulator::new();
+        let mut eptr: *mut Emulator = &mut emulator;
+        let vm_ptr = Emulator::transmute(&mut eptr);
+        let agent = Agent::new(vm_ptr);
+        let version = agent.get_version();
+        assert_eq!(0x20, version.micro_version);
     }
 
     #[test]
@@ -40,11 +44,19 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn get_version_returns_enviroment_version_number() {
-        let agent = Agent::new(get_vm_ptr());
+        println!("asdfasdfasdf");
+        let mut emulator = Emulator::new();
+        let mut eptr: *mut Emulator = &mut emulator;
+        let vm_ptr: JavaVMPtr = Emulator::transmute(&mut eptr);
+        let agent = Agent::new(vm_ptr);
 
         let version = agent.get_version();
 
+        assert_eq!(0x3FA, version.major_version);
+        assert_eq!(0x30, version.minor_version);
+        assert_eq!(0x20, version.micro_version);
     }
 
     fn test_callback_on_method_entry() {

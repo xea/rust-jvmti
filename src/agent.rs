@@ -1,7 +1,9 @@
 use super::capabilities::Capabilities;
 use super::environment::jvm::JVMAgent;
+use super::environment::jvmti::JVMTI;
 use super::event::{FnMethodEntry, EventCallbacks};
 use super::native::JavaVMPtr;
+use super::version::VersionNumber;
 
 pub struct Agent {
     jvm: JVMAgent,
@@ -22,8 +24,11 @@ impl Agent {
         }
     }
 
-    pub fn get_version(&self) -> u32 {
-        0xBABE
+    pub fn get_version(&self) -> VersionNumber {
+        match self.jvm.get_environment() {
+            Ok(env) => env.get_version_number(),
+            Err(_) => VersionNumber::unknown()
+        }
     }
 
     pub fn shutdown(&self) {

@@ -1,4 +1,6 @@
 extern crate libc;
+#[macro_use]
+extern crate lazy_static;
 
 use agent::Agent;
 use native::{JavaVMPtr, MutString, VoidPtr, ReturnValue};

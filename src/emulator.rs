@@ -4,10 +4,12 @@ use super::error::NativeError;
 use libc::{c_void, c_char, c_uchar};
 use std::mem::transmute;
 use std::ptr;
+
 ///
 /// Allows emulating a Java Virtual Machine.
 ///
 #[allow(non_snake_case)]
+#[derive(Debug)]
 pub struct Emulator {
 
     pub reserved0: *mut c_void,
@@ -43,8 +45,8 @@ impl Emulator {
     ///
     /// Convert a pointer to an `Emulator` instance to a `JavaVMPtr` instance.
     ///
-    pub fn transmute(emulator: *mut *mut Emulator) -> *mut *const JNIInvokeInterface {
-        unsafe { transmute(emulator) }
+    pub fn transmute(emu_ptr: *mut *mut Emulator) -> *mut *const JNIInvokeInterface {
+        unsafe { transmute(emu_ptr) }
     }
 
     pub fn backmute<'a>(vm: JavaVMPtr) -> &'a Emulator {
@@ -56,12 +58,16 @@ impl Emulator {
 
     #[allow(unused_variables)]
     pub fn get_emulated_environment(vm: JavaVMPtr, penv: *mut *mut c_void, version: jint) -> jint {
-
-        let jvmti_emulator = JVMTIEmulator::new();
+        unsafe {
+            *penv = (**vm).reserved0;
+        }
+/*
+        let jvmti_emulator = static_instances::JVM;
 
         unsafe {
             *penv = transmute(Box::new(jvmti_emulator));
         }
+        */
 
         NativeError::NoError as i32
     }
@@ -69,6 +75,7 @@ impl Emulator {
 
 /// Emulates the JVM TI API for internal testing purposes
 #[allow(non_snake_case)]
+#[derive(Debug)]
 pub struct JVMTIEmulator {
     pub reserved1: *mut c_void,
     pub SetEventNotificationMode: Option<fn(env: *mut jvmtiEnv, mode: jvmtiEventMode, event_type: jvmtiEvent, event_thread: jthread) -> jvmtiError>,
@@ -234,6 +241,20 @@ impl JVMTIEmulator {
             *version_ptr = 0x07FA3020;
         }
         NativeError::NoError as u32
+    }
+
+    ///
+    /// Convert a pointer to an `Emulator` instance to a `JavaVMPtr` instance.
+    ///
+    pub fn transmute(emulator: *mut *mut JVMTIEmulator) -> JVMTIEnvPtr {
+        unsafe { transmute(emulator) }
+    }
+
+    pub fn backmute<'a>(env: JVMTIEnvPtr) -> &'a JVMTIEmulator {
+        unsafe {
+            let env_ptr: *mut *mut JVMTIEmulator = transmute(env);
+            return &(**env_ptr);
+        }
     }
 
     pub fn new() -> JVMTIEmulator {

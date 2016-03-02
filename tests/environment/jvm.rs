@@ -8,10 +8,10 @@ mod tests {
     use jvmti::native::JavaVMPtr;
 
     #[test]
+    #[allow(unused_variables)]
     fn new_creates_a_new_jvm_instance() {
         let jvm = get_vm_ptr();
         let jvm_agent = JVMAgent::new(jvm);
-
     }
 
     fn get_vm_ptr() -> JavaVMPtr {
