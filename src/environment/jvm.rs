@@ -1,11 +1,13 @@
 use super::super::native::{JavaVMPtr, JVMTIEnvPtr};
 use super::super::native::jvmti_native::JVMTI_VERSION;
-use super::super::environment::jvmti::{JVMTIEnvironment};
+use super::super::environment::jvmti::{JVMTI, JVMTIEnvironment};
 use super::super::error::{wrap_error, NativeError};
 use libc::c_void;
 use std::ptr;
 
-
+pub trait JVMF {
+    fn get_environment(&self) -> Result<Box<JVMTI>, NativeError>;
+}
 ///
 /// `JVMAgent` represents a binding to the JVM.
 ///
@@ -19,10 +21,13 @@ impl JVMAgent {
     pub fn new(vm: JavaVMPtr) -> JVMAgent {
         JVMAgent { vm: vm }
     }
+}
+
+impl JVMF for JVMAgent {
 
     /// Return the native JVMTI environment if available (ie. the current thread is attached to it)
     /// otherwise return an error message.
-    pub fn get_environment(&self) -> Result<JVMTIEnvironment, NativeError> {
+    fn get_environment(&self) -> Result<Box<JVMTI>, NativeError> {
         unsafe {
             let mut void_ptr: *mut c_void = ptr::null_mut() as *mut c_void;
             let penv_ptr: *mut *mut c_void = &mut void_ptr as *mut *mut c_void;
@@ -32,7 +37,7 @@ impl JVMAgent {
                 NativeError::NoError => {
                     let env_ptr: JVMTIEnvPtr = *penv_ptr as JVMTIEnvPtr;
                     let env = JVMTIEnvironment::new(env_ptr);
-                    return Result::Ok(env);
+                    return Result::Ok(Box::new(env));
                 },
                 err @ _ => Result::Err(wrap_error(err as u32))
             }

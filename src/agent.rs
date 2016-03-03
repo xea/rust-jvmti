@@ -1,13 +1,13 @@
 use super::capabilities::Capabilities;
-use super::environment::jvm::JVMAgent;
+use super::environment::jvm::{JVMF, JVMAgent};
 use super::environment::jvmti::JVMTI;
 use super::event::{FnMethodEntry, EventCallbacks};
 use super::native::JavaVMPtr;
 use super::version::VersionNumber;
 
 pub struct Agent {
-    jvm: JVMAgent,
-    capabilities: Capabilities,
+    jvm: Box<JVMF>,
+    pub capabilities: Capabilities,
     callbacks: EventCallbacks,
 }
 
@@ -18,9 +18,19 @@ impl Agent {
     ///
     pub fn new(vm: JavaVMPtr) -> Agent {
         Agent {
-            jvm: JVMAgent::new(vm),
+            jvm: Box::new(JVMAgent::new(vm)),
             capabilities: Capabilities::new(),
             callbacks: EventCallbacks::new(),
+        }
+    }
+
+    ///
+    /// Create a newly initialised but blank JVM `Agent` instance using the provided JVM agent.
+    pub fn new_from(jvm: Box<JVMF>) -> Agent {
+        Agent {
+            jvm: jvm,
+            capabilities: Capabilities::new(),
+            callbacks: EventCallbacks::new()
         }
     }
 
