@@ -7,6 +7,7 @@ use std::ptr;
 
 pub trait JVMF {
     fn get_environment(&self) -> Result<Box<JVMTI>, NativeError>;
+    fn destroy(&self) -> Result<(), NativeError>;
 }
 ///
 /// `JVMAgent` represents a binding to the JVM.
@@ -40,6 +41,18 @@ impl JVMF for JVMAgent {
                     return Result::Ok(Box::new(env));
                 },
                 err @ _ => Result::Err(wrap_error(err as u32))
+            }
+        }
+    }
+
+    fn destroy(&self) -> Result<(), NativeError> {
+        unsafe {
+            let error = (**self.vm).DestroyJavaVM.unwrap()(self.vm) as u32;
+
+            if error == 0 {
+                Ok(())
+            } else {
+                Err(wrap_error(error))
             }
         }
     }

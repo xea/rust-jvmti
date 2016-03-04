@@ -27,4 +27,17 @@ mod tests {
         assert_eq!(false, recaps.can_redefine_classes);
     }
 
+    #[test]
+    fn merge_combines_enabled_flags_from_both_capabilities() {
+        let mut caps1 = Capabilities::new();
+        let mut caps2 = Capabilities::new();
+
+        caps1.can_pop_frame = true;
+        caps2.can_generate_monitor_events = true;
+
+        let caps_result = caps1.merge(&caps2);
+
+        assert_eq!(true, caps_result.can_pop_frame);
+        assert_eq!(true, caps_result.can_generate_monitor_events);
+    }
 }

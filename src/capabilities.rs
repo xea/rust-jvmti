@@ -211,4 +211,18 @@ impl Capabilities {
 
         return native_struct;
     }
+
+    pub fn merge(&self, other: &Capabilities) -> Capabilities {
+        let native1 = self.to_native();
+        let native2 = other.to_native();
+
+        let native_merged = jvmtiCapabilities {
+                _bindgen_bitfield_1_: native1._bindgen_bitfield_1_ | native2._bindgen_bitfield_1_,
+                _bindgen_bitfield_2_: native1._bindgen_bitfield_1_ | native2._bindgen_bitfield_2_,
+                _bindgen_bitfield_3_: native1._bindgen_bitfield_1_ | native2._bindgen_bitfield_3_,
+                _bindgen_bitfield_4_: native1._bindgen_bitfield_1_ | native2._bindgen_bitfield_4_
+        };
+
+        Capabilities::from_native(&native_merged)
+    }
 }

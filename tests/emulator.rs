@@ -1,27 +1,29 @@
 extern crate jvmti;
 extern crate libc;
 
-/*
 #[cfg(test)]
 mod tests {
 
-    use jvmti::emulator::Emulator;
-    use jvmti::native::JavaVMPtr;
-    use libc::c_void;
-    use std::ptr;
+    use jvmti::emulator::JVMEmulator;
+    use jvmti::environment::jvm::JVMF;
+    use jvmti::environment::jvmti::JVMTI;
+    use jvmti::version::VersionNumber;
 
     #[test]
-    fn initialize() {
-        let emulator = Emulator::new();
-        let jvm_ptr: JavaVMPtr = emulator.to_javavmptr();
+    fn get_environment_returns_a_valid_environment() {
+        let emu = JVMEmulator::new();
 
-        let mut env_ptr: *mut c_void = ptr::null_mut();
-        let env_ptr_ptr: *mut *mut c_void = &mut env_ptr;
+        assert!(emu.get_environment().is_ok());
+        let env = emu.get_environment().ok().unwrap();
+        assert_eq!(VersionNumber::unknown(), env.get_version_number());
+    }
 
-        unsafe {
-            assert!((**jvm_ptr).GetEnv.is_some());
-            assert_eq!(13, (**jvm_ptr).GetEnv.unwrap()(jvm_ptr, env_ptr_ptr, 13));
-        }
+    #[test]
+    fn get_version_number_returns_unknown_version() {
+        let emu = JVMEmulator::new();
+
+        assert!(emu.get_environment().is_ok());
+        let env = emu.get_environment().ok().unwrap();
+        assert_eq!(VersionNumber::unknown(), env.get_version_number());
     }
 }
-*/

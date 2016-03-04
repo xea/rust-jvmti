@@ -27,7 +27,9 @@ impl VersionNumber {
         }
     }
 
+    /// Return a magic version number that is most likely not used anywhere else to indicate an unknown
+    /// version number (for cases where the version number cannot be precisely determined)
     pub fn unknown() -> VersionNumber {
-        VersionNumber { major_version: 0x7FFF, minor_version: 0xFF, micro_version: 0xFF }
+        VersionNumber { major_version: 0x7FFF, minor_version: 0x8F, micro_version: 0x9F }
     }
 }

@@ -2,6 +2,7 @@ use self::jvmti::{JVMTI, JVMTIEnvironment};
 use self::jni::{JNI, JNIEnvironment};
 use super::capabilities::Capabilities;
 use super::class::ClassId;
+use super::error::NativeError;
 use super::native::JavaObject;
 use super::version::VersionNumber;
 
@@ -20,6 +21,10 @@ impl JVMTI for Environment {
 
     fn get_version_number(&self) -> VersionNumber {
         self.jvmti.get_version_number()
+    }
+
+    fn add_capabilities(&self, new_capabilities: Capabilities) -> Result<Capabilities, NativeError> {
+        self.jvmti.add_capabilities(new_capabilities)
     }
 
     fn get_capabilities(&self) -> Capabilities {
