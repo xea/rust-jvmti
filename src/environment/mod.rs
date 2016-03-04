@@ -23,7 +23,7 @@ impl JVMTI for Environment {
         self.jvmti.get_version_number()
     }
 
-    fn add_capabilities(&self, new_capabilities: Capabilities) -> Result<Capabilities, NativeError> {
+    fn add_capabilities(&mut self, new_capabilities: &Capabilities) -> Result<Capabilities, NativeError> {
         self.jvmti.add_capabilities(new_capabilities)
     }
 

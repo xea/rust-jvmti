@@ -6,7 +6,7 @@ use super::version::VersionNumber;
 
 /// Allows testing of JVM and JVMTI-related functions by emulating (mocking) a JVM agent.
 pub struct JVMEmulator {
-    capabilities: Capabilities
+    pub capabilities: Capabilities
 }
 
 impl JVMEmulator {
@@ -33,11 +33,13 @@ impl JVMTI for JVMEmulator {
         VersionNumber::unknown()
     }
 
-    fn add_capabilities(&self, new_capabilities: Capabilities) -> Result<Capabilities, NativeError> {
-        Ok(self.capabilities.merge(&new_capabilities))
+    fn add_capabilities(&mut self, new_capabilities: &Capabilities) -> Result<Capabilities, NativeError> {
+        let merged = self.capabilities.merge(&new_capabilities);
+        self.capabilities = merged;
+        Ok(self.capabilities.clone())
     }
 
     fn get_capabilities(&self) -> Capabilities {
-        Capabilities::new()
+        self.capabilities.clone()
     }
 }
