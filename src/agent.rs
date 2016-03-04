@@ -61,6 +61,7 @@ impl Agent {
     }
 
     pub fn update(&self) {
+        self.environment.add_capabilities(&self.capabilities);
     }
 
     pub fn on_method_entry(&mut self, handler: Option<FnMethodEntry>) {
