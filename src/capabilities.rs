@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::fmt::{Display, Error};
+use std::fmt::Formatter;
 use super::native::jvmti_native::*;
 
 #[derive(Default, Clone)]
@@ -224,5 +226,94 @@ impl Capabilities {
         };
 
         Capabilities::from_native(&native_merged)
+    }
+}
+
+impl Display for Capabilities {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "(\
+            can_tag_objects: {},\
+            can_generate_field_modification_events: {},\
+            can_generate_field_access_events: {},\
+            can_get_bytecodes: {},\
+            can_get_synthetic_attribute: {},\
+            can_get_owned_monitor_info: {},\
+            can_get_current_contended_monitor: {},\
+            can_get_monitor_info: {},\
+            can_pop_frame: {},\
+            can_redefine_classes: {},\
+            can_signal_thread: {},\
+            can_get_source_file_name: {},\
+            can_get_line_numbers: {},\
+            can_get_source_debug_extension: {},\
+            can_access_local_variables: {},\
+            can_maintain_original_method_order: {},\
+            can_generate_single_step_events: {},\
+            can_generate_exception_events: {},\
+            can_generate_frame_pop_events: {},\
+            can_generate_breakpoint_events: {},\
+            can_suspend: {},\
+            can_redefine_any_class: {},\
+            can_get_current_thread_cpu_time: {},\
+            can_get_thread_cpu_time: {},\
+            can_generate_method_entry_events: {},\
+            can_generate_method_exit_events: {},\
+            can_generate_all_class_hook_events: {},\
+            can_generate_compiled_method_load_events: {},\
+            can_generate_monitor_events: {},\
+            can_generate_vm_object_alloc_events: {},\
+            can_generate_native_method_bind_events: {},\
+            can_generate_garbage_collection_events: {},\
+            can_generate_object_free_events: {},\
+            can_force_early_return: {},\
+            can_get_owned_monitor_stack_depth_info: {},\
+            can_get_constant_pool: {},\
+            can_set_native_method_prefix: {},\
+            can_retransform_classes: {},\
+            can_retransform_any_class: {},\
+            can_generate_resource_exhaustion_heap_events: {},\
+            can_generate_resource_exhaustion_threads_events: {})",
+
+            self.can_tag_objects,
+            self.can_generate_field_modification_events,
+            self.can_generate_field_access_events,
+            self.can_get_bytecodes,
+            self.can_get_synthetic_attribute,
+            self.can_get_owned_monitor_info,
+            self.can_get_current_contended_monitor,
+            self.can_get_monitor_info,
+            self.can_pop_frame,
+            self.can_redefine_classes,
+            self.can_signal_thread,
+            self.can_get_source_file_name,
+            self.can_get_line_numbers,
+            self.can_get_source_debug_extension,
+            self.can_access_local_variables,
+            self.can_maintain_original_method_order,
+            self.can_generate_single_step_events,
+            self.can_generate_exception_events,
+            self.can_generate_frame_pop_events,
+            self.can_generate_breakpoint_events,
+            self.can_suspend,
+            self.can_redefine_any_class,
+            self.can_get_current_thread_cpu_time,
+            self.can_get_thread_cpu_time,
+            self.can_generate_method_entry_events,
+            self.can_generate_method_exit_events,
+            self.can_generate_all_class_hook_events,
+            self.can_generate_compiled_method_load_events,
+            self.can_generate_monitor_events,
+            self.can_generate_vm_object_alloc_events,
+            self.can_generate_native_method_bind_events,
+            self.can_generate_garbage_collection_events,
+            self.can_generate_object_free_events,
+            self.can_force_early_return,
+            self.can_get_owned_monitor_stack_depth_info,
+            self.can_get_constant_pool,
+            self.can_set_native_method_prefix,
+            self.can_retransform_classes,
+            self.can_retransform_any_class,
+            self.can_generate_resource_exhaustion_heap_events,
+            self.can_generate_resource_exhaustion_threads_events)
     }
 }

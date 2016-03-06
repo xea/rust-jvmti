@@ -2,17 +2,23 @@ use super::capabilities::Capabilities;
 use super::error::NativeError;
 use super::environment::jvm::JVMF;
 use super::environment::jvmti::{JVMTI};
+use super::event::{EventCallbacks, VMEvent};
 use super::version::VersionNumber;
+use std::collections::HashMap;
 
 /// Allows testing of JVM and JVMTI-related functions by emulating (mocking) a JVM agent.
 pub struct JVMEmulator {
-    pub capabilities: Capabilities
+    pub capabilities: Capabilities,
+    pub callbacks: EventCallbacks,
+    pub events: HashMap<VMEvent, bool>
 }
 
 impl JVMEmulator {
     pub fn new() -> JVMEmulator {
         JVMEmulator {
-            capabilities: Capabilities::new()
+            capabilities: Capabilities::new(),
+            callbacks: EventCallbacks::new(),
+            events: HashMap::new()
         }
     }
 }
@@ -41,5 +47,16 @@ impl JVMTI for JVMEmulator {
 
     fn get_capabilities(&self) -> Capabilities {
         self.capabilities.clone()
+    }
+
+    fn set_event_callbacks(&mut self, callbacks: EventCallbacks) -> Option<NativeError> {
+        self.callbacks = callbacks;
+
+        None
+    }
+
+    fn set_event_notification_mode(&mut self, event: VMEvent, mode: bool) -> Option<NativeError> {
+        self.events.insert(event, mode);
+        None
     }
 }

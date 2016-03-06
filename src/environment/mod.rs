@@ -3,6 +3,7 @@ use self::jni::{JNI, JNIEnvironment};
 use super::capabilities::Capabilities;
 use super::class::ClassId;
 use super::error::NativeError;
+use super::event::{EventCallbacks, VMEvent};
 use super::native::JavaObject;
 use super::version::VersionNumber;
 
@@ -29,6 +30,14 @@ impl JVMTI for Environment {
 
     fn get_capabilities(&self) -> Capabilities {
         self.jvmti.get_capabilities()
+    }
+
+    fn set_event_callbacks(&mut self, callbacks: EventCallbacks) -> Option<NativeError> {
+        self.jvmti.set_event_callbacks(callbacks)
+    }
+
+    fn set_event_notification_mode(&mut self, event: VMEvent, mode: bool) -> Option<NativeError> {
+        self.jvmti.set_event_notification_mode(event, mode)
     }
 }
 

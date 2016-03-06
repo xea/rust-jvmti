@@ -24,6 +24,7 @@ pub type FnGarbageCollectionFinish = fn() -> ();
 /// using event handlers. For each event a corresponding handler will be called.
 ///
 #[allow(dead_code)]
+#[derive(Hash, Eq, PartialEq)]
 pub enum VMEvent {
     VMInit = JVMTI_EVENT_VM_INIT as isize,
     VMDeath = JVMTI_EVENT_VM_DEATH as isize,

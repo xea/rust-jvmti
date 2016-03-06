@@ -60,8 +60,19 @@ impl Agent {
         self.jvm.destroy()
     }
 
-    pub fn update(&self) {
-        self.environment.add_capabilities(&self.capabilities);
+    pub fn update(&mut self) {
+        match self.environment.add_capabilities(&self.capabilities) {
+            Ok(caps) => {
+                println!("Current capabilities: {}", caps);
+                self.capabilities = caps;
+
+                match self.environment.set_event_callbacks(self.callbacks.clone()) {
+                    None => {},
+                    Some(error) => {}
+                }
+            },
+            Err(error) => println!("Couldn't update capabilities: {}", translate_error(&error))
+        }
     }
 
     pub fn on_method_entry(&mut self, handler: Option<FnMethodEntry>) {
