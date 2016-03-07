@@ -22,6 +22,18 @@ fn on_method_entry() {
     println!("Method entry");
 }
 
+fn on_method_exit() {
+    println!("Method exit");
+}
+
+fn on_thread_start() {
+    println!("Thread start");
+}
+
+fn on_thread_end() {
+    println!("Thread end");
+}
+
 ///
 /// `Agent_OnLoad` is the actual entry point of the agent code and it is directly called by the
 /// Java Virtual Machine.
@@ -32,6 +44,9 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
 
     let mut agent = Agent::new(vm);
     agent.on_method_entry(Some(on_method_entry));
+    agent.on_method_exit(Some(on_method_exit));
+    agent.on_thread_start(Some(on_thread_start));
+    agent.on_thread_end(Some(on_thread_end));
 
     agent.update();
 

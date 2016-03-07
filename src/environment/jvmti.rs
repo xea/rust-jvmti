@@ -79,8 +79,22 @@ impl JVMTI for JVMTIEnvironment {
         register_vm_init_callback(callbacks.vm_init);
         register_vm_start_callback(callbacks.vm_start);
         register_vm_death_callback(callbacks.vm_death);
+        register_vm_object_alloc_callback(callbacks.vm_object_alloc);
         register_method_entry_callback(callbacks.method_entry);
         register_method_exit_callback(callbacks.method_exit);
+        register_thread_start_callback(callbacks.thread_start);
+        register_thread_end_callback(callbacks.thread_end);
+        register_exception_callback(callbacks.exception);
+        register_exception_catch_callback(callbacks.exception_catch);
+        register_monitor_wait_callback(callbacks.monitor_wait);
+        register_monitor_waited_callback(callbacks.monitor_waited);
+        register_monitor_contended_enter_callback(callbacks.monitor_contended_enter);
+        register_monitor_contended_endered_callback(callbacks.monitor_contended_entered);
+        register_field_access_callback(callbacks.field_access);
+        register_field_modification_callback(callbacks.field_modification);
+        register_garbage_collection_start(callbacks.garbage_collection_start);
+        register_garbage_collection_finish(callbacks.garbage_collection_finish);
+
         let (native_callbacks, callbacks_size) = registered_callbacks();
 
         unsafe {
