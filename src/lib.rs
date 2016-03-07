@@ -8,7 +8,6 @@ use native::{JavaVMPtr, MutString, VoidPtr, ReturnValue};
 pub mod agent;
 pub mod capabilities;
 pub mod class;
-pub mod context;
 pub mod emulator;
 pub mod environment;
 pub mod error;

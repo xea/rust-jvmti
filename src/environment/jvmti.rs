@@ -98,7 +98,6 @@ impl JVMTI for JVMTIEnvironment {
         let (native_callbacks, callbacks_size) = registered_callbacks();
 
         unsafe {
-            // (**self.jvmti).SetEventCallbacks.unwrap()(self.jvmti, &callbacks.to_native(), size_of::<jvmtiEventCallbacks>() as i32)
             match wrap_error((**self.jvmti).SetEventCallbacks.unwrap()(self.jvmti, &native_callbacks, callbacks_size)) {
                 NativeError::NoError => None,
                 err @ _ => Some(err)

@@ -1,6 +1,5 @@
 use super::super::native::{JavaObject, JNIEnvPtr};
 use super::super::class::ClassId;
-use std::ptr;
 
 ///
 /// `JNI` defines a set of operatations the JVM offers through it's JNI interface.
@@ -11,6 +10,9 @@ pub trait JNI {
     fn get_object_class(&self, object_id: &JavaObject) -> ClassId;
 }
 
+///
+/// This is the native implementation of the `JNI` trait. Each trait method call is delegated
+/// to the represented JNI instance.
 pub struct JNIEnvironment {
 
     jni: JNIEnvPtr
@@ -19,6 +21,10 @@ pub struct JNIEnvironment {
 impl JNI for JNIEnvironment {
 
     fn get_object_class(&self, object_id: &JavaObject) -> ClassId {
-        ClassId { native_id: ptr::null_mut() }
+        unsafe {
+            let class_id = (**self.jni).GetObjectClass.unwrap()(self.jni, *object_id);
+
+            ClassId { native_id: class_id }
+        }
     }
 }
