@@ -1,6 +1,7 @@
 use super::super::capabilities::Capabilities;
 use super::super::error::{wrap_error, NativeError};
 use super::super::event::{EventCallbacks, VMEvent};
+use super::super::event_handler::*;
 use super::super::version::VersionNumber;
 use super::super::native::{JavaObject, JVMTIEnvPtr};
 use super::super::native::jvmti_native::jvmtiCapabilities;
@@ -75,8 +76,16 @@ impl JVMTI for JVMTIEnvironment {
     }
 
     fn set_event_callbacks(&mut self, callbacks: EventCallbacks) -> Option<NativeError> {
+        register_vm_init_callback(callbacks.vm_init);
+        let (native_callbacks, callbacks_size) = registered_callbacks();
 
-        None
+        unsafe {
+            // (**self.jvmti).SetEventCallbacks.unwrap()(self.jvmti, &callbacks.to_native(), size_of::<jvmtiEventCallbacks>() as i32)
+            match wrap_error((**self.jvmti).SetEventCallbacks.unwrap()(self.jvmti, &native_callbacks, callbacks_size)) {
+                NativeError::NoError => None,
+                err @ _ => Some(err)
+            }
+        }
     }
 
     fn set_event_notification_mode(&mut self, event: VMEvent, mode: bool) -> Option<NativeError> {

@@ -2,6 +2,7 @@ use super::event::*;
 use super::native::*;
 use super::native::jvmti_native::*;
 use libc::{c_char, c_uchar, c_void};
+use std::mem::size_of;
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
@@ -23,6 +24,82 @@ pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     garbage_collection_start: None,
     garbage_collection_finish: None
 };
+
+pub fn register_vm_init_callback(callback: Option<FnVMInit>) {
+    unsafe { CALLBACK_TABLE.vm_init = callback; }
+}
+
+pub fn register_vm_death_callback(callback: Option<FnVMDeath>) {
+    unsafe { CALLBACK_TABLE.vm_death = callback; }
+}
+
+pub fn register_vm_object_alloc_callback(callback: Option<FnVMObjectAlloc>) {
+    unsafe { CALLBACK_TABLE.vm_object_alloc = callback; }
+}
+
+pub fn register_vm_start_callback(callback: Option<FnVMStart>) {
+    unsafe { CALLBACK_TABLE.vm_start = callback; }
+}
+
+pub fn register_method_entry_callback(callback: Option<FnMethodEntry>) {
+    unsafe { CALLBACK_TABLE.method_entry = callback; }
+}
+
+pub fn register_method_exit_callback(callback: Option<FnMethodExit>) {
+    unsafe { CALLBACK_TABLE.method_exit = callback; }
+}
+
+pub fn register_exception_callback(callback: Option<FnException>) {
+    unsafe { CALLBACK_TABLE.exception = callback; }
+}
+
+pub fn register_exception_catch_callback(callback: Option<FnExceptionCatch>) {
+    unsafe { CALLBACK_TABLE.exception_catch = callback; }
+}
+
+pub fn register_monitor_wait_callback(callback: Option<FnMonitorWait>) {
+    unsafe { CALLBACK_TABLE.monitor_wait = callback; }
+}
+
+pub fn register_monitor_waited_callback(callback: Option<FnMonitorWaited>) {
+    unsafe { CALLBACK_TABLE.monitor_waited = callback; }
+}
+
+pub fn register_monitor_contended_enter_callback(callback: Option<FnMonitorContendedEnter>) {
+    unsafe { CALLBACK_TABLE.monitor_contended_enter = callback; }
+}
+
+pub fn register_monitor_contended_endered_callback(callback: Option<FnMonitorContendedEntered>) {
+    unsafe { CALLBACK_TABLE.monitor_contended_entered = callback; }
+}
+
+pub fn register_thread_start_callback(callback: Option<FnThreadStart>) {
+    unsafe { CALLBACK_TABLE.thread_start = callback; }
+}
+
+pub fn register_thread_end_callback(callback: Option<FnThreadEnd>) {
+    unsafe { CALLBACK_TABLE.thread_end = callback; }
+}
+
+pub fn register_field_access_callback(callback: Option<FnFieldAccess>) {
+    unsafe { CALLBACK_TABLE.field_access = callback; }
+}
+
+pub fn register_field_modification_callback(callback: Option<FnFieldModification>) {
+    unsafe { CALLBACK_TABLE.field_modification = callback; }
+}
+
+pub fn register_garbage_collection_start(callback: Option<FnGarbageCollectionStart>) {
+    unsafe { CALLBACK_TABLE.garbage_collection_start = callback;}
+}
+
+pub fn register_garbage_collection_finish(callback: Option<FnGarbageCollectionFinish>) {
+    unsafe { CALLBACK_TABLE.garbage_collection_finish = callback; }
+}
+
+pub fn registered_callbacks() -> (jvmtiEventCallbacks, i32) {
+    (local_event_callbacks(), size_of::<jvmtiEventCallbacks>() as i32)
+}
 
 ///
 /// Generates a native `jvmtiEventCallbacks` structure holding the local extern even handler methods.
@@ -67,6 +144,7 @@ pub fn local_event_callbacks() -> jvmtiEventCallbacks {
     }
 }
 
+
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, object_klass: jclass, size: jlong) -> () {
     match CALLBACK_TABLE.vm_object_alloc {
@@ -105,6 +183,7 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, was_popped_by_exception: jboolean, return_value: jvalue) -> () {
     match CALLBACK_TABLE.method_exit {
         Some(function) => {
+            function();
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let method_id = MethodId { native_id : method };
@@ -126,6 +205,7 @@ unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mu
 unsafe extern "C" fn local_cb_exception(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation, exception: JavaObject, catch_method: jmethodID, catch_location: jlocation) -> () {
     match CALLBACK_TABLE.exception {
         Some(function) => {
+            function();
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let exception_class: Class = env.get_object_class(exception);
@@ -141,6 +221,7 @@ unsafe extern "C" fn local_cb_exception(jvmti_env: *mut jvmtiEnv, jni_env: *mut 
 unsafe extern "C" fn local_cb_exception_catch(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation, exception: jobject) -> () {
     match CALLBACK_TABLE.exception_catch {
         Some(function) => {
+            function();
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
@@ -156,6 +237,7 @@ unsafe extern "C" fn local_cb_exception_catch(jvmti_env: *mut jvmtiEnv, jni_env:
 unsafe extern "C" fn local_cb_monitor_wait(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, timeout: jlong) -> () {
     match CALLBACK_TABLE.monitor_wait {
         Some(function) => {
+            function();
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
@@ -170,6 +252,7 @@ unsafe extern "C" fn local_cb_monitor_wait(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_monitor_waited(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, timed_out: jboolean) -> () {
     match CALLBACK_TABLE.monitor_waited {
         Some(function) => {
+            function();
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
@@ -184,6 +267,7 @@ unsafe extern "C" fn local_cb_monitor_waited(jvmti_env: *mut jvmtiEnv, jni_env: 
 unsafe extern "C" fn local_cb_monitor_contended_enter(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject) -> () {
     match CALLBACK_TABLE.monitor_contended_enter {
         Some(function) => {
+            function();
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
@@ -198,6 +282,7 @@ unsafe extern "C" fn local_cb_monitor_contended_enter(jvmti_env: *mut jvmtiEnv, 
 unsafe extern "C" fn local_cb_monitor_contended_entered(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject) -> () {
     match CALLBACK_TABLE.monitor_contended_entered {
         Some(function) => {
+            function();
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
@@ -212,6 +297,7 @@ unsafe extern "C" fn local_cb_monitor_contended_entered(jvmti_env: *mut jvmtiEnv
 unsafe extern "C" fn local_cb_thread_start(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
     match CALLBACK_TABLE.thread_start {
         Some(function) => {
+            function();
 
         },
         None => println!("No dynamic callback method was found for thread start events")
@@ -223,6 +309,7 @@ unsafe extern "C" fn local_cb_thread_start(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_thread_end(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
     match CALLBACK_TABLE.thread_end {
         Some(function) => {
+            function();
 
         },
         None => println!("No dynamic callback method was found for thread end events")
@@ -233,6 +320,7 @@ unsafe extern "C" fn local_cb_thread_end(jvmti_env: *mut jvmtiEnv, jni_env: *mut
 unsafe extern "C" fn local_cb_garbage_collection_start(jvmti_env: *mut jvmtiEnv) -> () {
     match CALLBACK_TABLE.garbage_collection_start {
         Some(function) => {
+            function();
 
         },
         None => println!("No dynamic callback method was found for garbage collection start events")
@@ -244,6 +332,7 @@ unsafe extern "C" fn local_cb_garbage_collection_start(jvmti_env: *mut jvmtiEnv)
 unsafe extern "C" fn local_cb_garbage_collection_finish(jvmti_env: *mut jvmtiEnv) -> () {
     match CALLBACK_TABLE.garbage_collection_finish {
         Some(function) => {
+            function();
 
         },
         None => println!("No dynamic callback method was found for garbage collection finish events")
@@ -297,13 +386,23 @@ unsafe extern "C" fn local_cb_dynamic_code_generated(jvmti_env: *mut jvmtiEnv, n
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_field_access(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation,
                                                    field_klass: jclass, object: jobject, field: jfieldID) -> () {
-
+    match CALLBACK_TABLE.field_access {
+        Some(function) => {
+            function();
+        },
+        None => println!("No dynamic callback method was found for field access events")
+    }
 }
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_field_modification(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, location: jlocation,
                                                    field_klass: jclass, object: jobject, field: jfieldID, signature_type: c_char, new_value: jvalue) -> () {
-
+    match CALLBACK_TABLE.field_modification {
+        Some(function) => {
+            function();
+        },
+        None => println!("No dynamic callback method was found for field modification events")
+    }
 }
 
 #[allow(unused_variables)]
@@ -335,14 +434,31 @@ unsafe extern "C" fn local_cb_single_step(jvmti_env: *mut jvmtiEnv, jni_env: *mu
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_vm_death(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv) -> () {
 
+    match CALLBACK_TABLE.vm_death {
+        Some(function) => {
+            function();
+        },
+        None => println!("No dynamic callback method was found for VM death events")
+    }
 }
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_vm_init(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
 
+    match CALLBACK_TABLE.vm_init {
+        Some(function) => {
+            function();
+        },
+        None => println!("No dynamic callback method was found for VM init events")
+    }
 }
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_vm_start(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv) -> () {
-
+    match CALLBACK_TABLE.vm_start {
+        Some(function) => {
+            function();
+        },
+        None => println!("No dynamic callback method was found for VM start events")
+    }
 }

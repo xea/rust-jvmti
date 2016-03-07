@@ -67,8 +67,27 @@ impl Agent {
                 self.capabilities = caps;
 
                 match self.environment.set_event_callbacks(self.callbacks.clone()) {
-                    None => {},
-                    Some(error) => {}
+                    None => {
+                        self.environment.set_event_notification_mode(VMEvent::VMObjectAlloc, self.callbacks.vm_object_alloc.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::VMStart, self.callbacks.vm_start.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::VMInit, self.callbacks.vm_init.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::VMDeath, self.callbacks.vm_death.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::MethodEntry, self.callbacks.method_entry.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::MethodExit, self.callbacks.method_exit.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::ThreadStart, self.callbacks.thread_start.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::ThreadEnd, self.callbacks.thread_end.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::Exception, self.callbacks.exception.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::ExceptionCatch, self.callbacks.exception_catch.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::MonitorWait, self.callbacks.monitor_wait.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::MonitorWaited, self.callbacks.monitor_waited.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::MonitorContendedEnter, self.callbacks.monitor_contended_enter.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::MonitorContendedEntered, self.callbacks.monitor_contended_entered.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::FieldAccess, self.callbacks.field_access.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::FieldModification, self.callbacks.field_modification.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::GarbageCollectionStart, self.callbacks.garbage_collection_start.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::GarbageCollectionFinish, self.callbacks.garbage_collection_finish.is_some());
+                    },
+                    Some(error) => println!("Couldn't register callbacks: {}", translate_error(&error))
                 }
             },
             Err(error) => println!("Couldn't update capabilities: {}", translate_error(&error))
@@ -169,7 +188,7 @@ impl Agent {
         self.capabilities.can_generate_field_access_events = handler.is_some();
     }
 
-    pub fn on_field_modification(&mut self, handler: Option<FnFieldModitification>) {
+    pub fn on_field_modification(&mut self, handler: Option<FnFieldModification>) {
         self.callbacks.field_modification = handler;
         self.capabilities.can_generate_field_modification_events = handler.is_some();
     }

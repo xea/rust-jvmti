@@ -15,7 +15,7 @@ pub type FnMonitorWaited = fn() -> ();
 pub type FnMonitorContendedEnter = fn() -> ();
 pub type FnMonitorContendedEntered = fn() -> ();
 pub type FnFieldAccess = fn() -> ();
-pub type FnFieldModitification = fn() -> ();
+pub type FnFieldModification = fn() -> ();
 pub type FnGarbageCollectionStart = fn() -> ();
 pub type FnGarbageCollectionFinish = fn() -> ();
 
@@ -68,7 +68,7 @@ pub struct EventCallbacks {
     pub monitor_contended_enter: Option<FnMonitorContendedEnter>,
     pub monitor_contended_entered: Option<FnMonitorContendedEntered>,
     pub field_access: Option<FnFieldAccess>,
-    pub field_modification: Option<FnFieldModitification>,
+    pub field_modification: Option<FnFieldModification>,
     pub garbage_collection_start: Option<FnGarbageCollectionStart>,
     pub garbage_collection_finish: Option<FnGarbageCollectionFinish>
 }
