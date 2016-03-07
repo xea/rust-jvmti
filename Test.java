@@ -36,7 +36,7 @@ public class Test {
     }
 
     public void spawnThreads() throws Exception {
-        System.out.println("---- Spawn Threds");
+        System.out.println("---- Spawn Threads");
         final Object object = new Object();
 
         final Runnable run = new Runnable() {

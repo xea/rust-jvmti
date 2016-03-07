@@ -149,6 +149,7 @@ pub fn local_event_callbacks() -> jvmtiEventCallbacks {
 unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, object_klass: jclass, size: jlong) -> () {
     match CALLBACK_TABLE.vm_object_alloc {
         Some(function) => {
+            function();
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             function(size as u64) },
@@ -162,6 +163,7 @@ unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env:
 unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, method: jmethodID) -> () {
     match CALLBACK_TABLE.method_entry {
         Some(function) => {
+            function();
             /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             let current_thread = env.get_thread_info(&thread).ok().unwrap();

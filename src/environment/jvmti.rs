@@ -77,6 +77,10 @@ impl JVMTI for JVMTIEnvironment {
 
     fn set_event_callbacks(&mut self, callbacks: EventCallbacks) -> Option<NativeError> {
         register_vm_init_callback(callbacks.vm_init);
+        register_vm_start_callback(callbacks.vm_start);
+        register_vm_death_callback(callbacks.vm_death);
+        register_method_entry_callback(callbacks.method_entry);
+        register_method_exit_callback(callbacks.method_exit);
         let (native_callbacks, callbacks_size) = registered_callbacks();
 
         unsafe {
