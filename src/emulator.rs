@@ -3,6 +3,8 @@ use super::error::NativeError;
 use super::environment::jvm::JVMF;
 use super::environment::jvmti::{JVMTI};
 use super::event::{EventCallbacks, VMEvent};
+use super::native::JavaThread;
+use super::thread::Thread;
 use super::version::VersionNumber;
 use std::collections::HashMap;
 
@@ -58,5 +60,9 @@ impl JVMTI for JVMEmulator {
     fn set_event_notification_mode(&mut self, event: VMEvent, mode: bool) -> Option<NativeError> {
         self.events.insert(event, mode);
         None
+    }
+
+    fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError> {
+        Err(NativeError::NoError)
     }
 }

@@ -18,6 +18,13 @@ pub struct JNIEnvironment {
     jni: JNIEnvPtr
 }
 
+impl JNIEnvironment {
+
+    pub fn new(jni: JNIEnvPtr) -> JNIEnvironment {
+        JNIEnvironment { jni: jni }
+    }
+}
+
 impl JNI for JNIEnvironment {
 
     fn get_object_class(&self, object_id: &JavaObject) -> ClassId {

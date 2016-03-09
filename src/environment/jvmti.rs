@@ -2,9 +2,11 @@ use super::super::capabilities::Capabilities;
 use super::super::error::{wrap_error, NativeError};
 use super::super::event::{EventCallbacks, VMEvent};
 use super::super::event_handler::*;
+use super::super::thread::{ThreadId, Thread};
+use super::super::util::stringify;
 use super::super::version::VersionNumber;
-use super::super::native::{JavaObject, JVMTIEnvPtr};
-use super::super::native::jvmti_native::jvmtiCapabilities;
+use super::super::native::{JavaObject, JavaThread, JVMTIEnvPtr};
+use super::super::native::jvmti_native::{Struct__jvmtiThreadInfo, jvmtiCapabilities};
 use std::ptr;
 
 pub trait JVMTI {
@@ -26,6 +28,7 @@ pub trait JVMTI {
     /// function and set_event_notification_mode are called does not affect the result.
     fn set_event_callbacks(&mut self, callbacks: EventCallbacks) -> Option<NativeError>;
     fn set_event_notification_mode(&mut self, event: VMEvent, mode: bool) -> Option<NativeError>;
+    fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError>;
 }
 
 pub struct JVMTIEnvironment {
@@ -113,6 +116,28 @@ impl JVMTI for JVMTIEnvironment {
             match wrap_error((**self.jvmti).SetEventNotificationMode.unwrap()(self.jvmti, mode_i, event as u32, sptr)) {
                 NativeError::NoError => None,
                 err @ _ => Some(err)
+            }
+        }
+    }
+
+    fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError> {
+        unsafe {
+            let mut info = Struct__jvmtiThreadInfo { name: ptr::null_mut(), priority: 0, is_daemon: 0, thread_group: ptr::null_mut(), context_class_loader: ptr::null_mut()};
+            let mut info_ptr = &mut info;
+
+            match (**self.jvmti).GetThreadInfo {
+                Some(func) => {
+                    match wrap_error(func(self.jvmti, *thread_id, info_ptr)) {
+                        NativeError::NoError => Ok(Thread {
+                            id: ThreadId { native_id: *thread_id },
+                            name: stringify((*info_ptr).name),
+                            priority: (*info_ptr).priority as u32,
+                            is_daemon: if (*info_ptr).is_daemon > 0 { true } else { false }
+                        }),
+                        err@_ => Err(err)
+                    }
+                },
+                None => Err(NativeError::NoError)
             }
         }
     }

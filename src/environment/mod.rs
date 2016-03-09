@@ -4,7 +4,8 @@ use super::capabilities::Capabilities;
 use super::class::ClassId;
 use super::error::NativeError;
 use super::event::{EventCallbacks, VMEvent};
-use super::native::JavaObject;
+use super::native::{JavaObject, JavaThread};
+use super::thread::Thread;
 use super::version::VersionNumber;
 
 
@@ -16,6 +17,13 @@ pub struct Environment {
 
     jvmti: JVMTIEnvironment,
     jni: JNIEnvironment
+}
+
+impl Environment {
+
+    pub fn new(jvmti: JVMTIEnvironment, jni: JNIEnvironment) -> Environment {
+        Environment { jvmti: jvmti, jni: jni }
+    }
 }
 
 impl JVMTI for Environment {
@@ -39,6 +47,10 @@ impl JVMTI for Environment {
     fn set_event_notification_mode(&mut self, event: VMEvent, mode: bool) -> Option<NativeError> {
         self.jvmti.set_event_notification_mode(event, mode)
     }
+
+    fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError> {
+        self.jvmti.get_thread_info(thread_id)
+    }
 }
 
 impl JNI for Environment {
@@ -46,4 +58,5 @@ impl JNI for Environment {
     fn get_object_class(&self, object_id: &JavaObject) -> ClassId {
         self.jni.get_object_class(object_id)
     }
+
 }

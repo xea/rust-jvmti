@@ -42,26 +42,27 @@ public class Test {
         final Runnable run = new Runnable() {
 
             public void run() {
-                System.out.println("[" + Thread.currentThread().getName() + "] Waiting for the monitor");
+//                System.out.println("    [" + Thread.currentThread().getName() + "] Waiting for the monitor");
 
                 synchronized(object) {
-                    System.out.println("[" + Thread.currentThread().getName() + "] Owning the monitor, before sleep");
+                    System.out.println("    [" + Thread.currentThread().getName() + "] Owning the monitor, before sleep");
                     try {
-                        Thread.sleep(5000);
+                        Thread.sleep(1000);
                     } catch (Exception e) {
                     }
-                    System.out.println("[" + Thread.currentThread().getName() + "] Owning the monitor, after sleep");
+//                    System.out.println("    [" + Thread.currentThread().getName() + "] Owning the monitor, after sleep");
                 }
 
-                System.out.println("[" + Thread.currentThread().getName() + "] After acquiring the monitor");
+//                System.out.println("    [" + Thread.currentThread().getName() + "] After acquiring the monitor");
             }
         };
 
         final List<Thread> threads = new ArrayList<Thread>();
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 4; i++) {
             final Thread thread = new Thread(run);
             threads.add(thread);
+            System.out.println("Starting thread: " + thread.getName());
         }
 
         for (final Thread thread : threads) {

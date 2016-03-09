@@ -1,3 +1,8 @@
+use super::context::Context;
+use super::environment::Environment;
+use super::environment::jni::JNIEnvironment;
+use super::environment::jvmti::{JVMTI, JVMTIEnvironment};
+use super::error::{translate_error, NativeError};
 use super::event::*;
 use super::native::*;
 use super::native::jvmti_native::*;
@@ -239,12 +244,16 @@ unsafe extern "C" fn local_cb_exception_catch(jvmti_env: *mut jvmtiEnv, jni_env:
 unsafe extern "C" fn local_cb_monitor_wait(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, timeout: jlong) -> () {
     match CALLBACK_TABLE.monitor_wait {
         Some(function) => {
-            function();
-            /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-            let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            function(current_thread)
-            */
+            match env.get_thread_info(&thread) {
+                Ok(current_thread) => function(current_thread),
+                Err(err) => {
+                    match err {
+                        NativeError::NotAvailable => { /* we're in the wrong phase, just ignore this */ },
+                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
+                    }
+                }
+            }
         },
         None => println!("No dynamic callback method was found for monitor wait")
     }
@@ -254,12 +263,16 @@ unsafe extern "C" fn local_cb_monitor_wait(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_monitor_waited(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, timed_out: jboolean) -> () {
     match CALLBACK_TABLE.monitor_waited {
         Some(function) => {
-            function();
-            /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-            let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            function(current_thread)
-            */
+            match env.get_thread_info(&thread) {
+                Ok(current_thread) => function(current_thread),
+                Err(err) => {
+                    match err {
+                        NativeError::NotAvailable => { /* we're in the wrong phase, just ignore this */ },
+                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
+                    }
+                }
+            }
         },
         None => println!("No dynamic callback method was found for monitor entered")
     }
@@ -269,12 +282,16 @@ unsafe extern "C" fn local_cb_monitor_waited(jvmti_env: *mut jvmtiEnv, jni_env: 
 unsafe extern "C" fn local_cb_monitor_contended_enter(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject) -> () {
     match CALLBACK_TABLE.monitor_contended_enter {
         Some(function) => {
-            function();
-            /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-            let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            function(current_thread)
-            */
+            match env.get_thread_info(&thread) {
+                Ok(current_thread) => function(current_thread),
+                Err(err) => {
+                    match err {
+                        NativeError::NotAvailable => { /* we're in the wrong phase, just ignore this */ },
+                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
+                    }
+                }
+            }
         },
         None => println!("No dynamic callback method was found for monitor contended enter")
     }
@@ -284,12 +301,16 @@ unsafe extern "C" fn local_cb_monitor_contended_enter(jvmti_env: *mut jvmtiEnv, 
 unsafe extern "C" fn local_cb_monitor_contended_entered(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject) -> () {
     match CALLBACK_TABLE.monitor_contended_entered {
         Some(function) => {
-            function();
-            /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-            let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            function(current_thread)
-            */
+            match env.get_thread_info(&thread) {
+                Ok(current_thread) => function(current_thread),
+                Err(err) => {
+                    match err {
+                        NativeError::NotAvailable => { /* we're in the wrong phase, just ignore this */ },
+                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
+                    }
+                }
+            }
         },
         None => println!("No dynamic callback method was found for monitor contended entered")
     }
@@ -299,8 +320,16 @@ unsafe extern "C" fn local_cb_monitor_contended_entered(jvmti_env: *mut jvmtiEnv
 unsafe extern "C" fn local_cb_thread_start(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
     match CALLBACK_TABLE.thread_start {
         Some(function) => {
-            function();
-
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            match env.get_thread_info(&thread) {
+                Ok(current_thread) => function(current_thread),
+                Err(err) => {
+                    match err {
+                        NativeError::NotAvailable => { /* we're in the wrong phase, just ignore this */ },
+                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
+                    }
+                }
+            }
         },
         None => println!("No dynamic callback method was found for thread start events")
     }
@@ -311,8 +340,16 @@ unsafe extern "C" fn local_cb_thread_start(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_thread_end(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
     match CALLBACK_TABLE.thread_end {
         Some(function) => {
-            function();
-
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            match env.get_thread_info(&thread) {
+                Ok(current_thread) => function(current_thread),
+                Err(err) => {
+                    match err {
+                        NativeError::NotAvailable => { /* wrong phase, just ignore this */ },
+                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
+                    }
+                }
+            }
         },
         None => println!("No dynamic callback method was found for thread end events")
     }

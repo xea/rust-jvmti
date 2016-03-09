@@ -1,4 +1,5 @@
 use super::native::jvmti_native::*;
+use super::thread::Thread;
 
 pub type FnMethodEntry = fn() -> ();
 pub type FnMethodExit = fn() -> ();
@@ -6,14 +7,14 @@ pub type FnVMInit = fn() -> ();
 pub type FnVMDeath = fn() -> ();
 pub type FnVMStart = fn() -> ();
 pub type FnVMObjectAlloc = fn() -> ();
-pub type FnThreadStart = fn() -> ();
-pub type FnThreadEnd = fn() -> ();
+pub type FnThreadStart = fn(thread: Thread) -> ();
+pub type FnThreadEnd = fn(thread: Thread) -> ();
 pub type FnException = fn() -> ();
 pub type FnExceptionCatch = fn() -> ();
-pub type FnMonitorWait = fn() -> ();
-pub type FnMonitorWaited = fn() -> ();
-pub type FnMonitorContendedEnter = fn() -> ();
-pub type FnMonitorContendedEntered = fn() -> ();
+pub type FnMonitorWait = fn(thread: Thread) -> ();
+pub type FnMonitorWaited = fn(thread: Thread) -> ();
+pub type FnMonitorContendedEnter = fn(thread: Thread) -> ();
+pub type FnMonitorContendedEntered = fn(thread: Thread) -> ();
 pub type FnFieldAccess = fn() -> ();
 pub type FnFieldModification = fn() -> ();
 pub type FnGarbageCollectionStart = fn() -> ();
