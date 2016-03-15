@@ -8,13 +8,11 @@ pub struct ThreadId {
     pub native_id: JavaThread,
 }
 
-unsafe impl Send for ThreadId {
-    
-}
+/// Marker trait implementation for `Send`
+unsafe impl Send for ThreadId { }
 
-unsafe impl Sync for ThreadId {
-
-}
+/// Marker trait implementation for `Sync`
+unsafe impl Sync for ThreadId { }
 
 pub struct Thread {
     pub id: ThreadId,

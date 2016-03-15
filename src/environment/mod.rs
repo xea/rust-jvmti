@@ -8,13 +8,13 @@ use super::native::{JavaObject, JavaThread};
 use super::thread::Thread;
 use super::version::VersionNumber;
 
-
 pub mod jni;
 pub mod jvm;
 pub mod jvmti;
 
+/// `Environment` combines the functionality of both `JNI` and `JVMTI` by wrapping an instance of
+/// both and delegating the method calls to their corresponding recipients.
 pub struct Environment {
-
     jvmti: JVMTIEnvironment,
     jni: JNIEnvironment
 }

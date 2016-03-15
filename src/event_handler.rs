@@ -1,11 +1,12 @@
-use super::context::Context;
 use super::environment::Environment;
-use super::environment::jni::JNIEnvironment;
+use super::environment::jni::{JNI, JNIEnvironment};
 use super::environment::jvmti::{JVMTI, JVMTIEnvironment};
 use super::error::{translate_error, NativeError};
 use super::event::*;
+use super::method::MethodId;
 use super::native::*;
 use super::native::jvmti_native::*;
+use super::runtime::ObjectAllocationEvent;
 use libc::{c_char, c_uchar, c_void};
 use std::mem::size_of;
 
@@ -151,14 +152,24 @@ pub fn local_event_callbacks() -> jvmtiEventCallbacks {
 
 
 #[allow(unused_variables)]
-unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, object_klass: jclass, size: jlong) -> () {
+unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, object: JavaObject, object_klass: JavaClass, size: jlong) -> () {
     match CALLBACK_TABLE.vm_object_alloc {
         Some(function) => {
-            function();
-            /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-            function(size as u64) },
-            */
+            match env.get_thread_info(&thread) {
+                Ok(current_thread) => {
+                    let class_id = env.get_object_class(&object);
+                    let event = ObjectAllocationEvent { class_id: class_id, size: size };
+
+                    function(current_thread, event)
+                },
+                Err(err) => {
+                    match err {
+                        NativeError::NotAvailable => { /* we're in the wrong phase, just ignore this */ },
+                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
+                    }
+                }
+            }
         },
         None => println!("No dynamic callback method was found for VM object allocation")
     }
@@ -168,11 +179,19 @@ unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env:
 unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, method: jmethodID) -> () {
     match CALLBACK_TABLE.method_entry {
         Some(function) => {
-            function();
-            /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-            let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            let method_id = MethodId { native_id : method };
+            match env.get_thread_info(&thread) {
+                Ok(current_thread) => {
+                    let method_id = MethodId { native_id : method };
+                },
+                Err(err) => {
+                    match err {
+                        NativeError::NotAvailable => { /* we're in the wrong phase, just ignore this */ },
+                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
+                    }
+                }
+            }
+            /*
             let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
             let class_sig = env.get_class_signature(&class_id).ok().unwrap();
 
@@ -213,12 +232,10 @@ unsafe extern "C" fn local_cb_exception(jvmti_env: *mut jvmtiEnv, jni_env: *mut 
     match CALLBACK_TABLE.exception {
         Some(function) => {
             function();
-            /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-            let exception_class: Class = env.get_object_class(exception);
+            let exception_class = env.get_object_class(&exception);
 
-            function(exception_class)
-            */
+            function()
         },
         None => println!("No dynamic callback method was found for exception")
     }

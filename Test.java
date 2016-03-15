@@ -53,6 +53,10 @@ public class Test {
 //                    System.out.println("    [" + Thread.currentThread().getName() + "] Owning the monitor, after sleep");
                 }
 
+                try {
+                    Thread.sleep(300);
+                } catch (Exception e) {
+                }
 //                System.out.println("    [" + Thread.currentThread().getName() + "] After acquiring the monitor");
             }
         };

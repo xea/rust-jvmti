@@ -24,6 +24,7 @@ pub type MutString = *mut c_char;
 pub type JavaObject = *mut jvmti_native::Struct__jobject;
 pub type JavaThread = jvmti_native::jthread;
 pub type JavaClass = jvmti_native::jclass;
+pub type JavaMethod = jvmti_native::jmethodID;
 pub type TagId = jvmti_native::jlong;
 pub type JavaVersionNumber = jvmti_native::jint;
 

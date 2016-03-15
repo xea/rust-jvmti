@@ -5,6 +5,7 @@ mod tests {
 
     use jvmti::agent::Agent;
     use jvmti::emulator::JVMEmulator;
+    use jvmti::thread::Thread;
     use jvmti::version::VersionNumber;
 
     #[test]
@@ -77,7 +78,7 @@ mod tests {
 
     }
 
-    fn test_on_monitor_events() {
+    fn test_on_monitor_events(thread: Thread) {
 
     }
 }

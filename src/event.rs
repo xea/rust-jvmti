@@ -1,4 +1,5 @@
 use super::native::jvmti_native::*;
+use super::runtime::ObjectAllocationEvent;
 use super::thread::Thread;
 
 pub type FnMethodEntry = fn() -> ();
@@ -6,7 +7,7 @@ pub type FnMethodExit = fn() -> ();
 pub type FnVMInit = fn() -> ();
 pub type FnVMDeath = fn() -> ();
 pub type FnVMStart = fn() -> ();
-pub type FnVMObjectAlloc = fn() -> ();
+pub type FnVMObjectAlloc = fn(thread: Thread, event: ObjectAllocationEvent) -> ();
 pub type FnThreadStart = fn(thread: Thread) -> ();
 pub type FnThreadEnd = fn(thread: Thread) -> ();
 pub type FnException = fn() -> ();
@@ -44,8 +45,19 @@ pub enum VMEvent {
     FieldAccess = JVMTI_EVENT_FIELD_ACCESS as isize,
     FieldModification = JVMTI_EVENT_FIELD_MODIFICATION as isize,
     GarbageCollectionStart = JVMTI_EVENT_GARBAGE_COLLECTION_START as isize,
-    GarbageCollectionFinish = JVMTI_EVENT_GARBAGE_COLLECTION_FINISH as isize
-    // TODO add remaining events
+    GarbageCollectionFinish = JVMTI_EVENT_GARBAGE_COLLECTION_FINISH as isize,
+    ClassFileLoadHook = JVMTI_EVENT_CLASS_FILE_LOAD_HOOK as isize,
+    ClassLoad = JVMTI_EVENT_CLASS_LOAD as isize,
+    ClassPrepare = JVMTI_EVENT_CLASS_PREPARE as isize,
+    SingleStep = JVMTI_EVENT_SINGLE_STEP as isize,
+    FramePop = JVMTI_EVENT_FRAME_POP as isize,
+    Breakpoint = JVMTI_EVENT_BREAKPOINT as isize,
+    NativeMethodBind = JVMTI_EVENT_NATIVE_METHOD_BIND as isize,
+    CompiledMethodLoad = JVMTI_EVENT_COMPILED_METHOD_LOAD as isize,
+    CompiledMethodUnload = JVMTI_EVENT_COMPILED_METHOD_UNLOAD as isize,
+    DynamicCodeGenerated = JVMTI_EVENT_DYNAMIC_CODE_GENERATED as isize,
+    DataDumpRequest = JVMTI_EVENT_DATA_DUMP_REQUEST as isize,
+    ResourceExhausted = JVMTI_EVENT_RESOURCE_EXHAUSTED as isize
 }
 
 ///
