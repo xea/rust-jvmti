@@ -5,6 +5,7 @@ mod tests {
 
     use jvmti::agent::Agent;
     use jvmti::emulator::JVMEmulator;
+    use jvmti::runtime::MethodInvocationEvent;
     use jvmti::thread::Thread;
     use jvmti::version::VersionNumber;
 
@@ -74,7 +75,7 @@ mod tests {
         agent.on_monitor_contended_enter(None);
     }
 
-    fn test_on_method_entry() {
+    fn test_on_method_entry(event: MethodInvocationEvent) {
 
     }
 

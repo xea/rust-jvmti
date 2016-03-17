@@ -20,8 +20,9 @@ pub type ReturnValue = jvmti_native::jint;
 /// Typed alias to C void *'s
 pub type VoidPtr = *mut c_void;
 pub type MutString = *mut c_char;
+pub type JavaInstance = jvmti_native::Struct__jobject;
 /// Typed alias to pointers to Java objects
-pub type JavaObject = *mut jvmti_native::Struct__jobject;
+pub type JavaObject = *mut JavaInstance;
 pub type JavaThread = jvmti_native::jthread;
 pub type JavaClass = jvmti_native::jclass;
 pub type JavaMethod = jvmti_native::jmethodID;

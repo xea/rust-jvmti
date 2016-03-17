@@ -7,6 +7,7 @@ use agent::Agent;
 use context::static_context;
 use native::{JavaVMPtr, MutString, VoidPtr, ReturnValue};
 use options::Options;
+use runtime::*;
 use thread::Thread;
 use util::stringify;
 
@@ -27,7 +28,8 @@ pub mod thread;
 pub mod util;
 pub mod version;
 
-fn on_method_entry() {
+fn on_method_entry(event: MethodInvocationEvent) {
+    println!("[M]")
 }
 
 fn on_method_exit() {

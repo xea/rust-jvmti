@@ -4,6 +4,7 @@ use super::capabilities::Capabilities;
 use super::class::ClassId;
 use super::error::NativeError;
 use super::event::{EventCallbacks, VMEvent};
+use super::method::MethodId;
 use super::native::{JavaObject, JavaThread};
 use super::thread::Thread;
 use super::version::VersionNumber;
@@ -50,6 +51,10 @@ impl JVMTI for Environment {
 
     fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError> {
         self.jvmti.get_thread_info(thread_id)
+    }
+
+    fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError> {
+        self.jvmti.get_method_declaring_class(method_id)
     }
 }
 

@@ -6,7 +6,7 @@ use super::event::*;
 use super::method::MethodId;
 use super::native::*;
 use super::native::jvmti_native::*;
-use super::runtime::ObjectAllocationEvent;
+use super::runtime::*;
 use libc::{c_char, c_uchar, c_void};
 use std::mem::size_of;
 
@@ -159,9 +159,8 @@ unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env:
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => {
                     let class_id = env.get_object_class(&object);
-                    let event = ObjectAllocationEvent { class_id: class_id, size: size };
 
-                    function(current_thread, event)
+                    function(ObjectAllocationEvent { class_id: class_id, size: size, thread: current_thread })
                 },
                 Err(err) => {
                     match err {
@@ -176,13 +175,20 @@ unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env:
 }
 
 #[allow(unused_variables)]
-unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, method: jmethodID) -> () {
+unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, method: JavaMethod) -> () {
     match CALLBACK_TABLE.method_entry {
         Some(function) => {
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => {
                     let method_id = MethodId { native_id : method };
+                    match env.get_method_declaring_class(&method_id) {
+                        Ok(class_id) => {
+                            function(MethodInvocationEvent { method_id: method_id, thread: current_thread })
+                        },
+                        Err(err) => println!("Couldn't get method class: {}", translate_error(&err))
+                    }
+
                 },
                 Err(err) => {
                     match err {

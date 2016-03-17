@@ -10,6 +10,7 @@ pub enum NativeError {
     UnexpectedInternalError = 113,
     ThreadNotAttached = 115,
     Disconnected = 116,
+    NotImplemented = 999999, // <- now this is a "temporary" hack until the library is under heavy development
     UnknownError
 }
 
@@ -25,6 +26,7 @@ pub fn wrap_error(code: u32) -> NativeError {
         113 => NativeError::UnexpectedInternalError,
         115 => NativeError::ThreadNotAttached,
         116 => NativeError::Disconnected,
+        999999 => NativeError::NotImplemented,
         _ => { println!("Unknown error code was detected: {}", code); NativeError::UnknownError }
     }
 }
@@ -41,6 +43,7 @@ pub fn translate_error(code: &NativeError) -> String {
         &NativeError::UnexpectedInternalError => "An unexpected internal error has occurred.",
         &NativeError::ThreadNotAttached => "The thread being used to call this function is not attached to the virtual machine. Calls must be made from attached threads.",
         &NativeError::Disconnected => "The JVM TI environment provided is no longer connected or is not an environment.",
+        &NativeError::NotImplemented => "This function is not implemented yet",
         &NativeError::UnknownError => "Unknown error."
     }.to_string()
 }

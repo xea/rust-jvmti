@@ -1,13 +1,13 @@
 use super::native::jvmti_native::*;
-use super::runtime::ObjectAllocationEvent;
+use super::runtime::*;
 use super::thread::Thread;
 
-pub type FnMethodEntry = fn() -> ();
+pub type FnMethodEntry = fn(event: MethodInvocationEvent) -> ();
 pub type FnMethodExit = fn() -> ();
 pub type FnVMInit = fn() -> ();
 pub type FnVMDeath = fn() -> ();
 pub type FnVMStart = fn() -> ();
-pub type FnVMObjectAlloc = fn(thread: Thread, event: ObjectAllocationEvent) -> ();
+pub type FnVMObjectAlloc = fn(event: ObjectAllocationEvent) -> ();
 pub type FnThreadStart = fn(thread: Thread) -> ();
 pub type FnThreadEnd = fn(thread: Thread) -> ();
 pub type FnException = fn() -> ();

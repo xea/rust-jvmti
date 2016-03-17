@@ -1,11 +1,13 @@
 use super::super::capabilities::Capabilities;
+use super::super::class::ClassId;
 use super::super::error::{wrap_error, NativeError};
 use super::super::event::{EventCallbacks, VMEvent};
 use super::super::event_handler::*;
+use super::super::method::MethodId;
 use super::super::thread::{ThreadId, Thread};
 use super::super::util::stringify;
 use super::super::version::VersionNumber;
-use super::super::native::{JavaObject, JavaThread, JVMTIEnvPtr};
+use super::super::native::{JavaClass, JavaObject, JavaInstance, JavaThread, JVMTIEnvPtr};
 use super::super::native::jvmti_native::{Struct__jvmtiThreadInfo, jvmtiCapabilities};
 use std::ptr;
 
@@ -29,6 +31,7 @@ pub trait JVMTI {
     fn set_event_callbacks(&mut self, callbacks: EventCallbacks) -> Option<NativeError>;
     fn set_event_notification_mode(&mut self, event: VMEvent, mode: bool) -> Option<NativeError>;
     fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError>;
+    fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError>;
 }
 
 pub struct JVMTIEnvironment {
@@ -121,10 +124,10 @@ impl JVMTI for JVMTIEnvironment {
     }
 
     fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError> {
-        unsafe {
-            let mut info = Struct__jvmtiThreadInfo { name: ptr::null_mut(), priority: 0, is_daemon: 0, thread_group: ptr::null_mut(), context_class_loader: ptr::null_mut()};
-            let mut info_ptr = &mut info;
+        let mut info = Struct__jvmtiThreadInfo { name: ptr::null_mut(), priority: 0, is_daemon: 0, thread_group: ptr::null_mut(), context_class_loader: ptr::null_mut()};
+        let mut info_ptr = &mut info;
 
+        unsafe {
             match (**self.jvmti).GetThreadInfo {
                 Some(func) => {
                     match wrap_error(func(self.jvmti, *thread_id, info_ptr)) {
@@ -138,6 +141,19 @@ impl JVMTI for JVMTIEnvironment {
                     }
                 },
                 None => Err(NativeError::NoError)
+            }
+        }
+    }
+
+    fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError> {
+        let mut jstruct: JavaInstance = JavaInstance { _hacky_hack_workaround: 0 };
+        let mut jclass_instance: JavaClass = &mut jstruct;
+        let meta_ptr: *mut JavaClass = &mut jclass_instance;
+
+        unsafe {
+            match wrap_error((**self.jvmti).GetMethodDeclaringClass.unwrap()(self.jvmti, method_id.native_id, meta_ptr)) {
+                NativeError::NoError => Ok(ClassId { native_id: *meta_ptr }),
+                err @ _ => Err(err)
             }
         }
     }
