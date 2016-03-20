@@ -4,7 +4,7 @@ use super::error::NativeError;
 use super::environment::jvm::JVMF;
 use super::environment::jvmti::{JVMTI};
 use super::event::{EventCallbacks, VMEvent};
-use super::method::MethodId;
+use super::method::{MethodId, MethodSignature};
 use super::native::JavaThread;
 use super::thread::Thread;
 use super::version::VersionNumber;
@@ -70,5 +70,9 @@ impl JVMTI for JVMEmulator {
 
     fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError> {
         Err(NativeError::NoError)
+    }
+
+    fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError> {
+        Err(NativeError::NotImplemented)
     }
 }

@@ -3,11 +3,11 @@ use super::super::class::ClassId;
 use super::super::error::{wrap_error, NativeError};
 use super::super::event::{EventCallbacks, VMEvent};
 use super::super::event_handler::*;
-use super::super::method::MethodId;
+use super::super::method::{MethodId, MethodSignature};
 use super::super::thread::{ThreadId, Thread};
 use super::super::util::stringify;
 use super::super::version::VersionNumber;
-use super::super::native::{JavaClass, JavaObject, JavaInstance, JavaThread, JVMTIEnvPtr};
+use super::super::native::{MutString, JavaClass, JavaObject, JavaInstance, JavaThread, JVMTIEnvPtr};
 use super::super::native::jvmti_native::{Struct__jvmtiThreadInfo, jvmtiCapabilities};
 use std::ptr;
 
@@ -32,6 +32,7 @@ pub trait JVMTI {
     fn set_event_notification_mode(&mut self, event: VMEvent, mode: bool) -> Option<NativeError>;
     fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError>;
     fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError>;
+    fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError>;
 }
 
 pub struct JVMTIEnvironment {
@@ -153,6 +154,25 @@ impl JVMTI for JVMTIEnvironment {
         unsafe {
             match wrap_error((**self.jvmti).GetMethodDeclaringClass.unwrap()(self.jvmti, method_id.native_id, meta_ptr)) {
                 NativeError::NoError => Ok(ClassId { native_id: *meta_ptr }),
+                err @ _ => Err(err)
+            }
+        }
+    }
+
+    fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError> {
+        let mut method_name = ptr::null_mut();
+        let mut method_ptr = &mut method_name;
+
+        let mut signature: MutString = ptr::null_mut();
+        let mut signature_ptr = &mut signature;
+
+        let mut generic_sig: MutString = ptr::null_mut();
+        let mut generic_sig_ptr = &mut generic_sig;
+
+        unsafe {
+            match wrap_error((**self.jvmti).GetMethodName.unwrap()(self.jvmti, method_id.native_id, method_ptr, signature_ptr, generic_sig_ptr)) {
+                NativeError::NoError => Ok(MethodSignature::new(stringify(*method_ptr))),
+//                NativeError::NoError => Ok(MethodSignature::new(stringify(*method_ptr), stringify(*signature_ptr))),
                 err @ _ => Err(err)
             }
         }

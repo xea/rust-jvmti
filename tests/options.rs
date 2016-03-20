@@ -30,8 +30,8 @@ mod tests {
     fn unknown_arguments_go_into_custom_args() {
         let opts = Options::parse("setting1,setting2=true,agentid=testid,setting3".to_string());
 
-        assert_eq!(true, opts.custom_args.contains_key("settings1"));
-        assert_eq!(true, opts.custom_args.contains_key("settings2"));
-        assert_eq!(true, opts.custom_args.contains_key("settings3"));
+        assert_eq!(true, opts.custom_args.contains_key("setting1"));
+        assert_eq!(true, opts.custom_args.contains_key("setting2"));
+        assert_eq!(true, opts.custom_args.contains_key("setting3"));
     }
 }

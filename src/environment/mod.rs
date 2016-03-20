@@ -4,7 +4,7 @@ use super::capabilities::Capabilities;
 use super::class::ClassId;
 use super::error::NativeError;
 use super::event::{EventCallbacks, VMEvent};
-use super::method::MethodId;
+use super::method::{MethodId, MethodSignature};
 use super::native::{JavaObject, JavaThread};
 use super::thread::Thread;
 use super::version::VersionNumber;
@@ -55,6 +55,10 @@ impl JVMTI for Environment {
 
     fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError> {
         self.jvmti.get_method_declaring_class(method_id)
+    }
+
+    fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError> {
+        self.jvmti.get_method_name(method_id)
     }
 }
 

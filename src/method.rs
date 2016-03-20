@@ -7,3 +7,14 @@ pub struct MethodId {
 pub struct Method {
     pub id: MethodId
 }
+
+pub struct MethodSignature {
+    pub name: String
+}
+
+impl MethodSignature {
+
+    pub fn new(raw_signature: String) -> MethodSignature {
+        MethodSignature { name: raw_signature }
+    }
+}
