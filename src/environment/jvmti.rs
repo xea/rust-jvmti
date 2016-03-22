@@ -1,5 +1,5 @@
 use super::super::capabilities::Capabilities;
-use super::super::class::ClassId;
+use super::super::class::{ClassId, ClassSignature, JavaType};
 use super::super::error::{wrap_error, NativeError};
 use super::super::event::{EventCallbacks, VMEvent};
 use super::super::event_handler::*;
@@ -33,6 +33,7 @@ pub trait JVMTI {
     fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError>;
     fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError>;
     fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError>;
+    fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError>;
 }
 
 pub struct JVMTIEnvironment {
@@ -172,7 +173,20 @@ impl JVMTI for JVMTIEnvironment {
         unsafe {
             match wrap_error((**self.jvmti).GetMethodName.unwrap()(self.jvmti, method_id.native_id, method_ptr, signature_ptr, generic_sig_ptr)) {
                 NativeError::NoError => Ok(MethodSignature::new(stringify(*method_ptr))),
-//                NativeError::NoError => Ok(MethodSignature::new(stringify(*method_ptr), stringify(*signature_ptr))),
+                err @ _ => Err(err)
+            }
+        }
+    }
+
+    fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError> {
+        unsafe {
+            let mut native_sig: MutString = ptr::null_mut();
+            let mut sig: MutString = ptr::null_mut();
+            let p1: *mut MutString = &mut sig;
+            let p2: *mut MutString = &mut native_sig;
+
+            match wrap_error((**self.jvmti).GetClassSignature.unwrap()(self.jvmti, class_id.native_id, p1, p2)) {
+                NativeError::NoError => Ok(ClassSignature::new(&JavaType::parse(&stringify(sig)).unwrap())),
                 err @ _ => Err(err)
             }
         }

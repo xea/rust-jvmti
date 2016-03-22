@@ -31,7 +31,7 @@ impl<'a> JavaType<'a> {
                 "D" => Some(JavaType::Double),
                 "F" => Some(JavaType::Float),
                 "I" => Some(JavaType::Int),
-                "L" => Some(JavaType::Long),
+                "J" => Some(JavaType::Long),
                 "S" => Some(JavaType::Short),
                 "V" => Some(JavaType::Void),
                 "Z" => Some(JavaType::Boolean),
@@ -81,23 +81,48 @@ pub struct ClassId {
     pub native_id: JavaClass
 }
 
+pub struct ClassSignature {
+    pub package: String,
+    pub name: String
+}
+
+impl ClassSignature {
+
+    pub fn new(java_type: &JavaType) -> ClassSignature {
+        let str = JavaType::to_string(java_type);
+        match str.rfind('.') {
+            Some(idx) => {
+                let (pkg, name) = str.split_at(idx + 1);
+
+                ClassSignature {
+                    package: pkg.trim_right_matches(".").to_string(),
+                    name: name.to_string()
+                }
+            },
+            None => ClassSignature { package: "".to_string(), name: str.to_string() }
+
+        }
+    }
+}
+
 ///
 /// Represents a Java class
 ///
-pub struct Class<'a> {
+pub struct Class {
     pub id: ClassId,
-    pub signature: JavaType<'a>
+    pub signature: ClassSignature
 }
 
-impl<'a> Class<'a> {
+impl Class {
 
     /// Constructs a new Class instance.
-    pub fn new(id: ClassId, signature: JavaType<'a>) -> Class {
-        Class { id: id, signature: signature }
+    pub fn new<'a>(id: ClassId, signature: JavaType<'a>) -> Class {
+        Class { id: id, signature: ClassSignature::new(&signature) }
     }
 
     /// Returns the readable name of this class
     pub fn to_string(&self) -> String {
-        JavaType::to_string(&self.signature)
+//        JavaType::to_string(&self.signature)
+        "<CLASSY CLASS>".to_string()
     }
 }

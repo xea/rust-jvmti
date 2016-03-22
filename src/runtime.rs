@@ -1,5 +1,5 @@
-use super::class::ClassId;
-use super::method::MethodId;
+use super::class::{ClassId, ClassSignature};
+use super::method::{MethodId, MethodSignature};
 use super::thread::Thread;
 
 pub trait RuntimeEvent {
@@ -13,6 +13,8 @@ pub struct ObjectAllocationEvent {
 
 pub struct MethodInvocationEvent {
     pub method_id: MethodId,
+    pub method_sig: MethodSignature,
+    pub class_sig: ClassSignature,
     pub thread: Thread
 }
 

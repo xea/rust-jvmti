@@ -12,7 +12,7 @@ mod tests {
         assert_eq!(Some(JavaType::Int), JavaType::parse("I"));
         assert_eq!(Some(JavaType::Boolean), JavaType::parse("Z"));
         assert_eq!(Some(JavaType::Short), JavaType::parse("S"));
-        assert_eq!(Some(JavaType::Long), JavaType::parse("L"));
+        assert_eq!(Some(JavaType::Long), JavaType::parse("J"));
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use self::jvmti::{JVMTI, JVMTIEnvironment};
 use self::jni::{JNI, JNIEnvironment};
 use super::capabilities::Capabilities;
-use super::class::ClassId;
+use super::class::{ClassId, ClassSignature};
 use super::error::NativeError;
 use super::event::{EventCallbacks, VMEvent};
 use super::method::{MethodId, MethodSignature};
@@ -59,6 +59,10 @@ impl JVMTI for Environment {
 
     fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError> {
         self.jvmti.get_method_name(method_id)
+    }
+
+    fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError> {
+        self.jvmti.get_class_signature(class_id)
     }
 }
 

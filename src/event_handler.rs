@@ -182,12 +182,12 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => {
                     let method_id = MethodId { native_id : method };
-                    match env.get_method_declaring_class(&method_id) {
-                        Ok(class_id) => {
-                            function(MethodInvocationEvent { method_id: method_id, thread: current_thread })
-                        },
-                        Err(err) => println!("Couldn't get method class: {}", translate_error(&err))
-                    }
+                    let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
+                    let class_sig = env.get_class_signature(&class_id).ok().unwrap();
+
+                    let method_sig = env.get_method_name(&method_id).ok().unwrap();
+
+                    function(MethodInvocationEvent { method_id: method_id, method_sig: method_sig, class_sig: class_sig, thread: current_thread })
 
                 },
                 Err(err) => {

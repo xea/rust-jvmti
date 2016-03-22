@@ -29,7 +29,7 @@ pub mod util;
 pub mod version;
 
 fn on_method_entry(event: MethodInvocationEvent) {
-    println!("[M]")
+    println!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name)
 }
 
 fn on_method_exit() {
