@@ -17,4 +17,8 @@ impl MethodSignature {
     pub fn new(raw_signature: String) -> MethodSignature {
         MethodSignature { name: raw_signature }
     }
+
+    pub fn unknown() -> MethodSignature {
+        MethodSignature { name: "<UNKNOWN METHOD>".to_string() }
+    }
 }

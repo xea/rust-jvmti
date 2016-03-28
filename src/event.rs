@@ -3,7 +3,7 @@ use super::runtime::*;
 use super::thread::Thread;
 
 pub type FnMethodEntry = fn(event: MethodInvocationEvent) -> ();
-pub type FnMethodExit = fn() -> ();
+pub type FnMethodExit = fn(event: MethodInvocationEvent) -> ();
 pub type FnVMInit = fn() -> ();
 pub type FnVMDeath = fn() -> ();
 pub type FnVMStart = fn() -> ();

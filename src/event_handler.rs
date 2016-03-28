@@ -184,7 +184,6 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
                     let method_id = MethodId { native_id : method };
                     let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
                     let class_sig = env.get_class_signature(&class_id).ok().unwrap();
-
                     let method_sig = env.get_method_name(&method_id).ok().unwrap();
 
                     function(MethodInvocationEvent { method_id: method_id, method_sig: method_sig, class_sig: class_sig, thread: current_thread })
@@ -197,15 +196,6 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
                     }
                 }
             }
-            /*
-            let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
-            let class_sig = env.get_class_signature(&class_id).ok().unwrap();
-
-            match env.get_method_name(&method_id) {
-                Ok(signature) => function(Method::new(method_id, signature), Class::new(class_id, class_sig), current_thread),
-                Err(_) => function(Method::unknown(), Class::unknown(), current_thread)
-            }
-            */
         },
         None => println!("No dynamic callback method was found for method entry")
     }
@@ -215,19 +205,24 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, was_popped_by_exception: jboolean, return_value: jvalue) -> () {
     match CALLBACK_TABLE.method_exit {
         Some(function) => {
-            function();
-            /*
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
-            let method_id = MethodId { native_id : method };
-            let current_thread = env.get_thread_info(&thread).ok().unwrap();
-            let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
-            let class_sig = env.get_class_signature(&class_id).ok().unwrap();
+            match env.get_thread_info(&thread) {
+                Ok(current_thread) => {
+                    let method_id = MethodId { native_id : method };
+                    let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
+                    let class_sig = env.get_class_signature(&class_id).ok().unwrap();
+                    let method_sig = env.get_method_name(&method_id).ok().unwrap();
 
-            match env.get_method_name(&method_id) {
-                Ok(signature) => function(Method::new(method_id, signature), Class::new(class_id, class_sig), current_thread),
-                Err(_) => function(Method::unknown(), Class::unknown(), current_thread)
+                    function(MethodInvocationEvent { method_id: method_id, method_sig: method_sig, class_sig: class_sig, thread: current_thread })
+
+                },
+                Err(err) => {
+                    match err {
+                        NativeError::NotAvailable => { /* we're in the wrong phase, just ignore this */ },
+                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
+                    }
+                }
             }
-            */
         }
         None => println!("No dynamic callback method was found for method exit")
     }

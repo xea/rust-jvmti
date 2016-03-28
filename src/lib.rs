@@ -29,10 +29,10 @@ pub mod util;
 pub mod version;
 
 fn on_method_entry(event: MethodInvocationEvent) {
-    println!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name)
+    print!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name)
 }
 
-fn on_method_exit() {
+fn on_method_exit(event: MethodInvocationEvent) {
 }
 
 fn on_thread_start(thread: Thread) {

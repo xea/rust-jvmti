@@ -103,6 +103,10 @@ impl ClassSignature {
 
         }
     }
+
+    pub fn to_string(&self) -> String {
+        format!("{}.{}", self.package, self.name)
+    }
 }
 
 ///
@@ -122,7 +126,6 @@ impl Class {
 
     /// Returns the readable name of this class
     pub fn to_string(&self) -> String {
-//        JavaType::to_string(&self.signature)
-        "<CLASSY CLASS>".to_string()
+        self.signature.to_string()
     }
 }

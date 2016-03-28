@@ -1,3 +1,4 @@
+use super::runtime::MethodInvocationEvent;
 use super::thread::ThreadId;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -87,7 +88,8 @@ impl AgentContext {
 pub struct Context {
     pub thread_lifetime: HashMap<ThreadId, Tm>,
     pub monitor_queue: HashMap<ThreadId, Tm>,
-    pub thread_wait: HashMap<ThreadId, Tm>
+    pub thread_wait: HashMap<ThreadId, Tm>,
+    pub method_times: HashMap<ThreadId, Vec<String>>
 }
 
 impl Context {
@@ -95,7 +97,8 @@ impl Context {
         Context {
             thread_lifetime: HashMap::new(),
             monitor_queue: HashMap::new(),
-            thread_wait: HashMap::new()
+            thread_wait: HashMap::new(),
+            method_times: HashMap::new()
         }
     }
 }
