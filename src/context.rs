@@ -1,4 +1,3 @@
-use super::runtime::MethodInvocationEvent;
 use super::thread::ThreadId;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -83,13 +82,52 @@ impl AgentContext {
             Err(_) => { None /* TODO: Ignoring for now */ }
         }
     }
+
+    pub fn method_enter(&self, thread_id: &ThreadId, method_name: String) {
+        match self.context.write() {
+            Ok(mut ctx) => {
+                let now = now();
+
+                let new_stack = match (*ctx).method_times.remove(thread_id) {
+                    Some(mut thread_stack) => {
+                        thread_stack.push(now);
+                        thread_stack
+                    },
+                    None => {
+                        let new_vec = vec![ now ];
+                        new_vec
+                    }
+                };
+
+                (*ctx).method_times.insert((*thread_id).clone(), new_stack);
+            },
+            Err(_) => { /* TODO: Ignoring for now */ }
+        }
+    }
+
+    pub fn method_exit(&self, thread_id: &ThreadId) -> Option<Duration> {
+        match self.context.write() {
+            Ok(mut ctx) => {
+                let now = now();
+
+                match (*ctx).method_times.get_mut(thread_id) {
+                    Some(ref mut thread_stack) => match thread_stack.pop() {
+                        Some(time) => Some(time - now),
+                        None => None
+                    },
+                    None => None
+                }
+            },
+            Err(_) => { None /* TODO Ignoring for now */ }
+        }
+    }
 }
 
 pub struct Context {
     pub thread_lifetime: HashMap<ThreadId, Tm>,
     pub monitor_queue: HashMap<ThreadId, Tm>,
     pub thread_wait: HashMap<ThreadId, Tm>,
-    pub method_times: HashMap<ThreadId, Vec<String>>
+    pub method_times: HashMap<ThreadId, Vec<Tm>>
 }
 
 impl Context {

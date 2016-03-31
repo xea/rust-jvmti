@@ -29,10 +29,16 @@ pub mod util;
 pub mod version;
 
 fn on_method_entry(event: MethodInvocationEvent) {
-    print!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name)
+    println!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name);
+
+    static_context().method_enter(&event.thread.id, format!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name));
 }
 
 fn on_method_exit(event: MethodInvocationEvent) {
+    match static_context().method_exit(&event.thread.id) {
+        Some(duration) => println!("Method exited after {}", duration),
+        None => println!("Method has no start")
+    }
 }
 
 fn on_thread_start(thread: Thread) {
