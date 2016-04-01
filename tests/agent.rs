@@ -75,11 +75,13 @@ mod tests {
         agent.on_monitor_contended_enter(None);
     }
 
+    #[allow(unused_variables)]
     fn test_on_method_entry(event: MethodInvocationEvent) {
-
+        // this is a callback method for testing purposes
     }
 
+    #[allow(unused_variables)]
     fn test_on_monitor_events(thread: Thread) {
-
+        // this is a callback method for testing purposes
     }
 }

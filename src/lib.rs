@@ -31,7 +31,7 @@ pub mod version;
 fn on_method_entry(event: MethodInvocationEvent) {
     println!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name);
 
-    static_context().method_enter(&event.thread.id, format!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name));
+    static_context().method_enter(&event.thread.id);
 }
 
 fn on_method_exit(event: MethodInvocationEvent) {
@@ -90,6 +90,7 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
     println!("Starting up as {}", options.agent_id);
 
     let mut agent = Agent::new(vm);
+
     agent.on_method_entry(Some(on_method_entry));
     agent.on_method_exit(Some(on_method_exit));
     agent.on_thread_start(Some(on_thread_start));

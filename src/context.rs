@@ -83,7 +83,7 @@ impl AgentContext {
         }
     }
 
-    pub fn method_enter(&self, thread_id: &ThreadId, method_name: String) {
+    pub fn method_enter(&self, thread_id: &ThreadId) {
         match self.context.write() {
             Ok(mut ctx) => {
                 let now = now();
