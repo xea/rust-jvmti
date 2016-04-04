@@ -5,10 +5,19 @@ use time::Duration;
 use time::Tm;
 use time::now;
 
+///
+/// Public static mutable *cough* agent context. This seems necessary as our code is invoked from
+/// the JVM and we need a place to store the temporary mutable data.
+///
+/// This wouldn't be such a problem if this was a C program, but you know, this is not a C program.
+///
 lazy_static! {
     static ref STATIC_CONTEXT: AgentContext = AgentContext::new();
 }
 
+///
+/// Public accessor that provides an abstraction to the global mutable agent state.
+///
 pub fn static_context() -> &'static AgentContext {
     &STATIC_CONTEXT
 }
@@ -127,7 +136,8 @@ pub struct Context {
     pub thread_lifetime: HashMap<ThreadId, Tm>,
     pub monitor_queue: HashMap<ThreadId, Tm>,
     pub thread_wait: HashMap<ThreadId, Tm>,
-    pub method_times: HashMap<ThreadId, Vec<Tm>>
+    pub method_times: HashMap<ThreadId, Vec<Tm>>,
+    pub method_net_times: HashMap<ThreadId, Vec<Tm>>
 }
 
 impl Context {
@@ -136,7 +146,8 @@ impl Context {
             thread_lifetime: HashMap::new(),
             monitor_queue: HashMap::new(),
             thread_wait: HashMap::new(),
-            method_times: HashMap::new()
+            method_times: HashMap::new(),
+            method_net_times: HashMap::new()
         }
     }
 }

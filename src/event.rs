@@ -20,6 +20,7 @@ pub type FnFieldAccess = fn() -> ();
 pub type FnFieldModification = fn() -> ();
 pub type FnGarbageCollectionStart = fn() -> ();
 pub type FnGarbageCollectionFinish = fn() -> ();
+pub type FnClassFileLoad = fn() -> ();
 
 ///
 /// `VMEvent` represents events that can occur in JVM applications. These events can be handled
@@ -83,7 +84,8 @@ pub struct EventCallbacks {
     pub field_access: Option<FnFieldAccess>,
     pub field_modification: Option<FnFieldModification>,
     pub garbage_collection_start: Option<FnGarbageCollectionStart>,
-    pub garbage_collection_finish: Option<FnGarbageCollectionFinish>
+    pub garbage_collection_finish: Option<FnGarbageCollectionFinish>,
+    pub class_file_load_hook: Option<FnClassFileLoad>
 }
 
 impl EventCallbacks {

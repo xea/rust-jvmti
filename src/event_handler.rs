@@ -1,3 +1,4 @@
+use super::class::ClassId;
 use super::environment::Environment;
 use super::environment::jni::{JNI, JNIEnvironment};
 use super::environment::jvmti::{JVMTI, JVMTIEnvironment};
@@ -9,6 +10,7 @@ use super::native::jvmti_native::*;
 use super::runtime::*;
 use libc::{c_char, c_uchar, c_void};
 use std::mem::size_of;
+use super::util::stringify;
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
@@ -28,7 +30,8 @@ pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     field_access: None,
     field_modification: None,
     garbage_collection_start: None,
-    garbage_collection_finish: None
+    garbage_collection_finish: None,
+    class_file_load_hook: None
 };
 
 pub fn register_vm_init_callback(callback: Option<FnVMInit>) {
@@ -101,6 +104,10 @@ pub fn register_garbage_collection_start(callback: Option<FnGarbageCollectionSta
 
 pub fn register_garbage_collection_finish(callback: Option<FnGarbageCollectionFinish>) {
     unsafe { CALLBACK_TABLE.garbage_collection_finish = callback; }
+}
+
+pub fn register_class_file_load_hook(callback: Option<FnClassFileLoad>) {
+    unsafe { CALLBACK_TABLE.class_file_load_hook = callback; }
 }
 
 pub fn registered_callbacks() -> (jvmtiEventCallbacks, i32) {
@@ -403,10 +410,19 @@ unsafe extern "C" fn local_cb_breakpoint(jvmti_env: *mut jvmtiEnv, jni_env: *mut
 }
 
 #[allow(unused_variables)]
-unsafe extern "C" fn local_cb_class_file_load_hook(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, class_being_redefined: jclass, loader: jobject,
-                                                   name: *const c_char, protection_domain: jobject, class_data_len: jint, class_data: *const c_uchar,
+unsafe extern "C" fn local_cb_class_file_load_hook(jvmti_env: JVMTIEnvPtr, jni_env: JNIEnvPtr, class_being_redefined: JavaClass, loader: JavaObject,
+                                                   name: *const c_char, protection_domain: JavaObject, class_data_len: jint, class_data: *const c_uchar,
                                                    new_class_data_len: *mut jint, new_class_data: *mut *mut c_uchar) -> () {
 
+    match CALLBACK_TABLE.class_file_load_hook {
+        Some(function) => {
+            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+
+            println!("Loading class {}", stringify(name));
+
+        },
+        None => println!("No dynamic callback method was found for class file load events")
+    }
 }
 
 #[allow(unused_variables)]

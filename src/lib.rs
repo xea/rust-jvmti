@@ -79,6 +79,10 @@ fn on_monitor_contended_entered(thread: Thread) {
     }
 }
 
+fn on_class_file_load() {
+    
+}
+
 ///
 /// `Agent_OnLoad` is the actual entry point of the agent code and it is directly called by the
 /// Java Virtual Machine.
@@ -91,14 +95,15 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
 
     let mut agent = Agent::new(vm);
 
-    agent.on_method_entry(Some(on_method_entry));
-    agent.on_method_exit(Some(on_method_exit));
+    //agent.on_method_entry(Some(on_method_entry));
+    //agent.on_method_exit(Some(on_method_exit));
     agent.on_thread_start(Some(on_thread_start));
     agent.on_thread_end(Some(on_thread_end));
     agent.on_monitor_wait(Some(on_monitor_wait));
     agent.on_monitor_waited(Some(on_monitor_waited));
     agent.on_monitor_contended_enter(Some(on_monitor_contended_enter));
     agent.on_monitor_contended_entered(Some(on_monitor_contended_entered));
+    agent.on_class_file_load(Some(on_class_file_load));
 
     agent.update();
 

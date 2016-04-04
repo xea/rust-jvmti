@@ -19,6 +19,7 @@ pub type JNIEnvPtr = *mut jvmti_native::JNIEnv;
 pub type ReturnValue = jvmti_native::jint;
 /// Typed alias to C void *'s
 pub type VoidPtr = *mut c_void;
+pub type RawString = *const c_char;
 pub type MutString = *mut c_char;
 pub type JavaInstance = jvmti_native::Struct__jobject;
 /// Typed alias to pointers to Java objects

@@ -102,6 +102,7 @@ impl JVMTI for JVMTIEnvironment {
         register_field_modification_callback(callbacks.field_modification);
         register_garbage_collection_start(callbacks.garbage_collection_start);
         register_garbage_collection_finish(callbacks.garbage_collection_finish);
+        register_class_file_load_hook(callbacks.class_file_load_hook);
 
         let (native_callbacks, callbacks_size) = registered_callbacks();
 

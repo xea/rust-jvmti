@@ -86,6 +86,7 @@ impl Agent {
                         self.environment.set_event_notification_mode(VMEvent::FieldModification, self.callbacks.field_modification.is_some());
                         self.environment.set_event_notification_mode(VMEvent::GarbageCollectionStart, self.callbacks.garbage_collection_start.is_some());
                         self.environment.set_event_notification_mode(VMEvent::GarbageCollectionFinish, self.callbacks.garbage_collection_finish.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::ClassFileLoadHook, self.callbacks.class_file_load_hook.is_some());
                     },
                     Some(error) => println!("Couldn't register callbacks: {}", translate_error(&error))
                 }
@@ -201,5 +202,9 @@ impl Agent {
     pub fn on_garbage_collection_finish(&mut self, handler: Option<FnGarbageCollectionFinish>) {
         self.callbacks.garbage_collection_finish = handler;
         self.capabilities.can_generate_garbage_collection_events = handler.or(self.callbacks.garbage_collection_start).is_some();
+    }
+
+    pub fn on_class_file_load(&mut self, handler: Option<FnClassFileLoad>) {
+        self.callbacks.class_file_load_hook = handler;
     }
 }
