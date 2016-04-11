@@ -54,7 +54,7 @@ impl RawBytecode {
     fn read_magic_numbers(bytes: &[u8], bytecode: &mut RawBytecode) -> Result<usize, String> {
         if bytes.len() < 4 {
             Err("Oi, there aren't enough magic bytes".to_string())
-        } else if bytes == &[ 0xCA, 0xFE, 0xBA, 0xBE ] {
+        } else if &bytes[0..4] == [ 0xCA, 0xFE, 0xBA, 0xBE ] {
             Ok(4 as usize)
         } else {
             Err("Lofasz".to_string())
