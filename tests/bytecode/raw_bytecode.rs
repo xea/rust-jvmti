@@ -18,7 +18,6 @@ mod tests {
 
         assert_eq!(0x1234, bc.minor_version);
         assert_eq!(0x5678, bc.major_version);
-
     }
 
     #[test]
