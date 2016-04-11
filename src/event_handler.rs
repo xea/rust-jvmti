@@ -1,4 +1,4 @@
-use super::class::ClassId;
+use super::bytecode::RawBytecode;
 use super::environment::Environment;
 use super::environment::jni::{JNI, JNIEnvironment};
 use super::environment::jvmti::{JVMTI, JVMTIEnvironment};
@@ -419,6 +419,7 @@ unsafe extern "C" fn local_cb_class_file_load_hook(jvmti_env: JVMTIEnvPtr, jni_e
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
 
             println!("Loading class {}", stringify(name));
+            let bc = RawBytecode::from_raw_bytes(class_data, class_data_len);
 
         },
         None => println!("No dynamic callback method was found for class file load events")

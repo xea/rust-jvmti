@@ -1,6 +1,9 @@
 extern crate jvmti;
 extern crate libc;
 
+mod bytecode;
+mod environment;
+
 /*
 mod agent;
 mod capabilities;

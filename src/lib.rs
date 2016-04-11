@@ -12,6 +12,7 @@ use thread::Thread;
 use util::stringify;
 
 pub mod agent;
+pub mod bytecode;
 pub mod capabilities;
 pub mod class;
 pub mod context;
@@ -29,14 +30,14 @@ pub mod util;
 pub mod version;
 
 fn on_method_entry(event: MethodInvocationEvent) {
-    println!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name);
+    //println!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name);
 
     static_context().method_enter(&event.thread.id);
 }
 
 fn on_method_exit(event: MethodInvocationEvent) {
     match static_context().method_exit(&event.thread.id) {
-        Some(duration) => println!("Method exited after {}", duration),
+        Some(_) => (),//println!("Method exited after {}", duration),
         None => println!("Method has no start")
     }
 }
@@ -80,7 +81,7 @@ fn on_monitor_contended_entered(thread: Thread) {
 }
 
 fn on_class_file_load() {
-    
+
 }
 
 ///
@@ -95,8 +96,8 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
 
     let mut agent = Agent::new(vm);
 
-    //agent.on_method_entry(Some(on_method_entry));
-    //agent.on_method_exit(Some(on_method_exit));
+    agent.on_method_entry(Some(on_method_entry));
+    agent.on_method_exit(Some(on_method_exit));
     agent.on_thread_start(Some(on_thread_start));
     agent.on_thread_end(Some(on_thread_end));
     agent.on_monitor_wait(Some(on_monitor_wait));
