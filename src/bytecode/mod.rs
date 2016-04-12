@@ -4,26 +4,41 @@ use std::ops::Shl;
 
 pub mod classfile;
 
-enum ConstantType {
-    Class = 7,
-    FieldRef = 9,
-    MethodRef = 10,
-    InterfaceMethodRef = 11,
-    String = 8,
-    Integer = 3,
-    Float = 4,
-    Long = 5,
-    Double = 6,
-    NameAndType = 12,
-    Utf8 = 1,
-    MethodHandle = 15,
-    MethodType = 16,
-    InvokeDynamic = 18,
-    Unknown = -1
+#[allow(dead_code)]
+pub enum ConstantType {
+    Class { name_index: u16 }, // 7
+    FieldRef { class_index: u16, name_and_type_index: u16 }, // 9
+    MethodRef { class_index: u16, name_and_type_index: u16 }, // 10,
+    InterfaceMethodRef { class_index: u16, name_and_type_index: u16 }, // 11
+    String { string_index: u16 }, // 8,
+    Integer { bytes: u32 }, // 3,
+    Float { bytes: u32 }, // 4,
+    Long { high_bytes: u32, low_bytes: u32 }, // 5,
+    Double { high_bytes: u32, low_bytes: u32 }, // 6,
+    NameAndType { name_index: u16, descriptor_index: u16 }, // 12,
+    Utf8 { length: u16, bytes: Vec<u8> }, // 1,
+    MethodHandle { reference_kind: u8, reference_index: u16 }, // 15,
+    MethodType { descriptor_index: u16 }, // 16,
+    InvokeDynamic { bootstrap_method_attr_index: u16, name_and_type_index: u16 }, // 18,
+    Placeholder,
+    Unknown
 }
 
+#[allow(dead_code)]
 pub struct ConstantPoolInfo {
-    tag: ConstantType
+    pub tag: ConstantType
+}
+
+pub enum MaybeMaybe<T> {
+    Undefined,
+    Nothing,
+    Just(T)
+}
+
+pub struct ClassfileFragment {
+    pub major_version: MaybeMaybe<u16>,
+    pub minor_version: MaybeMaybe<u16>,
+    pub constant_pool: MaybeMaybe<Vec<ConstantPoolInfo>>
 }
 
 #[derive(Default)]
@@ -55,22 +70,26 @@ impl RawBytecode {
 
         let mut current_ptr: usize = 0;
 
-        let applied: Vec<bool> = methods.iter().map(|xfn|{
-            let current_slice = &bytes[current_ptr..];
+        let result = methods.iter().fold(None, |acc, xfn| {
+            match acc {
+                None => {
+                    let current_slice = &bytes[current_ptr..];
 
-            match xfn(current_slice, &mut bc) {
-                Ok(offset) => {
-                    current_ptr += offset;
-                    true
+                    match xfn(current_slice, &mut bc) {
+                        Ok(offset) => {
+                            current_ptr += offset;
+                            None
+                        },
+                        Err(error) => Some(error)
+                    }
                 },
-                Err(_) => false
+                e@_ => e
             }
-        }).take_while(|r| *r).collect();
+        });
 
-        if applied.len() == methods.len() {
-            Ok(bc)
-        } else {
-            Err("ERROR".to_string())
+        match result {
+            None => Ok(bc),
+            Some(error) => Err(error)
         }
     }
 
@@ -97,40 +116,70 @@ impl RawBytecode {
         }
     }
 
-    fn read_constant_pool(bytes: &[u8], bytecode: &mut RawBytecode) -> Result<usize, String> {
+    pub fn read_constant_pool(bytes: &[u8], bytecode: &mut RawBytecode) -> Result<usize, String> {
         // size of an u16
         if bytes.len() < 2 {
             Err("Shit".to_string())
         } else {
             let cp_size = bytes.read_u16();
 
-            (0..cp_size).map(|i| {
-                match RawBytecode::read_constant_pool_info(&bytes[(i * 2) as usize..]) {
-                    Some(cpi) => bytecode.constant_pool.push(cpi),
-                    None => ()
-                }
-            });
-
-            Ok(0 as usize)
+            if cp_size > 0 {
+                (0..cp_size).map(|i| {
+                    RawBytecode::read_constant_pool_info(&bytes[(2 + (i * 2)) as usize..])
+                }).fold(Ok(0 as usize), |acc, current| {
+                    match acc {
+                        Err(err) => Err(err),
+                        Ok(size) => match current {
+                            Ok(r) => {
+                                bytecode.constant_pool.push(r.0);
+                                Ok(size + r.1)
+                            },
+                            Err(err) => Err(err)
+                        }
+                    }
+                })
+            } else {
+                Err(format!("Invalid constant pool length: {}", cp_size).to_string())
+            }
         }
     }
 
-    fn read_constant_pool_info(bytes: &[u8]) -> Option<ConstantPoolInfo> {
-        if bytes.len() < 1 {
-            None
+    pub fn read_constant_pool_info(bytes: &[u8]) -> Result<(ConstantPoolInfo, usize), String> {
+        // There's no constant type that takes less than 3 bytes
+        let minimum_required_bytes = 3;
+
+        if bytes.len() < minimum_required_bytes {
+            Err(format!("Less then required number of bytes available: {}", bytes.len()).to_string())
         } else {
-            None
+            let tag = bytes[0];
+
+            match tag {
+                3 => Ok((ConstantPoolInfo { tag: ConstantType::Integer { bytes: bytes[1..].read_u32() }}, 5)),
+                4 => Ok((ConstantPoolInfo { tag: ConstantType::Float { bytes: bytes[1..].read_u32() }}, 5)),
+                5 => Ok((ConstantPoolInfo { tag: ConstantType::Long { high_bytes: bytes[1..].read_u32(), low_bytes: bytes[5..].read_u32() }}, 9)),
+                6 => Ok((ConstantPoolInfo { tag: ConstantType::Double { high_bytes: bytes[1..].read_u32(), low_bytes: bytes[5..].read_u32() }}, 9)),
+                7 => Ok((ConstantPoolInfo { tag: ConstantType::Class { name_index: bytes[1..].read_u16() }}, 3)),
+                8 => Ok((ConstantPoolInfo { tag: ConstantType::String { string_index: bytes[1..].read_u16() }}, 3)),
+                9 => Ok((ConstantPoolInfo { tag: ConstantType::FieldRef { class_index: bytes[1..].read_u16(), name_and_type_index: bytes[5..].read_u16() }}, 5)),
+                10 => Ok((ConstantPoolInfo { tag: ConstantType::MethodRef { class_index: bytes[1..].read_u16(), name_and_type_index: bytes[5..].read_u16() }}, 5)),
+                11 => Ok((ConstantPoolInfo { tag: ConstantType::InterfaceMethodRef { class_index: bytes[1..].read_u16(), name_and_type_index: bytes[5..].read_u16() }}, 5)),
+                12 => Ok((ConstantPoolInfo { tag: ConstantType::NameAndType { name_index: bytes[1..].read_u16(), descriptor_index: bytes[5..].read_u16() }}, 5)),
+                15 => Ok((ConstantPoolInfo { tag: ConstantType::MethodHandle { reference_kind: bytes[1], reference_index: bytes[2..].read_u16() }}, 4)),
+                16 => Ok((ConstantPoolInfo { tag: ConstantType::MethodType { descriptor_index: bytes[1..].read_u16() }}, 3)),
+                18 => Ok((ConstantPoolInfo { tag: ConstantType::InvokeDynamic { bootstrap_method_attr_index: bytes[1..].read_u16(), name_and_type_index: bytes[3..].read_u16() }}, 5)),
+                t@_ => Err(format!("Unrecognised constant pool tag: {}", t).to_string())
+            }
         }
     }
 }
 
-pub trait ReadChunks {
+trait ReadChunks {
     fn read_u8(&self) -> u8;
     fn read_u16(&self) -> u16;
+    fn read_u32(&self) -> u32;
 }
 
 impl ReadChunks for [u8] {
-
     fn read_u8(&self) -> u8 { match self.len() { 0 => 0, _ => self[0] } }
     fn read_u16(&self) -> u16 {
         match self.len() {
@@ -139,4 +188,15 @@ impl ReadChunks for [u8] {
             _ => (self[0] as u16).shl(8) + self[1] as u16
         }
     }
+
+    fn read_u32(&self) -> u32 {
+        match self.len() {
+            0 => 0,
+            1 => self[0] as u32,
+            2 => (self[0] as u32).shl(8) + self[1] as u32,
+            3 => (self[0] as u32).shl(16) + (self[1] as u32).shl(8) + self[2] as u32,
+            _ => (self[0] as u32).shl(24) + (self[1] as u32).shl(16) + (self[2] as u32).shl(8) + self[3] as u32
+        }
+    }
+
 }
