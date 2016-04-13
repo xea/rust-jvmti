@@ -19,9 +19,11 @@ mod tests {
         include_bytes!("../../Simple.class")
     }
 
+/*
     fn bytecode_complex() -> &'static [u8] {
         include_bytes!("../../Test.class")
     }
+    */
 
     fn bytecode_bad_magic() -> &'static [u8] {
         static BAD_MAGIC: [u8; 4] = [ 0xCA, 0xFE, 0xBB, 0xBF ];
@@ -97,5 +99,24 @@ mod tests {
         });
 
         assert_eq!(3, s);
+    }
+
+    #[test]
+    fn read_access_flags_recognises_access_flags() {
+        let result = ClassfileReader::from_bytes(bytecode_simple());
+
+        assert!(result.is_ok());
+
+        let w = result.ok().unwrap();
+
+        assert_eq!(0x21, w.access_flags.raw_flag());
+        assert_eq!(true, w.access_flags.is_public());
+        assert_eq!(true, w.access_flags.is_super());
+        assert_eq!(false, w.access_flags.is_annotation());
+        assert_eq!(false, w.access_flags.is_final());
+        assert_eq!(false, w.access_flags.is_abstract());
+        assert_eq!(false, w.access_flags.is_interface());
+        assert_eq!(false, w.access_flags.is_synthetic());
+        assert_eq!(false, w.access_flags.is_enum());
     }
 }
