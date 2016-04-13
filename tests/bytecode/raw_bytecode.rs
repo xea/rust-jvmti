@@ -6,6 +6,7 @@ mod tests {
     use jvmti::bytecode::RawBytecode;
     use jvmti::bytecode::ConstantType;
 
+/*
     fn test_bytecode() -> Vec<u8> {
         vec![ 0xCA, 0xFE, 0xBA, 0xBE, 0x12, 0x34, 0x56, 0x78, 0, 1, 7, 0, 0, 0, 0 ]
     }
@@ -81,4 +82,5 @@ mod tests {
         assert_eq!(bc.minor_version, 0x01);
         assert_eq!(bc.major_version, 0x0600);
     }
+    */
 }

@@ -24,22 +24,64 @@ pub enum ConstantType {
     Unknown
 }
 
-#[allow(dead_code)]
-pub struct ConstantPoolInfo {
-    pub tag: ConstantType
-}
-
 pub enum MaybeMaybe<T> {
     Undefined,
     Nothing,
     Just(T)
 }
 
+impl <T> MaybeMaybe<T> {
+
+    pub fn or(self, other: MaybeMaybe<T>) -> MaybeMaybe<T> {
+        match self {
+            MaybeMaybe::Undefined => other,
+            MaybeMaybe::Nothing => match other {
+                MaybeMaybe::Undefined => MaybeMaybe::Nothing,
+                _ => other
+            },
+            MaybeMaybe::Just(e) => MaybeMaybe::Just(e)
+        }
+    }
+
+    pub fn is_defined(&self) -> bool {
+        match *self {
+            MaybeMaybe::Undefined => false,
+            _ => true
+        }
+    }
+
+    pub fn is_undefined(&self) -> bool { !self.is_defined() }
+}
+
 pub struct ClassfileFragment {
     pub major_version: MaybeMaybe<u16>,
     pub minor_version: MaybeMaybe<u16>,
-    pub constant_pool: MaybeMaybe<Vec<ConstantPoolInfo>>
+    pub constant_pool: MaybeMaybe<Vec<ConstantType>>
 }
+
+pub struct Classfile {
+    pub major_version: u16,
+    pub minor_version: u16,
+    pub constant_pool: Vec<ConstantType>
+}
+
+impl ClassfileFragment {
+
+    pub fn merge(&self, other_fragment: &ClassfileFragment) -> ClassfileFragment {
+        ClassfileFragment {
+            major_version: other_fragment.major_version.or(self.major_version),
+            minor_version: other_fragment.minor_version.or(self.minor_version),
+            constant_pool: other_fragment.constant_pool.or(self.constant_pool)
+        }
+    }
+}
+
+/*
+#[allow(dead_code)]
+pub struct ConstantPoolInfo {
+    pub tag: ConstantType
+}
+
 
 #[derive(Default)]
 pub struct RawBytecode {
@@ -200,3 +242,4 @@ impl ReadChunks for [u8] {
     }
 
 }
+*/
