@@ -154,7 +154,10 @@ pub struct ClassfileFragment {
     pub access_flags: Option<ClassAccessFlags>,
     pub this_class: Option<ConstantPoolIndex>,
     pub super_class: Option<ConstantPoolIndex>,
-    pub interfaces: Option<Vec<ConstantPoolIndex>>
+    pub interfaces: Option<Vec<ConstantPoolIndex>>,
+    pub fields: Option<Vec<FieldInfo>>,
+    pub methods: Option<Vec<MethodInfo>>,
+    pub attributes: Option<Vec<AttributeInfo>>
 }
 
 pub struct Classfile {
@@ -164,7 +167,10 @@ pub struct Classfile {
     pub access_flags: ClassAccessFlags,
     pub this_class: ConstantPoolIndex,
     pub super_class: ConstantPoolIndex,
-    pub interfaces: Vec<ConstantPoolIndex>
+    pub interfaces: Vec<ConstantPoolIndex>,
+    pub fields: Vec<FieldInfo>,
+    pub methods: Vec<MethodInfo>,
+    pub attributes: Vec<AttributeInfo>
 }
 
 type PartialRead = (ClassfileFragment, usize);
@@ -179,6 +185,9 @@ impl ClassfileFragment {
         self.this_class = other_fragment.this_class.or(self.this_class);
         self.super_class = other_fragment.super_class.or(self.super_class);
         self.interfaces = other_fragment.interfaces.or(self.interfaces);
+        self.fields = other_fragment.fields.or(self.fields);
+        self.methods = other_fragment.methods.or(self.methods);
+        self.attributes = other_fragment.attributes.or(self.attributes);
 
         self
     }
@@ -191,7 +200,10 @@ impl ClassfileFragment {
             access_flags: self.access_flags.or(Some(ClassAccessFlags { flag: 0 })).unwrap(),
             this_class: self.this_class.or(Some(ConstantPoolIndex { id: 0 })).unwrap(),
             super_class: self.super_class.or(Some(ConstantPoolIndex { id: 0 })).unwrap(),
-            interfaces: self.interfaces.or(Some(vec![])).unwrap()
+            interfaces: self.interfaces.or(Some(vec![])).unwrap(),
+            fields: self.fields.or(Some(vec![])).unwrap(),
+            methods: self.methods.or(Some(vec![])).unwrap(),
+            attributes: self.attributes.or(Some(vec![])).unwrap()
         }
     }
 }
