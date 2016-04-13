@@ -3,84 +3,99 @@ extern crate jvmti;
 #[cfg(test)]
 mod tests {
 
-    use jvmti::bytecode::RawBytecode;
+    use jvmti::bytecode::Classfile;
+    use jvmti::bytecode::ClassfileReader;
     use jvmti::bytecode::ConstantType;
 
-/*
-    fn test_bytecode() -> Vec<u8> {
-        vec![ 0xCA, 0xFE, 0xBA, 0xBE, 0x12, 0x34, 0x56, 0x78, 0, 1, 7, 0, 0, 0, 0 ]
+
+    #[allow(dead_code)]
+    fn debug_result(r: Result<Classfile, String>) {
+        let err = r.err().unwrap();
+
+        assert_eq!("_______???".to_string(), err);
+    }
+
+    fn bytecode_simple() -> &'static [u8] {
+        include_bytes!("../../Simple.class")
+    }
+
+    fn bytecode_complex() -> &'static [u8] {
+        include_bytes!("../../Test.class")
+    }
+
+    fn bytecode_bad_magic() -> &'static [u8] {
+        static BAD_MAGIC: [u8; 4] = [ 0xCA, 0xFE, 0xBB, 0xBF ];
+
+        &BAD_MAGIC
     }
 
     #[test]
-    fn read_constant_pool_rejects_empty_constant_pools() {
-        let vc: Vec<u8> = vec![ 0x00, 0x00 ];
-        let vb = vc.as_slice();
-        let mut bc = RawBytecode::default();
-
-        let result = RawBytecode::read_constant_pool(vb, &mut bc);
+    fn read_magic_rejects_invalid_magic_numbers() {
+        let result = ClassfileReader::read_magic(bytecode_bad_magic());
 
         assert!(result.is_err());
     }
 
     #[test]
-    fn read_constant_pool_rejects_incomplete_constant_pools() {
-        let vc: Vec<u8> = vec![ 0x00, 0x01, 0x07 ];
-        let vb = vc.as_slice();
-        let mut bc = RawBytecode::default();
+    fn read_magic_accepts_valid_magic_numbers() {
+        let result = ClassfileReader::read_magic(bytecode_simple());
 
-        let result = RawBytecode::read_constant_pool(vb, &mut bc);
-
-        assert!(result.is_err());
+        assert!(result.is_ok());
     }
 
     #[test]
-    fn read_constant_pool_accepts_complete_constant_pools() {
-        let vc: Vec<u8> = vec![ 0x00, 0x01, 0x07, 0x98, 0x76 ];
-        let vb = vc.as_slice();
-        let mut bc = RawBytecode::default();
+    fn from_bytes_reads_version_numbers() {
+        let result = ClassfileReader::from_bytes(bytecode_simple());
 
-        let result = RawBytecode::read_constant_pool(vb, &mut bc);
+        assert!(result.is_ok());
 
-        assert_eq!(None, result.err());
-        assert_eq!(1, bc.constant_pool.len());
+        let cf = result.ok().unwrap();
 
-        let cpi = bc.constant_pool.first().unwrap();
+        assert_eq!(52, cf.major_version);
+        assert_eq!(0, cf.minor_version);
+    }
 
-        match cpi.tag {
-            ConstantType::Class { name_index } => {
-                assert_eq!(0x9876, name_index);
+    #[test]
+    fn read_constant_pool_reads() {
+        let result1 = ClassfileReader::read_constant_pool(&[ 0x00, 0x02, 0x07, 0x01, 0x02 ]);
+        let result2 = ClassfileReader::read_constant_pool(&[ 0x00, 0x04, 0x07, 0x01, 0x02, 0x08, 0x03, 0x04, 0x10, 0x05, 0x06 ]);
+
+        assert!(result1.is_ok());
+        assert!(result2.is_ok());
+
+        let (cpm1, s1) = result1.ok().unwrap();
+        let (cpm2, s2) = result2.ok().unwrap();
+
+        assert_eq!(5, s1);
+        assert_eq!(11, s2);
+        assert!(cpm1.constant_pool.is_some());
+        assert!(cpm2.constant_pool.is_some());
+
+        let cp1 = cpm1.constant_pool.unwrap();
+        let cp2 = cpm2.constant_pool.unwrap();
+
+        assert_eq!(2, cp1.len());
+        assert_eq!(4, cp2.len());
+    }
+
+
+    #[test]
+    fn read_constant_pool_info_recognises_class_info() {
+        let result = ClassfileReader::read_constant_pool_info(&[ 0x07, 0x01, 0x02 ]);
+
+        assert!(result.is_ok());
+
+        let w = result.ok().unwrap();
+        let (r, s) = w;
+
+        assert!(match r {
+            ConstantType::Class { name_index } => match name_index {
+                0x102 => true,
+                _ => false
             },
-            _ => panic!("Wrong constant type")
-        }
+            _ => false
+        });
+
+        assert_eq!(3, s);
     }
-
-    #[test]
-    fn raw_bytecode_parses_version_numbers() {
-        let vc: Vec<u8> = test_bytecode();
-        let vs = vc.as_slice().as_ptr();
-
-        let result = RawBytecode::from_raw_bytes(vs, vc.len() as i32);
-
-        assert!(result.is_ok());
-        let bc = result.ok().unwrap();
-
-        assert_eq!(0x1234, bc.minor_version);
-        assert_eq!(0x5678, bc.major_version);
-    }
-
-    #[test]
-    fn raw_bytecode_parses_beyond_null_characters() {
-        let vc: Vec<u8> = vec![ 0xCA, 0xFE, 0xBA, 0xBE, 0, 1, 6, 0, 0, 1, 7, 0, 0 ];
-        let vs = vc.as_slice().as_ptr();
-
-        let result = RawBytecode::from_raw_bytes(vs, vc.len() as i32);
-
-        assert!(result.is_ok());
-
-        let bc = result.ok().unwrap();
-
-        assert_eq!(bc.minor_version, 0x01);
-        assert_eq!(bc.major_version, 0x0600);
-    }
-    */
 }
