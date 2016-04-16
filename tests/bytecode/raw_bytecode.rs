@@ -119,4 +119,20 @@ mod tests {
         assert_eq!(false, w.access_flags.is_synthetic());
         assert_eq!(false, w.access_flags.is_enum());
     }
+
+    #[test]
+    fn read_interfaces_reads_interfaces_count_number_of_interfaces() {
+        let result = ClassfileReader::read_interfaces(&[ 0x00, 0x04, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04]);
+
+        assert!(result.is_ok());
+
+        let f = result.ok().unwrap().0;
+        let i = f.interfaces.unwrap();
+
+        assert_eq!(4, i.len());
+        assert_eq!(1, i[0].id);
+        assert_eq!(2, i[1].id);
+        assert_eq!(3, i[2].id);
+        assert_eq!(4, i[3].id);
+    }
 }

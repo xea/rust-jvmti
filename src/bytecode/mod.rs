@@ -146,6 +146,65 @@ pub struct AttributeInfo {
     pub info: Vec<u8>
 }
 
+pub enum Attribute {
+    // JVM attributes
+    ConstantValue,
+    Code,
+    StackMapTable,
+    Exceptions,
+    BootstrapMethods,
+    // Java SE Attributes
+    InnerClasses,
+    EnclosingMethod,
+    Synthetic,
+    Signature,
+    RuntimeVisibleAnnotations,
+    RuntimeInvisibleAnnotations,
+    RuntimeVisibleParameterAnnotations,
+    RuntimeInvisibleParameterAnnotations,
+    RuntimeVisibleTypeAnnotations,
+    RuntimeInvisibleTypeAnnotations,
+    AnnotationDefault,
+    MethodParameters,
+    // Extra attributes
+    SourceFile,
+    SourceDebugExtension,
+    LineNumberTable,
+    LocalVariableTable,
+    LocalVariableTypeTable,
+    Deprecated
+}
+
+impl Attribute {
+    pub fn to_string(&self) -> String {
+        match self {
+            &Attribute::ConstantValue => "ConstantValue",
+            &Attribute::Code => "Code",
+            &Attribute::StackMapTable => "StackMapTable",
+            &Attribute::Exceptions => "Exceptions",
+            &Attribute::BootstrapMethods => "BootstrapMethods",
+            &Attribute::InnerClasses => "InnerClasses",
+            &Attribute::EnclosingMethod => "EnclosingMethod",
+            &Attribute::Synthetic => "Synthetic",
+            &Attribute::Signature => "Signature",
+            &Attribute::RuntimeVisibleAnnotations => "RuntimeVisibleAnnotations",
+            &Attribute::RuntimeInvisibleAnnotations => "RuntimeInvisibleAnnotations",
+            &Attribute::RuntimeVisibleParameterAnnotations => "RuntimeVisibleParameterAnnotations",
+            &Attribute::RuntimeInvisibleParameterAnnotations => "RuntimeInvisibleParameterAnnotations",
+            &Attribute::RuntimeVisibleTypeAnnotations => "RuntimeVisibleTypeAnnotations",
+            &Attribute::RuntimeInvisibleTypeAnnotations => "RuntimeInvisibleTypeAnnotations",
+            &Attribute::AnnotationDefault => "AnnotationDefault",
+            &Attribute::MethodParameters => "MethodParameters",
+            &Attribute::SourceFile => "SourceFile",
+            &Attribute::SourceDebugExtension => "SourceDebugExtension",
+            &Attribute::LineNumberTable => "LineNumberTable",
+            &Attribute::LocalVariableTable => "LocalVariableTable",
+            &Attribute::LocalVariableTypeTable => "LocalVariableTypeTable",
+            &Attribute::Deprecated => "Deprecated"
+        }.to_string()
+    }
+}
+
 #[derive(Default)]
 pub struct ClassfileFragment {
     pub major_version: Option<u16>,
@@ -233,7 +292,11 @@ impl ClassfileReader {
             ClassfileReader::read_constant_pool,
             ClassfileReader::read_class_access_flags,
             ClassfileReader::read_this_class,
-            ClassfileReader::read_super_class
+            ClassfileReader::read_super_class,
+            ClassfileReader::read_interfaces,
+            ClassfileReader::read_fields,
+            ClassfileReader::read_methods,
+            ClassfileReader::read_attributes
         ];
 
         ClassfileReader::read_bytes(bytes, steps)
@@ -394,6 +457,46 @@ impl ClassfileReader {
             },
             Err(err) => Err(err)
         }
+    }
+
+    pub fn read_interfaces(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
+        let minimum_required_bytes = 2;
+
+        if bytes.len() < minimum_required_bytes {
+            Err(format!("Less then required number of bytes available: {}", bytes.len()).to_string())
+        } else {
+            let interface_count = bytes.read_u16();
+            let required_bytes = 2 + (interface_count * 2) as usize;
+
+            if bytes.len() < required_bytes {
+                Err(format!("Not enough bytes available ({}) to read {} interface(s)", bytes.len(), interface_count))
+            } else {
+                let mut cf = ClassfileFragment::default();
+                let mut interfaces: Vec<ConstantPoolIndex> = vec![];
+
+                for i in 0..interface_count {
+                    interfaces.push(ConstantPoolIndex { id: bytes[((i + 1) * 2) as usize..].read_u16() as usize });
+                }
+
+                cf.interfaces = Some(interfaces);
+
+                Ok((cf, required_bytes))
+            }
+        }
+    }
+
+    pub fn read_fields(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
+
+        Err(format!("Not implemented"))
+    }
+
+    pub fn read_methods(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
+
+        Err(format!("Not implemented"))
+    }
+
+    pub fn read_attributes(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
+        Err(format!("Not implemented"))
     }
 
     fn read_constant_index(bytes: &[u8]) -> Result<(ConstantPoolIndex, usize), String> {
