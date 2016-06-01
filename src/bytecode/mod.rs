@@ -1,8 +1,27 @@
-//use super::native::*;
-use libc::c_uchar;
+use std::mem::size_of;
 use std::ops::Shl;
 
-pub mod classfile;
+pub struct ClassfileFragment {
+    pub major_version: Option<u16>,
+    pub minor_version: Option<u16>,
+    pub constant_pool: Option<ConstantType>
+}
+
+pub struct Classfile {
+    pub major_version: u16,
+    pub minor_version: u16,
+    pub constant_pool: Vec<ConstantType>
+}
+
+impl Classfile {
+    pub fn new() -> Classfile {
+        Classfile {
+            major_version: 0x00,
+            minor_version: 0x00,
+            constant_pool: vec![]
+        }
+    }
+}
 
 pub enum ConstantType {
     Class { name_index: u16 }, // 7
@@ -23,496 +42,136 @@ pub enum ConstantType {
     Unknown
 }
 
-pub struct ConstantPoolIndex {
-    pub id: usize
-}
+impl ConstantType {
+    pub fn parse(constant_type: u8, bytes: &Vec<u8>) -> Option<ConstantType> {
+        //let r: Option<Classfile> = bytes.read_map(|f| Some(Classfile::new()));
+        //let r1: Option<Classfile> = bytes.read_map_if(|c| c.len() >= 3, |c| Classfile::new());
+        //let r2: Option<Classfile> = bytes.read_map_len(3, |c| Classfile::new());
+        match constant_type {
+            // Utf8
+            //1 => bytes.read_map_len(2, |bs| ConstantType::Utf8 { length: bs.read_u16(), bytes: bs[2..(2 + bs.read_u16() as u8)].to_vec() }),
+            3 => bytes.read_map_len(4, |bs| ConstantType::Integer { bytes: bs.read_u32() }),
+            4 => bytes.read_map_len(4, |bs| ConstantType::Float { bytes: bs.read_u32() }),
+            5 => bytes.read_map_len(8, |bs| ConstantType::Long { high_bytes: bs.read_u32(), low_bytes: bs[4..].read_u32() }),
+            6 => bytes.read_map_len(8, |bs| ConstantType::Double { high_bytes: bs.read_u32(), low_bytes: bs[4..].read_u32() }),
+            7 => bytes.read_map_len(2, |bs| ConstantType::Class { name_index: bs.read_u16() }),
+            8 => bytes.read_map_len(2, |bs| ConstantType::String { string_index: bs.read_u16() }),
+            9 => bytes.read_map_len(4, |bs| ConstantType::FieldRef { class_index: bs.read_u16(), name_and_type_index: bs[2..].read_u16() }),
+            10 => bytes.read_map_len(4, |bs| ConstantType::MethodRef { class_index: bs.read_u16(), name_and_type_index: bs[2..].read_u16() }),
+            11 => bytes.read_map_len(4, |bs| ConstantType::InterfaceMethodRef { class_index: bs.read_u16(), name_and_type_index: bs[2..].read_u16() }),
+            12 => bytes.read_map_len(4, |bs| ConstantType::NameAndType { name_index: bs.read_u16(), descriptor_index: bs[2..].read_u16() }),
+            15 => bytes.read_map_len(3, |bs| ConstantType::MethodHandle { reference_kind: bs.read_u8(), reference_index: bs[1..].read_u16() }),
+            16 => bytes.read_map_len(2, |bs| ConstantType::MethodType { descriptor_index: bs.read_u16() }),
+            18 => bytes.read_map_len(4, |bs| ConstantType::InvokeDynamic { bootstrap_method_attr_index: bs.read_u16(), name_and_type_index: bs[2..].read_u16() }),
+            1 => bytes.read_map_len(2, |bs| {
+                let bytes_count = bs.read_u16();
+                let upper_bound = (bytes_count + 2) as usize;
 
-pub struct ClassAccessFlags {
-    flag: u16
-}
-
-pub struct FieldAccessFlags {
-    flag: u16
-}
-
-pub struct MethodAccessFlags {
-    flag: u16
-}
-
-impl ClassAccessFlags {
-    pub fn is_public(&self) -> bool { self.flag & ClassAccessFlagType::Public as u16 > 0 }
-    pub fn is_final(&self) -> bool { self.flag & ClassAccessFlagType::Final as u16 > 0 }
-    pub fn is_super(&self) -> bool { self.flag & ClassAccessFlagType::Super as u16 > 0 }
-    pub fn is_interface(&self) -> bool { self.flag & ClassAccessFlagType::Interface as u16 > 0 }
-    pub fn is_abstract(&self) -> bool { self.flag & ClassAccessFlagType::Abstract as u16 > 0 }
-    pub fn is_synthetic(&self) -> bool { self.flag & ClassAccessFlagType::Synthetic as u16 > 0 }
-    pub fn is_annotation(&self) -> bool { self.flag & ClassAccessFlagType::Annotation as u16 > 0 }
-    pub fn is_enum(&self) -> bool { self.flag & ClassAccessFlagType::Enum as u16 > 0 }
-    pub fn set(&mut self, flag: ClassAccessFlagType) { self.flag = self.flag | flag as u16 }
-    pub fn clear(&mut self, flag: ClassAccessFlagType) { self.flag = self.flag & (0xFFFF ^ flag as u16) }
-    pub fn has_flag(&self, flag: ClassAccessFlagType) -> bool { self.flag & flag as u16 > 0 }
-    pub fn raw_flag(&self) -> u16 { self.flag }
-}
-
-impl FieldAccessFlags {
-    pub fn is_public(&self) -> bool { self.flag & FieldAccessFlagType::Public as u16 > 0 }
-    pub fn is_private(&self) -> bool { self.flag & FieldAccessFlagType::Private as u16 > 0 }
-    pub fn is_protected(&self) -> bool { self.flag & FieldAccessFlagType::Protected as u16 > 0 }
-    pub fn is_static(&self) -> bool { self.flag & FieldAccessFlagType::Static as u16 > 0 }
-    pub fn is_final(&self) -> bool { self.flag & FieldAccessFlagType::Final as u16 > 0 }
-    pub fn is_volatile(&self) -> bool { self.flag & FieldAccessFlagType::Volatile as u16 > 0 }
-    pub fn is_transient(&self) -> bool { self.flag & FieldAccessFlagType::Transient as u16 > 0 }
-    pub fn is_synthetic(&self) -> bool { self.flag & FieldAccessFlagType::Synthetic as u16 > 0 }
-    pub fn is_enum(&self) -> bool { self.flag & FieldAccessFlagType::Enum as u16 > 0 }
-    pub fn set(&mut self, flag: FieldAccessFlagType) { self.flag = self.flag | flag as u16 }
-    pub fn clear(&mut self, flag: FieldAccessFlagType) { self.flag = self.flag & (0xFFFF ^ flag as u16) }
-    pub fn has_flag(&self, flag: FieldAccessFlagType) -> bool { self.flag & flag as u16 > 0 }
-    pub fn raw_flag(&self) -> u16 { self.flag }
-}
-
-impl MethodAccessFlags {
-    pub fn is_public(&self) -> bool { self.flag & MethodAccessFlagType::Public as u16 > 0 }
-    pub fn is_private(&self) -> bool { self.flag & MethodAccessFlagType::Private as u16 > 0 }
-    pub fn is_protected(&self) -> bool { self.flag & MethodAccessFlagType::Protected as u16 > 0 }
-    pub fn is_static(&self) -> bool { self.flag & MethodAccessFlagType::Static as u16 > 0 }
-    pub fn is_final(&self) -> bool { self.flag & MethodAccessFlagType::Final as u16 > 0 }
-    pub fn is_synchronized(&self) -> bool { self.flag & MethodAccessFlagType::Synchronized as u16 > 0 }
-    pub fn is_bridge(&self) -> bool { self.flag & MethodAccessFlagType::Bridge as u16 > 0 }
-    pub fn is_varargs(&self) -> bool { self.flag & MethodAccessFlagType::Varargs as u16 > 0 }
-    pub fn is_native(&self) -> bool { self.flag & MethodAccessFlagType::Native as u16 > 0 }
-    pub fn is_abstract(&self) -> bool { self.flag & MethodAccessFlagType::Abstract as u16 > 0 }
-    pub fn is_strict(&self) -> bool { self.flag & MethodAccessFlagType::Strict as u16 > 0 }
-    pub fn is_synthetic(&self) -> bool { self.flag & MethodAccessFlagType::Synthetic as u16 > 0 }
-    pub fn set(&mut self, flag: MethodAccessFlagType) { self.flag = self.flag | flag as u16 }
-    pub fn clear(&mut self, flag: MethodAccessFlagType) { self.flag = self.flag & (0xFFFF ^ flag as u16) }
-    pub fn has_flag(&self, flag: MethodAccessFlagType) -> bool { self.flag & flag as u16 > 0 }
-    pub fn raw_flag(&self) -> u16 { self.flag }
-}
-
-pub enum ClassAccessFlagType {
-    Public = 0x0001,
-    Final = 0x0010,
-    Super = 0x0020,
-    Interface = 0x0200,
-    Abstract = 0x0400,
-    Synthetic = 0x1000,
-    Annotation = 0x2000,
-    Enum = 0x4000
-}
-
-pub enum FieldAccessFlagType {
-    Public = 0x0001,
-    Private = 0x0002,
-    Protected = 0x0004,
-    Static = 0x0008,
-    Final = 0x0010,
-    Volatile = 0x0040,
-    Transient = 0x0080,
-    Synthetic = 0x1000,
-    Enum = 0x4000
-}
-
-pub enum MethodAccessFlagType {
-    Public = 0x0001,
-    Private = 0x0002,
-    Protected = 0x0004,
-    Static = 0x0008,
-    Final = 0x0010,
-    Synchronized = 0x0020,
-    Bridge = 0x0040,
-    Varargs = 0x0080,
-    Native = 0x0100,
-    Abstract = 0x0400,
-    Strict = 0x0800,
-    Synthetic = 0x1000
-}
-
-pub struct MethodInfo {
-    pub access_flags: MethodAccessFlags,
-    pub name_index: ConstantPoolIndex,
-    pub descriptor_index: ConstantPoolIndex,
-    pub attributes: Vec<AttributeInfo>
-}
-
-pub struct FieldInfo {
-    pub access_flags: FieldAccessFlags,
-    pub name_index: ConstantPoolIndex,
-    pub descriptor_index: ConstantPoolIndex,
-    pub attributes: Vec<AttributeInfo>
-}
-
-pub struct AttributeInfo {
-    pub attribute_name_index: ConstantPoolIndex,
-    pub info: Vec<u8>
-}
-
-pub enum Attribute {
-    // JVM attributes
-    ConstantValue,
-    Code,
-    StackMapTable,
-    Exceptions,
-    BootstrapMethods,
-    // Java SE Attributes
-    InnerClasses,
-    EnclosingMethod,
-    Synthetic,
-    Signature,
-    RuntimeVisibleAnnotations,
-    RuntimeInvisibleAnnotations,
-    RuntimeVisibleParameterAnnotations,
-    RuntimeInvisibleParameterAnnotations,
-    RuntimeVisibleTypeAnnotations,
-    RuntimeInvisibleTypeAnnotations,
-    AnnotationDefault,
-    MethodParameters,
-    // Extra attributes
-    SourceFile,
-    SourceDebugExtension,
-    LineNumberTable,
-    LocalVariableTable,
-    LocalVariableTypeTable,
-    Deprecated
-}
-
-impl Attribute {
-    pub fn to_string(&self) -> String {
-        match self {
-            &Attribute::ConstantValue => "ConstantValue",
-            &Attribute::Code => "Code",
-            &Attribute::StackMapTable => "StackMapTable",
-            &Attribute::Exceptions => "Exceptions",
-            &Attribute::BootstrapMethods => "BootstrapMethods",
-            &Attribute::InnerClasses => "InnerClasses",
-            &Attribute::EnclosingMethod => "EnclosingMethod",
-            &Attribute::Synthetic => "Synthetic",
-            &Attribute::Signature => "Signature",
-            &Attribute::RuntimeVisibleAnnotations => "RuntimeVisibleAnnotations",
-            &Attribute::RuntimeInvisibleAnnotations => "RuntimeInvisibleAnnotations",
-            &Attribute::RuntimeVisibleParameterAnnotations => "RuntimeVisibleParameterAnnotations",
-            &Attribute::RuntimeInvisibleParameterAnnotations => "RuntimeInvisibleParameterAnnotations",
-            &Attribute::RuntimeVisibleTypeAnnotations => "RuntimeVisibleTypeAnnotations",
-            &Attribute::RuntimeInvisibleTypeAnnotations => "RuntimeInvisibleTypeAnnotations",
-            &Attribute::AnnotationDefault => "AnnotationDefault",
-            &Attribute::MethodParameters => "MethodParameters",
-            &Attribute::SourceFile => "SourceFile",
-            &Attribute::SourceDebugExtension => "SourceDebugExtension",
-            &Attribute::LineNumberTable => "LineNumberTable",
-            &Attribute::LocalVariableTable => "LocalVariableTable",
-            &Attribute::LocalVariableTypeTable => "LocalVariableTypeTable",
-            &Attribute::Deprecated => "Deprecated"
-        }.to_string()
-    }
-}
-
-#[derive(Default)]
-pub struct ClassfileFragment {
-    pub major_version: Option<u16>,
-    pub minor_version: Option<u16>,
-    pub constant_pool: Option<Vec<ConstantType>>,
-    pub access_flags: Option<ClassAccessFlags>,
-    pub this_class: Option<ConstantPoolIndex>,
-    pub super_class: Option<ConstantPoolIndex>,
-    pub interfaces: Option<Vec<ConstantPoolIndex>>,
-    pub fields: Option<Vec<FieldInfo>>,
-    pub methods: Option<Vec<MethodInfo>>,
-    pub attributes: Option<Vec<AttributeInfo>>
-}
-
-pub struct Classfile {
-    pub major_version: u16,
-    pub minor_version: u16,
-    pub constant_pool: Vec<ConstantType>,
-    pub access_flags: ClassAccessFlags,
-    pub this_class: ConstantPoolIndex,
-    pub super_class: ConstantPoolIndex,
-    pub interfaces: Vec<ConstantPoolIndex>,
-    pub fields: Vec<FieldInfo>,
-    pub methods: Vec<MethodInfo>,
-    pub attributes: Vec<AttributeInfo>
-}
-
-type PartialRead = (ClassfileFragment, usize);
-
-impl ClassfileFragment {
-
-    pub fn update(mut self, other_fragment: ClassfileFragment) -> ClassfileFragment {
-        self.major_version = other_fragment.major_version.or(self.major_version);
-        self.minor_version = other_fragment.minor_version.or(self.minor_version);
-        self.constant_pool = other_fragment.constant_pool.or(self.constant_pool);
-        self.access_flags = other_fragment.access_flags.or(self.access_flags);
-        self.this_class = other_fragment.this_class.or(self.this_class);
-        self.super_class = other_fragment.super_class.or(self.super_class);
-        self.interfaces = other_fragment.interfaces.or(self.interfaces);
-        self.fields = other_fragment.fields.or(self.fields);
-        self.methods = other_fragment.methods.or(self.methods);
-        self.attributes = other_fragment.attributes.or(self.attributes);
-
-        self
-    }
-
-    pub fn to_classfile(self) -> Classfile {
-        Classfile {
-            major_version: self.major_version.or(Some(0x00)).unwrap(),
-            minor_version: self.minor_version.or(Some(0x00)).unwrap(),
-            constant_pool: self.constant_pool.or(Some(vec![])).unwrap(),
-            access_flags: self.access_flags.or(Some(ClassAccessFlags { flag: 0 })).unwrap(),
-            this_class: self.this_class.or(Some(ConstantPoolIndex { id: 0 })).unwrap(),
-            super_class: self.super_class.or(Some(ConstantPoolIndex { id: 0 })).unwrap(),
-            interfaces: self.interfaces.or(Some(vec![])).unwrap(),
-            fields: self.fields.or(Some(vec![])).unwrap(),
-            methods: self.methods.or(Some(vec![])).unwrap(),
-            attributes: self.attributes.or(Some(vec![])).unwrap()
-        }
-    }
-}
-
-pub struct ClassfileReader;
-
-impl ClassfileReader {
-
-    pub fn from_raw_bytes(raw_bytes: *const c_uchar, data_length: i32) -> Result<Classfile, String> {
-        let mut buf: Vec<u8> = vec![];
-
-        unsafe {
-            for i in 0..data_length {
-                buf.push(*(raw_bytes.offset(i as isize)));
-            }
-        }
-
-        let bytes = buf.as_slice();
-
-        ClassfileReader::from_bytes(bytes)
-    }
-
-    pub fn from_bytes(bytes: &[u8]) -> Result<Classfile, String> {
-        let steps: Vec<fn(&[u8]) -> Result<(ClassfileFragment, usize), String>> = vec![
-            ClassfileReader::read_magic,
-            ClassfileReader::read_version_number,
-            ClassfileReader::read_constant_pool,
-            ClassfileReader::read_class_access_flags,
-            ClassfileReader::read_this_class,
-            ClassfileReader::read_super_class,
-            ClassfileReader::read_interfaces,
-            ClassfileReader::read_fields,
-            ClassfileReader::read_methods,
-            ClassfileReader::read_attributes
-        ];
-
-        ClassfileReader::read_bytes(bytes, steps)
-    }
-
-    pub fn read_bytes(bytes: &[u8], steps: Vec<fn(&[u8]) -> Result<(ClassfileFragment, usize), String>>) -> Result<Classfile, String> {
-        let mut current_ptr: usize = 0;
-        let classfile = ClassfileFragment::default();
-
-        let result = steps.iter().fold((None, classfile), |acc, xfn| {
-            match acc {
-                (None, cf) => {
-                    let current_slice = &bytes[current_ptr..];
-
-                    match xfn(current_slice) {
-                        Ok((fragment, offset)) => {
-                            let tcf = cf.update(fragment);
-                            current_ptr += offset;
-                            (None, tcf)
-                        },
-                        Err(error) => (Some(error), cf)
-                    }
-                },
-                e@_ => e
-            }
-        });
-
-        match result {
-            (None, cf) => Ok(cf.to_classfile()),
-            (Some(error), _) => Err(error)
-        }
-    }
-
-    pub fn read_magic(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-        let expected_magic = [ 0xCA, 0xFE, 0xBA, 0xBE ];
-
-        if bytes.len() < expected_magic.len() {
-            Err("Invalid class file magic".to_string())
-        } else if &bytes[0..4] == expected_magic {
-            Ok((ClassfileFragment::default(), 4))
-        } else {
-            Err("Invalid class file magic".to_string())
-        }
-    }
-
-    pub fn read_version_number(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-        // size of two u16s
-        if bytes.len() < 4 {
-            Err(format!("Not enough version bytes: {}", bytes.len()))
-        } else {
-            let mut fragment = ClassfileFragment::default();
-
-            fragment.minor_version = Some((bytes[0] as u16).shl(8) + bytes[1] as u16);
-            fragment.major_version = Some((bytes[2] as u16).shl(8) + bytes[3] as u16);
-
-            Ok((fragment, 4))
-        }
-    }
-
-    pub fn read_constant_pool(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-        // size of an u16
-        if bytes.len() < 2 {
-            Err(format!("Not enough bytes available: {}", bytes.len()))
-        } else {
-            let cp_size = bytes.read_u16() - 1;
-
-            let mut cf = ClassfileFragment::default();
-            let mut cp: Vec<ConstantType> = vec![ ConstantType::Placeholder ];
-            let mut byte_counter: usize = 2;
-
-            match (0..cp_size).fold(None, |acc, _| {
-                match acc {
-                    None => {
-                        match ClassfileReader::read_constant_pool_info(&bytes[byte_counter as usize..]) {
-                            Ok((constant, size)) => {
-                                byte_counter += size;
-                                cp.push(constant);
-                                None
-                            },
-                            Err(err) => Some(err)
-                        }
-                    },
-                    err@_ => err
+                match bs.len() >= upper_bound {
+                    true => ConstantType::Utf8 { length: bytes_count, bytes: bs[2..upper_bound].to_vec() },
+                    // TODO consider raising an error here
+                    false => ConstantType::Unknown
                 }
-            }) {
-                None => {
-                    cf.constant_pool = Some(cp);
-                    Ok((cf, byte_counter))
-                },
-                Some(err) => Err(err)
-            }
+            }),
+            _ => None
         }
     }
 
-    pub fn read_constant_pool_info(bytes: &[u8]) -> Result<(ConstantType, usize), String> {
-        // There's no constant type that takes less than 3 bytes
-        let minimum_required_bytes = 3;
+    pub fn length(&self) -> usize {
+        (match *self {
+            ConstantType::Integer { bytes: _ }  => 4,
+            ConstantType::Float { bytes: _ }  => 4,
+            ConstantType::Long { high_bytes: _, low_bytes: _ }  => 8,
+            ConstantType::Double { high_bytes: _, low_bytes: _ }  => 8,
+            ConstantType::Class { name_index: _ } => 2,
+            ConstantType::String { string_index: _ } => 2,
+            ConstantType::FieldRef { class_index: _, name_and_type_index: _ } => 4,
+            ConstantType::MethodRef { class_index: _, name_and_type_index: _ } => 4,
+            ConstantType::InterfaceMethodRef { class_index: _, name_and_type_index: _ } => 4,
+            ConstantType::NameAndType { name_index: _, descriptor_index: _ } => 4,
+            ConstantType::MethodHandle { reference_kind: _, reference_index: _ } => 3,
+            ConstantType::MethodType { descriptor_index: _ } => 2,
+            ConstantType::InvokeDynamic { bootstrap_method_attr_index: _, name_and_type_index: _ } => 4,
+            ConstantType::Utf8 { length: count, bytes: _ } => count + 2,
+            _ => 0
+        }) as usize
+    }
 
-        if bytes.len() < minimum_required_bytes {
-            Err(format!("Less then required number of bytes available: {}", bytes.len()).to_string())
-        } else {
-            let tag = bytes[0];
-
-            match tag {
-                1 => {
-                    let utf8_len: u16 = bytes[1..].read_u16();
-                    let utf8_bytes: Vec<u8> = bytes[3..utf8_len as usize].iter().map(|b| *b).collect();
-                    Ok((ConstantType::Utf8 { length: utf8_len, bytes: utf8_bytes }, 3 + utf8_len as usize))
-                },
-                3 => Ok((ConstantType::Integer              { bytes: bytes[1..].read_u32() }, 5)),
-                4 => Ok((ConstantType::Float                { bytes: bytes[1..].read_u32() }, 5)),
-                5 => Ok((ConstantType::Long                 { high_bytes: bytes[1..].read_u32(), low_bytes: bytes[5..].read_u32() }, 9)),
-                6 => Ok((ConstantType::Double               { high_bytes: bytes[1..].read_u32(), low_bytes: bytes[5..].read_u32() }, 9)),
-                7 => Ok((ConstantType::Class                { name_index: bytes[1..].read_u16() }, 3)),
-                8 => Ok((ConstantType::String               { string_index: bytes[1..].read_u16() }, 3)),
-                9 => Ok((ConstantType::FieldRef             { class_index: bytes[1..].read_u16(), name_and_type_index: bytes[5..].read_u16() }, 5)),
-                10 => Ok((ConstantType::MethodRef           { class_index: bytes[1..].read_u16(), name_and_type_index: bytes[5..].read_u16() }, 5)),
-                11 => Ok((ConstantType::InterfaceMethodRef  { class_index: bytes[1..].read_u16(), name_and_type_index: bytes[5..].read_u16() }, 5)),
-                12 => Ok((ConstantType::NameAndType         { name_index: bytes[1..].read_u16(), descriptor_index: bytes[5..].read_u16() }, 5)),
-                15 => Ok((ConstantType::MethodHandle        { reference_kind: bytes[1], reference_index: bytes[2..].read_u16() }, 4)),
-                16 => Ok((ConstantType::MethodType          { descriptor_index: bytes[1..].read_u16() }, 3)),
-                18 => Ok((ConstantType::InvokeDynamic       { bootstrap_method_attr_index: bytes[1..].read_u16(), name_and_type_index: bytes[3..].read_u16() }, 5)),
-                t@_ => Err(format!("Unrecognised constant pool tag: {} (sequence: {:02x} {:02x} {:02x})", t, bytes[1], bytes[2], bytes[3]).to_string())
-            }
+    pub fn is_unknown(&self) -> bool {
+        match *self {
+            ConstantType::Unknown => true,
+            _ => false
         }
     }
 
-    pub fn read_class_access_flags(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-        if bytes.len() > 1 {
-            let mut cf = ClassfileFragment::default();
+    pub fn is_8byte(&self) -> bool {
+        match *self {
+            ConstantType::Long { high_bytes: _, low_bytes: _ }  => true,
+            ConstantType::Double { high_bytes: _, low_bytes: _ }  => true,
+            _ => false
+        }
+    }
+}
 
-            let flag = ClassAccessFlags { flag: bytes.read_u16() };
-            cf.access_flags = Some(flag);
+trait ReadMapper {
+    fn read_map<T, U>(&self, t: T) -> U where T: Fn(&Self) -> U {
+        t(self)
+    }
 
-            Ok((cf, 2))
-        } else {
-            Err("Not enough bytes".to_string())
+    fn read_map_if<T, U, V>(&self, fc: V, t: T) -> Option<U> where V: Fn(&Self) -> bool, T: Fn(&Self) -> U {
+        match fc(self) {
+            true => Some(t(self)),
+            false => None
         }
     }
 
-    pub fn read_this_class(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-        match ClassfileReader::read_constant_index(bytes) {
-            Ok((idx, size)) => {
-                let mut cf = ClassfileFragment::default();
-                cf.this_class = Some(idx);
-                Ok((cf, size))
-            },
-            Err(err) => Err(err)
+    fn read_map_len<T, U>(&self, size: usize, t: T) -> Option<U> where T: Fn(&Self) -> U;
+}
+
+impl ReadMapper for [u8] {
+    fn read_map_len<T, U>(&self, size: usize, t: T) -> Option<U> where T: Fn(&Self) -> U {
+        match self.len() >= size {
+            true => Some(t(self)),
+            false => None
         }
     }
+}
 
-    pub fn read_super_class(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-        match ClassfileReader::read_constant_index(bytes) {
-            Ok((idx, size)) => {
-                let mut cf = ClassfileFragment::default();
-                cf.super_class = Some(idx);
-                Ok((cf, size))
-            },
-            Err(err) => Err(err)
+impl ReadMapper for Vec<u8> {
+    fn read_map_len<T, U>(&self, size: usize, t: T) -> Option<U> where T: Fn(&Self) -> U {
+        match self.len() >= size {
+            true => Some(t(self)),
+            false => None
         }
     }
-
-    pub fn read_interfaces(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-        let minimum_required_bytes = 2;
-
-        if bytes.len() < minimum_required_bytes {
-            Err(format!("Less then required number of bytes available: {}", bytes.len()).to_string())
-        } else {
-            let interface_count = bytes.read_u16();
-            let required_bytes = 2 + (interface_count * 2) as usize;
-
-            if bytes.len() < required_bytes {
-                Err(format!("Not enough bytes available ({}) to read {} interface(s)", bytes.len(), interface_count))
-            } else {
-                let mut cf = ClassfileFragment::default();
-                let mut interfaces: Vec<ConstantPoolIndex> = vec![];
-
-                for i in 0..interface_count {
-                    interfaces.push(ConstantPoolIndex { id: bytes[((i + 1) * 2) as usize..].read_u16() as usize });
-                }
-
-                cf.interfaces = Some(interfaces);
-
-                Ok((cf, required_bytes))
-            }
-        }
-    }
-
-    pub fn read_fields(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-
-        Err(format!("Not implemented"))
-    }
-
-    pub fn read_methods(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-
-        Err(format!("Not implemented"))
-    }
-
-    pub fn read_attributes(bytes: &[u8]) -> Result<(ClassfileFragment, usize), String> {
-        Err(format!("Not implemented"))
-    }
-
-    fn read_constant_index(bytes: &[u8]) -> Result<(ConstantPoolIndex, usize), String> {
-        if bytes.len() > 1 {
-            Ok((ConstantPoolIndex { id: bytes.read_u16() as usize }, 2))
-        } else {
-            Err("Not enough bytes".to_string())
-        }
-    }
-
 }
 
 trait ReadChunks {
     fn read_u8(&self) -> u8;
     fn read_u16(&self) -> u16;
     fn read_u32(&self) -> u32;
+}
+
+impl ReadChunks for Vec<u8> {
+    fn read_u8(&self) -> u8 { match self.len() { 0 => 0, _ => self[0] } }
+
+    fn read_u16(&self) -> u16 {
+        match self.len() {
+            0 => 0,
+            1 => self[0] as u16,
+            _ => (self[0] as u16).shl(8) + self[1] as u16
+        }
+    }
+
+    fn read_u32(&self) -> u32 {
+        match self.len() {
+            0 => 0,
+            1 => self[0] as u32,
+            2 => (self[0] as u32).shl(8) + self[1] as u32,
+            3 => (self[0] as u32).shl(16) + (self[1] as u32).shl(8) + self[2] as u32,
+            _ => (self[0] as u32).shl(24) + (self[1] as u32).shl(16) + (self[2] as u32).shl(8) + self[3] as u32
+        }
+    }
 }
 
 impl ReadChunks for [u8] {
@@ -535,4 +194,151 @@ impl ReadChunks for [u8] {
         }
     }
 
+}
+
+/*
+
+ClassFile {
+    u4             magic;
+    u2             minor_version;
+    u2             major_version;
+    u2             constant_pool_count;
+    cp_info        constant_pool[constant_pool_count-1];
+    u2             access_flags;
+    u2             this_class;
+    u2             super_class;
+    u2             interfaces_count;
+    u2             interfaces[interfaces_count];
+    u2             fields_count;
+    field_info     fields[fields_count];
+    u2             methods_count;
+    method_info    methods[methods_count];
+    u2             attributes_count;
+    attribute_info attributes[attributes_count];
+}
+
+*/
+
+pub struct ClassReader<'a> {
+
+    idx: usize,
+    bytes: &'a Vec<u8>
+
+}
+
+impl<'a> ClassReader<'a> {
+
+    pub fn new(bytes: &Vec<u8>) -> ClassReader {
+        ClassReader { idx: 0, bytes: bytes }
+    }
+
+    pub fn from_bytes(bytes: &Vec<u8>) -> Classfile {
+        let mut reader = ClassReader { idx: 0, bytes: bytes };
+
+        let version = reader.read_version_number();
+
+        Classfile::new()
+    }
+
+    pub fn read_magic_bytes(&mut self) -> bool {
+        let magic_bytes = self.read_u32();
+
+        match magic_bytes {
+            Some(bytes) => bytes == 0xCAFEBABE,
+            None => false
+        }
+    }
+
+    pub fn read_version_number(&mut self) -> Option<(u16, u16)> {
+        let major_version = self.read_u16();
+        let minor_version = self.read_u16();
+
+        match (major_version, minor_version) {
+            (Some(major), Some(minor)) => Some((major, minor)),
+            _ => None
+        }
+    }
+
+    pub fn read_constant_pool(&mut self) -> Option<Vec<ConstantType>> {
+        match self.read_u16() {
+            Some(constant_pool_size) => {
+                // This hack is needed because the JVM class file specification makes 8 bytes constants take up
+                // two entries in the constant pool, instead of one.
+                // Quote from the spec: "In retrospect, making 8-byte constants take two constant pool entries was a poor choice."
+                let mut previous_8byte_constant = false;
+                let range_max = if constant_pool_size > 1 { constant_pool_size } else { 1 };
+
+                let constants: Vec<ConstantType> = (1..range_max as usize).map(|_| {
+                    if previous_8byte_constant {
+                        previous_8byte_constant = false;
+                        return ConstantType::Placeholder;
+                    }
+
+                    match self.read_u8() {
+                        Some(constant_type) => match ConstantType::parse(constant_type, self.bytes) {
+                            Some(constant) => {
+                                if constant.is_8byte() {
+                                    previous_8byte_constant = true;
+                                }
+
+                                self.idx += constant.length();
+                                constant
+                            },
+                            _ => ConstantType::Unknown
+                        },
+                        None => ConstantType::Unknown
+                    }
+                }).collect();
+
+                match constants.iter().any(|c| c.is_unknown() ) {
+                    true => None,
+                    false => Some(constants)
+                }
+            },
+            None => None
+        }
+    }
+
+    pub fn read_u32(&mut self) -> Option<u32> {
+        if self.idx + size_of::<u32>() <= self.bytes.len() {
+            let r = Some(self.bytes[self.idx] as u32 * 0x1000000 + self.bytes[self.idx + 1] as u32 * 0x10000 + self.bytes[self.idx + 2] as u32 * 0x100 + self.bytes[self.idx + 3] as u32);
+            self.idx += 4;
+            r
+        } else {
+            None
+        }
+    }
+
+    pub fn read_u16(&mut self) -> Option<u16> {
+        if self.idx + size_of::<u16>() <= self.bytes.len() {
+            let r = Some((self.bytes[self.idx] as u16 * 0x100 + self.bytes[self.idx + 1] as u16));
+            self.idx += 2;
+            r
+        } else {
+            None
+        }
+    }
+
+    pub fn read_u8(&mut self) -> Option<u8> {
+        if self.idx + size_of::<u8>() <= self.bytes.len() {
+            let r = Some(self.bytes[self.idx]);
+            self.idx += 1;
+            r
+        } else {
+            None
+        }
+    }
+}
+
+impl Classfile {
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = vec![ 0xCA, 0xFE, 0xBA, 0xBE ];
+
+        // This is happening under the assumption that version numbers will not exceed 255 in the near future
+        bytes.push(self.major_version as u8);
+        bytes.push(self.minor_version as u8);
+
+        bytes
+    }
 }

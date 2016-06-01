@@ -2,10 +2,11 @@ extern crate jvmti;
 
 #[cfg(test)]
 mod tests {
+    /*
 
-    use jvmti::bytecode::Classfile;
+    use jvmti::bytecode::classfile::Classfile;
     use jvmti::bytecode::ClassfileReader;
-    use jvmti::bytecode::ConstantType;
+    use jvmti::bytecode::constants::ConstantType;
 
 
     #[allow(dead_code)]
@@ -102,22 +103,26 @@ mod tests {
     }
 
     #[test]
-    fn read_access_flags_recognises_access_flags() {
-        let result = ClassfileReader::from_bytes(bytecode_simple());
+    fn read_class_access_flags_recognises_access_flags() {
+        let result = ClassfileReader::read_class_access_flags(&[ 0x00, 0x21 ]);
 
         assert!(result.is_ok());
 
-        let w = result.ok().unwrap();
+        let w = result.ok().unwrap().0;
 
-        assert_eq!(0x21, w.access_flags.raw_flag());
-        assert_eq!(true, w.access_flags.is_public());
-        assert_eq!(true, w.access_flags.is_super());
-        assert_eq!(false, w.access_flags.is_annotation());
-        assert_eq!(false, w.access_flags.is_final());
-        assert_eq!(false, w.access_flags.is_abstract());
-        assert_eq!(false, w.access_flags.is_interface());
-        assert_eq!(false, w.access_flags.is_synthetic());
-        assert_eq!(false, w.access_flags.is_enum());
+        assert_eq!(true, w.access_flags.is_some());
+
+        let flags = w.access_flags.unwrap();
+
+        assert_eq!(0x21, flags.raw_flag());
+        assert_eq!(true, flags.is_public());
+        assert_eq!(true, flags.is_super());
+        assert_eq!(false, flags.is_annotation());
+        assert_eq!(false, flags.is_final());
+        assert_eq!(false, flags.is_abstract());
+        assert_eq!(false, flags.is_interface());
+        assert_eq!(false, flags.is_synthetic());
+        assert_eq!(false, flags.is_enum());
     }
 
     #[test]
@@ -135,4 +140,15 @@ mod tests {
         assert_eq!(3, i[2].id);
         assert_eq!(4, i[3].id);
     }
+
+    #[test]
+    fn read_fields_reads_fields_count_number_of_interfaces() {
+        let result = ClassfileReader::read_fields(&[ 0x00, 0x04 ]);
+
+        assert!(result.is_ok());
+
+        let f = result.ok().unwrap().0;
+        let fs = f.fields.unwrap();
+    }
+    */
 }
