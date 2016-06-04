@@ -181,4 +181,36 @@ mod tests {
             _ => assert!(false)
         }
     }
+
+    #[test]
+    fn it_should_parse_multiple_entries_with_long_items() {
+        let pool = vec![ 0, 7, 0x03, 1, 1, 1, 1, 0x05, 0, 0, 0, 0, 0, 0, 0, 0, 0x07, 2, 2, 0x08, 3, 3, 0x03, 4, 4, 4, 4 ];
+
+        let or = ClassStream::new(&pool).read_constant_pool();
+        assert!(or.is_some());
+        let r = or.unwrap();
+
+        assert_eq!(5, r.len());
+
+        match r[0] {
+            ConstantType::Integer { bytes: b } => assert_eq!(0x01010101, b),
+            _ => assert!(false)
+        }
+        match r[1] {
+            ConstantType::Long { high_bytes: h, low_bytes: _ } => assert_eq!(0, h),
+            _ => assert!(false)
+        }
+        match r[2] {
+            ConstantType::Class { name_index: n } => assert_eq!(0x0202, n),
+            _ => assert!(false)
+        }
+        match r[3] {
+            ConstantType::String { string_index: s } => assert_eq!(0x0303, s),
+            _ => assert!(false)
+        }
+        match r[4] {
+            ConstantType::Integer { bytes: b } => assert_eq!(0x04040404, b),
+            _ => assert!(false)
+        }
+    }
 }
