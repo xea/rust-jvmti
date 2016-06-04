@@ -52,11 +52,11 @@ impl<'a> ClassStream<'a> {
 
                 let read_size: usize = 0;
 
-                let r: (usize, Option<Vec<ConstantType>>) = (1..upper_bound).fold((read_size, Some(vec![ ConstantType::Placeholder ])), |acc, _| {
+                let r: (usize, Option<Vec<ConstantType>>) = (1..upper_bound).fold((read_size, Some(vec![])), |acc, _| {
                     match acc {
                         (_, None) => (0, None),
                         (c, Some(mut v)) => {
-                            if c < upper_bound {
+                            if c < upper_bound - 1 {
                                 match ConstantType::parse(self) {
                                     Some(constant) => {
                                         let offset: usize = if constant.is_long_entry() { 2 } else { 1 };
@@ -149,11 +149,11 @@ impl<'a> ReadChunks for ClassStream<'a> {
     }
 
     fn get_u32(&mut self) -> u32 {
-        self.read_u32().unwrap_or(self.get_u16() as u32)
+        self.read_u32().unwrap_or(0)
     }
 
     fn get_u16(&mut self) -> u16 {
-        self.read_u16().unwrap_or(self.get_u8() as u16)
+        self.read_u16().unwrap_or(0)//.unwrap_or(self.get_u8() as u16)
     }
 
     fn get_u8(&mut self) -> u8 {
