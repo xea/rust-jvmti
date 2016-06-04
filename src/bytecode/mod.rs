@@ -2,9 +2,9 @@ use self::class_stream::ClassStream;
 use self::classfile::*;
 use self::constants::ConstantType;
 
-mod constants;
-mod classfile;
-mod class_stream;
+pub mod constants;
+pub mod classfile;
+pub mod class_stream;
 
 #[derive(Default)]
 pub struct ClassFragment {

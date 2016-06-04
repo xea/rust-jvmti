@@ -84,6 +84,7 @@ impl ConstantType {
         }
     }
 
+
     pub fn length(&self) -> usize {
         (match *self {
             ConstantType::Integer { bytes: _ }  => 4,
