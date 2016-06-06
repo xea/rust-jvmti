@@ -1,11 +1,13 @@
 use super::constants::ConstantType;
+use super::constants::AccessFlag;
 
 const DEFAULT_CLASSFILE_VERSION: (u16, u16) = (0x00, 0x34);
 
 pub struct Classfile {
     pub minor_version: u16,
     pub major_version: u16,
-    pub constant_pool: Vec<ConstantType>
+    pub constant_pool: Vec<ConstantType>,
+    pub access_flags: AccessFlag,
 }
 
 impl Classfile {
@@ -15,7 +17,8 @@ impl Classfile {
         Classfile {
             minor_version: Classfile::default_minor_version(),
             major_version: Classfile::default_major_version(),
-            constant_pool: Classfile::default_constant_pool()
+            constant_pool: Classfile::default_constant_pool(),
+            access_flags: AccessFlag::new()
         }
     }
 

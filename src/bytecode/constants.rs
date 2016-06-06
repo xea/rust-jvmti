@@ -65,3 +65,121 @@ impl ConstantType {
         }
     }
 }
+
+pub enum ClassAccessFlag {
+    Public,
+    Final,
+    Super,
+    Interface,
+    Abstract,
+    Synthetic,
+    Annotation,
+    Enum
+}
+
+pub enum FieldAccessFlag {
+    Public,
+    Private,
+    Protected,
+    Static,
+    Final,
+    Volatile,
+    Transient,
+    Synthetic,
+    Enum
+}
+
+pub enum MethodAccessFlag {
+    Public,
+    Private,
+    Protected,
+    Static,
+    Final,
+    Synchronized,
+    Bridge,
+    Varargs,
+    Native,
+    Abstract,
+    Strict,
+    Synthetic,
+}
+
+pub struct AccessFlag {
+    raw_flag: u16
+}
+
+impl AccessFlag {
+    pub fn new() -> AccessFlag {
+        AccessFlag::of(0)
+    }
+
+    pub fn of(value: u16) -> AccessFlag {
+        AccessFlag { raw_flag: value }
+    }
+
+    pub fn get<T: FlagValue>(&self, other: T) -> bool {
+        self.raw_flag & other.val() > 0
+    }
+
+    pub fn set<T: FlagValue>(&mut self, flag: T) {
+        self.raw_flag |= flag.val();
+    }
+
+    pub fn clear<T: FlagValue>(&mut self, flag: T) {
+        self.raw_flag &= 0xFFFF ^ flag.val();
+    }
+}
+
+pub trait FlagValue {
+    fn val(&self) -> u16;
+}
+
+impl FlagValue for ClassAccessFlag {
+    fn val(&self) -> u16 {
+        match self {
+            &ClassAccessFlag::Public => 0x0001,
+            &ClassAccessFlag::Final => 0x0010,
+            &ClassAccessFlag::Super => 0x0020,
+            &ClassAccessFlag::Interface => 0x0200,
+            &ClassAccessFlag::Abstract => 0x0400,
+            &ClassAccessFlag::Synthetic => 0x1000,
+            &ClassAccessFlag::Annotation => 0x2000,
+            &ClassAccessFlag::Enum => 0x4000
+        }
+    }
+}
+
+impl FlagValue for FieldAccessFlag {
+    fn val(&self) -> u16 {
+        match self {
+            &FieldAccessFlag::Public => 0x0001,
+            &FieldAccessFlag::Private => 0x0002,
+            &FieldAccessFlag::Protected => 0x0004,
+            &FieldAccessFlag::Static => 0x0008,
+            &FieldAccessFlag::Final => 0x0010,
+            &FieldAccessFlag::Volatile => 0x0040,
+            &FieldAccessFlag::Transient => 0x0080,
+            &FieldAccessFlag::Synthetic => 0x1000,
+            &FieldAccessFlag::Enum => 0x4000
+        }
+    }
+}
+
+impl FlagValue for MethodAccessFlag {
+    fn val(&self) -> u16 {
+        match self {
+            &MethodAccessFlag::Public => 0x0001,
+            &MethodAccessFlag::Private => 0x0002,
+            &MethodAccessFlag::Protected => 0x0004,
+            &MethodAccessFlag::Static => 0x0008,
+            &MethodAccessFlag::Final => 0x0010,
+            &MethodAccessFlag::Synchronized => 0x0020,
+            &MethodAccessFlag::Bridge => 0x0040,
+            &MethodAccessFlag::Varargs => 0x0080,
+            &MethodAccessFlag::Native => 0x0100,
+            &MethodAccessFlag::Abstract => 0x0400,
+            &MethodAccessFlag::Strict => 0x0800,
+            &MethodAccessFlag::Synthetic => 0x1000
+        }
+    }
+}

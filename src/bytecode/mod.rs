@@ -1,6 +1,7 @@
 use self::class_stream::ClassStream;
 use self::classfile::*;
 use self::constants::ConstantType;
+use self::constants::AccessFlag;
 
 pub mod constants;
 pub mod classfile;
@@ -10,7 +11,8 @@ pub mod class_stream;
 pub struct ClassFragment {
     major_version: Option<u16>,
     minor_version: Option<u16>,
-    constant_pool: Option<Vec<ConstantType>>
+    constant_pool: Option<Vec<ConstantType>>,
+    access_flags: Option<AccessFlag>,
 }
 
 impl ClassFragment {
@@ -24,6 +26,7 @@ impl ClassFragment {
         self.major_version = other.major_version.or(self.major_version);
         self.minor_version = other.minor_version.or(self.minor_version);
         self.constant_pool = other.constant_pool.or(self.constant_pool);
+        self.access_flags = other.access_flags.or(self.access_flags);
         self
     }
 
@@ -31,7 +34,8 @@ impl ClassFragment {
         Classfile {
             major_version: self.major_version.unwrap_or(Classfile::default_major_version()),
             minor_version: self.minor_version.unwrap_or(Classfile::default_minor_version()),
-            constant_pool: self.constant_pool.unwrap_or(Classfile::default_constant_pool())
+            constant_pool: self.constant_pool.unwrap_or(Classfile::default_constant_pool()),
+            access_flags: self.access_flags.unwrap_or(AccessFlag::new())
         }
     }
 }
@@ -47,7 +51,8 @@ impl ClassReader {
         let fns: Vec<fn(&mut ClassStream) -> Result<ClassFragment, String>> = vec![
             ClassReader::read_magic_bytes,
             ClassReader::read_version_number,
-            ClassReader::read_constant_pool
+            ClassReader::read_constant_pool,
+            ClassReader::read_class_access_flags,
         ];
 
         let result: Result<ClassFragment, String> = fns.iter().fold(Ok(ClassFragment::new()), |acc, x| {
@@ -72,7 +77,7 @@ impl ClassReader {
 
     fn read_version_number(stream: &mut ClassStream) -> Result<ClassFragment, String> {
         match stream.read_version_number() {
-            Some((major_version, minor_version)) => Ok(ClassFragment {
+            Some((minor_version, major_version)) => Ok(ClassFragment {
                 major_version: Some(major_version),
                 minor_version: Some(minor_version),
                 ..Default::default()
@@ -88,6 +93,16 @@ impl ClassReader {
                 ..Default::default()
             }),
             _ => Err("Failed to read constant pool from stream".to_string())
+        }
+    }
+
+    fn read_class_access_flags(stream: &mut ClassStream) -> Result<ClassFragment, String> {
+        match stream.read_class_access_flags() {
+            r@Some(_) => Ok(ClassFragment {
+                access_flags: r,
+                ..Default::default()
+            }),
+            _ => Err("Failed to read or parse class access flag".to_string())
         }
     }
 }
