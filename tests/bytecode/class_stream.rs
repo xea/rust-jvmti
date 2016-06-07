@@ -213,4 +213,13 @@ mod tests {
             _ => assert!(false)
         }
     }
+
+    #[test]
+    fn read_field_should_parse_fields() {
+        let bytes = vec![ 0, 0, 0, 1, 0, 2, 0, 1, 254];
+        let or = ClassStream::new(&bytes).read_field();
+
+        assert!(or.is_some());
+        let r = or.unwrap();
+    }
 }

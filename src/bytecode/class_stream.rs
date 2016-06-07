@@ -1,7 +1,6 @@
 use std::mem::size_of;
-use super::constants::ConstantType;
-use super::constants::AccessFlag;
-use super::classfile::ConstantReference;
+use super::constants::*;
+use super::classfile::*;
 
 ///
 /// A class stream takes a vector of bytes (`u8`) and reads Java class file fragments from it.
@@ -96,6 +95,60 @@ impl<'a> ClassStream<'a> {
             Some(reference) => Some(ConstantReference::new(reference)),
             _ => None
         }
+    }
+
+    pub fn read_fields(&mut self) -> Option<Vec<Field>> {
+        let opt_count = self.read_u16();
+
+        match opt_count {
+            Some(count) => {
+                (0..count).map(|_| { self.read_field() }).fold(Some(vec![]), |acc, x| acc.map_or(None, |mut v| {
+                    x.map_or(None, |d| { v.push(d); Some(v) })
+                }))
+            },
+            _ => None
+        }
+    }
+
+    pub fn read_field(&mut self) -> Option<Field> {
+        // at least 8 bytes are required to parse a field
+        if self.bytes.len() >= 8 {
+            let raw_flag = self.get_u16();
+            let raw_name = self.get_u16();
+            let raw_desc = self.get_u16();
+            let att_count = self.get_u16() as usize;
+
+            self.read_map_len(att_count, |bs| {
+                Field {
+                    access_flags: AccessFlag::of(raw_flag),
+                    name_index: ConstantReference::new(raw_name),
+                    descriptor_index: ConstantReference::new(raw_desc),
+                    attributes: vec![]
+                }
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn read_methods(&mut self) -> Option<Vec<Method>> {
+        //let count = self.read_u16();
+
+        None
+    }
+
+    pub fn read_method(&mut self) -> Option<Method> {
+        None
+    }
+
+    pub fn read_attributes(&mut self) -> Option<Vec<Attribute>> {
+        //let count = self.read_u16();
+
+        None
+    }
+
+    pub fn read_attribute(&mut self) -> Option<Attribute> {
+        None
     }
 }
 

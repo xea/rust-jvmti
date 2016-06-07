@@ -72,7 +72,8 @@ impl ClassReader {
             ClassReader::read_constant_pool,
             ClassReader::read_class_access_flags,
             ClassReader::read_this_class,
-            ClassReader::read_super_class
+            ClassReader::read_super_class,
+            ClassReader::read_fields
         ];
 
         let result: Result<ClassFragment, String> = fns.iter().fold(Ok(ClassFragment::new()), |acc, x| {
@@ -143,6 +144,16 @@ impl ClassReader {
                 ..Default::default()
             }),
             _ => Err("Failed to read constant reference to super class".to_string())
+        }
+    }
+
+    fn read_fields(stream: &mut ClassStream) -> Result<ClassFragment, String> {
+        match stream.read_fields() {
+            r@Some(_) => Ok(ClassFragment {
+                fields: r,
+                ..Default::default()
+            }),
+            _ => Err("Failed to read field list".to_string())
         }
     }
 }

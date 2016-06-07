@@ -108,7 +108,8 @@ pub enum AttributeType {
     LineNumberTable,
     LocalVariableTable,
     LocalVariableTypeTable,
-    Deprecated
+    Deprecated,
+    Unknown(String)
 }
 
 impl AttributeType {
@@ -136,36 +137,37 @@ impl AttributeType {
             &AttributeType::LineNumberTable => "LineNumberTable",
             &AttributeType::LocalVariableTable => "LocalVariableTable",
             &AttributeType::LocalVariableTypeTable => "LocalVariableTypeTable",
-            &AttributeType::Deprecated => "Deprecated"
+            &AttributeType::Deprecated => "Deprecated",
+            &AttributeType::Unknown(_) => "Unknown",
         }.to_string()
     }
 
-    pub fn from_string(string: &str) -> Option<AttributeType> {
+    pub fn from_string(string: &str) -> AttributeType {
         match string {
-            "ConstantValue" => Some(AttributeType::ConstantValue),
-            "Code" => Some(AttributeType::Code),
-            "StackMapTable" => Some(AttributeType::StackMapTable),
-            "Exceptions" => Some(AttributeType::Exceptions),
-            "BootstrapMethods" => Some(AttributeType::BootstrapMethods),
-            "InnerClasses" => Some(AttributeType::InnerClasses),
-            "EnclosingMethod" => Some(AttributeType::EnclosingMethod),
-            "Synthetic" => Some(AttributeType::Synthetic),
-            "Signature" => Some(AttributeType::Signature),
-            "RuntimeVisibleAnnotations" => Some(AttributeType::RuntimeVisibleAnnotations),
-            "RuntimeInvisibleAnnotations" => Some(AttributeType::RuntimeInvisibleAnnotations),
-            "RuntimeVisibleParameterAnnotations" => Some(AttributeType::RuntimeVisibleParameterAnnotations),
-            "RuntimeInvisibleParameterAnnotations" => Some(AttributeType::RuntimeInvisibleParameterAnnotations),
-            "RuntimeVisibleTypeAnnotations" => Some(AttributeType::RuntimeVisibleTypeAnnotations),
-            "RuntimeInvisibleTypeAnnotations" => Some(AttributeType::RuntimeInvisibleTypeAnnotations),
-            "AnnotationDefault" => Some(AttributeType::AnnotationDefault),
-            "MethodParameters" => Some(AttributeType::MethodParameters),
-            "SourceFile" => Some(AttributeType::SourceFile),
-            "SourceDebugExtension" => Some(AttributeType::SourceDebugExtension),
-            "LineNumberTable" => Some(AttributeType::LineNumberTable),
-            "LocalVariableTable" => Some(AttributeType::LocalVariableTable),
-            "LocalVariableTypeTable" => Some(AttributeType::LocalVariableTypeTable),
-            "Deprecated" => Some(AttributeType::Deprecated),
-            _ => None
+            "ConstantValue" => AttributeType::ConstantValue,
+            "Code" => AttributeType::Code,
+            "StackMapTable" => AttributeType::StackMapTable,
+            "Exceptions" => AttributeType::Exceptions,
+            "BootstrapMethods" => AttributeType::BootstrapMethods,
+            "InnerClasses" => AttributeType::InnerClasses,
+            "EnclosingMethod" => AttributeType::EnclosingMethod,
+            "Synthetic" => AttributeType::Synthetic,
+            "Signature" => AttributeType::Signature,
+            "RuntimeVisibleAnnotations" => AttributeType::RuntimeVisibleAnnotations,
+            "RuntimeInvisibleAnnotations" => AttributeType::RuntimeInvisibleAnnotations,
+            "RuntimeVisibleParameterAnnotations" => AttributeType::RuntimeVisibleParameterAnnotations,
+            "RuntimeInvisibleParameterAnnotations" => AttributeType::RuntimeInvisibleParameterAnnotations,
+            "RuntimeVisibleTypeAnnotations" => AttributeType::RuntimeVisibleTypeAnnotations,
+            "RuntimeInvisibleTypeAnnotations" => AttributeType::RuntimeInvisibleTypeAnnotations,
+            "AnnotationDefault" => AttributeType::AnnotationDefault,
+            "MethodParameters" => AttributeType::MethodParameters,
+            "SourceFile" => AttributeType::SourceFile,
+            "SourceDebugExtension" => AttributeType::SourceDebugExtension,
+            "LineNumberTable" => AttributeType::LineNumberTable,
+            "LocalVariableTable" => AttributeType::LocalVariableTable,
+            "LocalVariableTypeTable" => AttributeType::LocalVariableTypeTable,
+            "Deprecated" => AttributeType::Deprecated,
+            s@_ => AttributeType::Unknown(s.to_string())
         }
     }
 }
