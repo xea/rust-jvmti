@@ -23,8 +23,11 @@ mod tests {
 
         assert_eq!(0, classfile.minor_version);
         assert_eq!(52, classfile.major_version);
-        assert_eq!(30, classfile.constant_pool.len());
+        assert_eq!(33, classfile.constant_pool.len());
         assert!(classfile.access_flags.get(ClassAccessFlag::Public));
         assert!(classfile.access_flags.get(ClassAccessFlag::Super));
+        assert_eq!(7, classfile.this_class.constant_idx);
+        // Has no super class
+        assert_eq!(0, classfile.super_class.constant_idx);
     }
 }

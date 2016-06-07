@@ -13,6 +13,12 @@ pub struct ClassFragment {
     minor_version: Option<u16>,
     constant_pool: Option<Vec<ConstantType>>,
     access_flags: Option<AccessFlag>,
+    this_class: Option<ConstantReference>,
+    super_class: Option<ConstantReference>,
+    interfaces: Option<Vec<ConstantReference>>,
+    fields: Option<Vec<Field>>,
+    methods: Option<Vec<Method>>,
+    attributes: Option<Vec<Attribute>>
 }
 
 impl ClassFragment {
@@ -27,6 +33,12 @@ impl ClassFragment {
         self.minor_version = other.minor_version.or(self.minor_version);
         self.constant_pool = other.constant_pool.or(self.constant_pool);
         self.access_flags = other.access_flags.or(self.access_flags);
+        self.this_class = other.this_class.or(self.this_class);
+        self.super_class = other.super_class.or(self.super_class);
+        self.interfaces = other.interfaces.or(self.interfaces);
+        self.fields = other.fields.or(self.fields);
+        self.methods = other.methods.or(self.methods);
+        self.attributes = other.attributes.or(self.attributes);
         self
     }
 
@@ -35,7 +47,13 @@ impl ClassFragment {
             major_version: self.major_version.unwrap_or(Classfile::default_major_version()),
             minor_version: self.minor_version.unwrap_or(Classfile::default_minor_version()),
             constant_pool: self.constant_pool.unwrap_or(Classfile::default_constant_pool()),
-            access_flags: self.access_flags.unwrap_or(AccessFlag::new())
+            access_flags: self.access_flags.unwrap_or(AccessFlag::new()),
+            this_class: self.this_class.unwrap_or(ConstantReference::unknown()),
+            super_class: self.super_class.unwrap_or(ConstantReference::unknown()),
+            interfaces: self.interfaces.unwrap_or(vec![]),
+            fields: self.fields.unwrap_or(vec![]),
+            methods: self.methods.unwrap_or(vec![]),
+            attributes: self.attributes.unwrap_or(vec![])
         }
     }
 }
@@ -53,6 +71,8 @@ impl ClassReader {
             ClassReader::read_version_number,
             ClassReader::read_constant_pool,
             ClassReader::read_class_access_flags,
+            ClassReader::read_this_class,
+            ClassReader::read_super_class
         ];
 
         let result: Result<ClassFragment, String> = fns.iter().fold(Ok(ClassFragment::new()), |acc, x| {
@@ -103,6 +123,26 @@ impl ClassReader {
                 ..Default::default()
             }),
             _ => Err("Failed to read or parse class access flag".to_string())
+        }
+    }
+
+    fn read_this_class(stream: &mut ClassStream) -> Result<ClassFragment, String> {
+        match stream.read_constant_reference() {
+            r@Some(_) => Ok(ClassFragment {
+                this_class: r,
+                ..Default::default()
+            }),
+            _ => Err("Failed to read constant reference to this class".to_string())
+        }
+    }
+
+    fn read_super_class(stream: &mut ClassStream) -> Result<ClassFragment, String> {
+        match stream.read_constant_reference() {
+            r@Some(_) => Ok(ClassFragment {
+                this_class: r,
+                ..Default::default()
+            }),
+            _ => Err("Failed to read constant reference to super class".to_string())
         }
     }
 }

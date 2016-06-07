@@ -1,6 +1,7 @@
 use std::mem::size_of;
 use super::constants::ConstantType;
 use super::constants::AccessFlag;
+use super::classfile::ConstantReference;
 
 ///
 /// A class stream takes a vector of bytes (`u8`) and reads Java class file fragments from it.
@@ -86,6 +87,13 @@ impl<'a> ClassStream<'a> {
     pub fn read_class_access_flags(&mut self) -> Option<AccessFlag> {
         match self.read_u16() {
             Some(flag) => Some(AccessFlag::of(flag)),
+            _ => None
+        }
+    }
+
+    pub fn read_constant_reference(&mut self) -> Option<ConstantReference> {
+        match self.read_u16() {
+            Some(reference) => Some(ConstantReference::new(reference)),
             _ => None
         }
     }

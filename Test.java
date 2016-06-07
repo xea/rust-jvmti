@@ -1,7 +1,7 @@
 import java.util.List;
 import java.util.ArrayList;
 
-public class Test {
+public class Test extends Simple {
 
     public static void main(final String[] args) throws Exception {
         final Test test = new Test();
