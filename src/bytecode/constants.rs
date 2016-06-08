@@ -214,7 +214,16 @@ impl Attribute {
     pub fn from_stream(stream: &mut ClassStream) -> Option<Attribute> {
         match stream.available() >= 6 {
             true => {
+                let name_index = ConstantReference::new(stream.get_u16());
+                let att_length = stream.get_u32() as usize;
 
+                match stream.read_n(att_length) {
+                    Some(bytes) => Some(Attribute {
+                        attribute_name_index: name_index,
+                        info: bytes
+                    }),
+                    _ => None
+                }
             },
             _ => None
         }
