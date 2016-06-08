@@ -1,5 +1,4 @@
-use super::constants::ConstantType;
-use super::constants::AccessFlag;
+use super::constants::*;
 
 const DEFAULT_CLASSFILE_VERSION: (u16, u16) = (0x00, 0x34);
 
@@ -42,26 +41,6 @@ impl Classfile {
     pub fn default_constant_pool() -> Vec<ConstantType> { vec![] }
 }
 
-/// Represents a reference to an entry in the class file's constant pool
-pub struct ConstantReference {
-    pub constant_idx: u16
-}
-
-impl ConstantReference {
-    ///
-    /// Create a new constant reference pointing to the idx-th constant in the pool.
-    /// Note that the value of 0 is deemed invalid by the specification and is used to indicate
-    /// an unknown reference here.
-    pub fn new(idx: u16) -> ConstantReference {
-        ConstantReference { constant_idx: idx }
-    }
-
-    /// Return a new constant reference pointing to an unknown constant in the pool
-    pub fn unknown() -> ConstantReference {
-        ConstantReference { constant_idx: 0 }
-    }
-}
-
 pub struct Field {
     pub access_flags: AccessFlag,
     pub name_index: ConstantReference,
@@ -76,98 +55,3 @@ pub struct Method {
     pub attributes: Vec<Attribute>
 }
 
-pub struct Attribute {
-    /// attribute_name_index must be a CONSTANT_Utf8_info structure (§4.4.7) representing the name of the attribute.
-    pub attribute_name_index: ConstantReference,
-    pub info: Vec<u8>
-}
-
-pub enum AttributeType {
-    // JVM attributes
-    ConstantValue,
-    Code,
-    StackMapTable,
-    Exceptions,
-    BootstrapMethods,
-    // Java SE Attributes
-    InnerClasses,
-    EnclosingMethod,
-    Synthetic,
-    Signature,
-    RuntimeVisibleAnnotations,
-    RuntimeInvisibleAnnotations,
-    RuntimeVisibleParameterAnnotations,
-    RuntimeInvisibleParameterAnnotations,
-    RuntimeVisibleTypeAnnotations,
-    RuntimeInvisibleTypeAnnotations,
-    AnnotationDefault,
-    MethodParameters,
-    // Extra attributes
-    SourceFile,
-    SourceDebugExtension,
-    LineNumberTable,
-    LocalVariableTable,
-    LocalVariableTypeTable,
-    Deprecated,
-    Unknown(String)
-}
-
-impl AttributeType {
-    pub fn to_string(&self) -> String {
-        match self {
-            &AttributeType::ConstantValue => "ConstantValue",
-            &AttributeType::Code => "Code",
-            &AttributeType::StackMapTable => "StackMapTable",
-            &AttributeType::Exceptions => "Exceptions",
-            &AttributeType::BootstrapMethods => "BootstrapMethods",
-            &AttributeType::InnerClasses => "InnerClasses",
-            &AttributeType::EnclosingMethod => "EnclosingMethod",
-            &AttributeType::Synthetic => "Synthetic",
-            &AttributeType::Signature => "Signature",
-            &AttributeType::RuntimeVisibleAnnotations => "RuntimeVisibleAnnotations",
-            &AttributeType::RuntimeInvisibleAnnotations => "RuntimeInvisibleAnnotations",
-            &AttributeType::RuntimeVisibleParameterAnnotations => "RuntimeVisibleParameterAnnotations",
-            &AttributeType::RuntimeInvisibleParameterAnnotations => "RuntimeInvisibleParameterAnnotations",
-            &AttributeType::RuntimeVisibleTypeAnnotations => "RuntimeVisibleTypeAnnotations",
-            &AttributeType::RuntimeInvisibleTypeAnnotations => "RuntimeInvisibleTypeAnnotations",
-            &AttributeType::AnnotationDefault => "AnnotationDefault",
-            &AttributeType::MethodParameters => "MethodParameters",
-            &AttributeType::SourceFile => "SourceFile",
-            &AttributeType::SourceDebugExtension => "SourceDebugExtension",
-            &AttributeType::LineNumberTable => "LineNumberTable",
-            &AttributeType::LocalVariableTable => "LocalVariableTable",
-            &AttributeType::LocalVariableTypeTable => "LocalVariableTypeTable",
-            &AttributeType::Deprecated => "Deprecated",
-            &AttributeType::Unknown(_) => "Unknown",
-        }.to_string()
-    }
-
-    pub fn from_string(string: &str) -> AttributeType {
-        match string {
-            "ConstantValue" => AttributeType::ConstantValue,
-            "Code" => AttributeType::Code,
-            "StackMapTable" => AttributeType::StackMapTable,
-            "Exceptions" => AttributeType::Exceptions,
-            "BootstrapMethods" => AttributeType::BootstrapMethods,
-            "InnerClasses" => AttributeType::InnerClasses,
-            "EnclosingMethod" => AttributeType::EnclosingMethod,
-            "Synthetic" => AttributeType::Synthetic,
-            "Signature" => AttributeType::Signature,
-            "RuntimeVisibleAnnotations" => AttributeType::RuntimeVisibleAnnotations,
-            "RuntimeInvisibleAnnotations" => AttributeType::RuntimeInvisibleAnnotations,
-            "RuntimeVisibleParameterAnnotations" => AttributeType::RuntimeVisibleParameterAnnotations,
-            "RuntimeInvisibleParameterAnnotations" => AttributeType::RuntimeInvisibleParameterAnnotations,
-            "RuntimeVisibleTypeAnnotations" => AttributeType::RuntimeVisibleTypeAnnotations,
-            "RuntimeInvisibleTypeAnnotations" => AttributeType::RuntimeInvisibleTypeAnnotations,
-            "AnnotationDefault" => AttributeType::AnnotationDefault,
-            "MethodParameters" => AttributeType::MethodParameters,
-            "SourceFile" => AttributeType::SourceFile,
-            "SourceDebugExtension" => AttributeType::SourceDebugExtension,
-            "LineNumberTable" => AttributeType::LineNumberTable,
-            "LocalVariableTable" => AttributeType::LocalVariableTable,
-            "LocalVariableTypeTable" => AttributeType::LocalVariableTypeTable,
-            "Deprecated" => AttributeType::Deprecated,
-            s@_ => AttributeType::Unknown(s.to_string())
-        }
-    }
-}

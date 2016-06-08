@@ -150,10 +150,44 @@ impl<'a> ClassStream<'a> {
             let raw_flag = self.get_u16();
             let raw_name = self.get_u16();
             let raw_desc = self.get_u16();
+            //let att_count = self.get_u16() as usize;
+            match self.read_attributes() {
+                Some(attributes) => Some(Field {
+                    access_flags: AccessFlag::of(raw_flag),
+                    name_index: ConstantReference::new(raw_name),
+                    descriptor_index: ConstantReference::new(raw_desc),
+                    attributes: attributes
+                }),
+                _ => None
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn read_methods(&mut self) -> Option<Vec<Method>> {
+        let opt_count = self.read_u16();
+
+        match opt_count {
+            Some(count) => {
+                (0..count).map(|_| { self.read_method() }).fold(Some(vec![]), |acc, x| acc.map_or(None, |mut v| {
+                    x.map_or(None, |d| { v.push(d); Some(v) })
+                }))
+            },
+            _ => None
+        }
+    }
+
+    pub fn read_method(&mut self) -> Option<Method> {
+        // at least 8 bytes are required to parse a method
+        if self.available() >= 8 {
+            let raw_flag = self.get_u16();
+            let raw_name = self.get_u16();
+            let raw_desc = self.get_u16();
             let att_count = self.get_u16() as usize;
 
             self.read_map_len(att_count, |bs| {
-                Field {
+                Method {
                     access_flags: AccessFlag::of(raw_flag),
                     name_index: ConstantReference::new(raw_name),
                     descriptor_index: ConstantReference::new(raw_desc),
@@ -165,18 +199,8 @@ impl<'a> ClassStream<'a> {
         }
     }
 
-    pub fn read_methods(&mut self) -> Option<Vec<Method>> {
-        //let count = self.read_u16();
-
-        None
-    }
-
-    pub fn read_method(&mut self) -> Option<Method> {
-        None
-    }
-
     pub fn read_attributes(&mut self) -> Option<Vec<Attribute>> {
-        //let count = self.read_u16();
+        let count = self.read_u16();
 
         None
     }

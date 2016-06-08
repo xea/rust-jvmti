@@ -1,7 +1,6 @@
 use self::class_stream::ClassStream;
 use self::classfile::*;
-use self::constants::ConstantType;
-use self::constants::AccessFlag;
+use self::constants::*;
 
 pub mod constants;
 pub mod classfile;
@@ -74,7 +73,9 @@ impl ClassReader {
             ClassReader::read_this_class,
             ClassReader::read_super_class,
             ClassReader::read_interfaces,
-            ClassReader::read_fields
+            ClassReader::read_fields,
+            ClassReader::read_methods,
+            ClassReader::read_attributes
         ];
 
         let result: Result<ClassFragment, String> = fns.iter().fold(Ok(ClassFragment::new()), |acc, x| {
@@ -90,6 +91,9 @@ impl ClassReader {
 
         result.map(|i| i.to_classfile())
     }
+
+    // TODO consider reimplementing the following methods in a generic implementation
+    //
 
     fn read_magic_bytes(stream: &mut ClassStream) -> Result<ClassFragment, String> {
         match stream.read_magic_bytes() {
@@ -166,6 +170,26 @@ impl ClassReader {
                 ..Default::default()
             }),
             _ => Err("Failed to read field list".to_string())
+        }
+    }
+
+    fn read_methods(stream: &mut ClassStream) -> Result<ClassFragment, String> {
+        match stream.read_methods() {
+            r@Some(_) => Ok(ClassFragment {
+                methods: r,
+                ..Default::default()
+            }),
+            _ => Err("Failed to read method list".to_string())
+        }
+    }
+
+    fn read_attributes(stream: &mut ClassStream) -> Result<ClassFragment, String> {
+        match stream.read_attributes() {
+            r@Some(_) => Ok(ClassFragment {
+                attributes: r,
+                ..Default::default()
+            }),
+            _ => Err("Failed to read attribute list".to_string())
         }
     }
 }

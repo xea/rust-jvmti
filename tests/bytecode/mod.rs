@@ -21,6 +21,9 @@ mod tests {
     fn basic_test() {
         let result = ClassReader::parse_bytes(&bytecode_simple().to_vec());
 
+        assert_eq!("", result.err().unwrap());
+
+        /*
         assert!(result.is_ok());
 
         let classfile = result.ok().unwrap();
@@ -35,6 +38,7 @@ mod tests {
         assert_eq!(0, classfile.super_class.constant_idx);
         assert_eq!(0, classfile.interfaces.len());
         assert_eq!(1, classfile.fields.len());
+        */
     }
 
     #[test]

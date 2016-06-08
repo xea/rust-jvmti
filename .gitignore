@@ -3,6 +3,8 @@ Cargo.lock
 *.log
 *.dylib
 *.a
+*.swp
+*.class
 Makefile
 CMake*
 old

@@ -57,4 +57,8 @@ mod tests {
             _ => assert!(false)
         }
     }
+
+    #[test]
+    fn attribute_from_stream_should_parse_attributes_correctly() {
+    }
 }
