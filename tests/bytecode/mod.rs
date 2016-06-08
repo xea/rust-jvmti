@@ -13,9 +13,9 @@ mod tests {
         include_bytes!("../../Simple.class")
     }
 
-    //fn bytecode_test() -> &'static [u8] {
-    //    include_bytes("../../Test.class")
-    //}
+    fn bytecode_test() -> &'static [u8] {
+        include_bytes!("../../Test.class")
+    }
 
     #[test]
     fn basic_test() {
@@ -33,6 +33,28 @@ mod tests {
         assert_eq!(10, classfile.this_class.constant_idx);
         // Has no super class
         assert_eq!(0, classfile.super_class.constant_idx);
+        assert_eq!(0, classfile.interfaces.len());
         assert_eq!(1, classfile.fields.len());
+    }
+
+    #[test]
+    fn medium_test() {
+        let result = ClassReader::parse_bytes(&bytecode_test().to_vec());
+
+        assert!(result.is_ok());
+
+        let classfile = result.ok().unwrap();
+
+        assert_eq!(0, classfile.minor_version);
+        assert_eq!(52, classfile.major_version);
+        assert_eq!(136, classfile.constant_pool.len());
+        assert!(classfile.access_flags.get(ClassAccessFlag::Public));
+        assert!(classfile.access_flags.get(ClassAccessFlag::Super));
+        assert_eq!(2, classfile.this_class.constant_idx);
+        // Has no super class
+        assert_eq!(0, classfile.super_class.constant_idx);
+        assert_eq!(1, classfile.interfaces.len());
+        assert_eq!(0, classfile.fields.len());
+
     }
 }

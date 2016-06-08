@@ -73,10 +73,12 @@ impl ClassReader {
             ClassReader::read_class_access_flags,
             ClassReader::read_this_class,
             ClassReader::read_super_class,
+            ClassReader::read_interfaces,
             ClassReader::read_fields
         ];
 
         let result: Result<ClassFragment, String> = fns.iter().fold(Ok(ClassFragment::new()), |acc, x| {
+            cs.mark();
             match acc {
                 Ok(fragment) => match x(&mut cs) {
                     Ok(xr) => Ok(xr.merge(fragment)),
@@ -144,6 +146,16 @@ impl ClassReader {
                 ..Default::default()
             }),
             _ => Err("Failed to read constant reference to super class".to_string())
+        }
+    }
+
+    fn read_interfaces(stream: &mut ClassStream) -> Result<ClassFragment, String> {
+        match stream.read_interfaces() {
+            r@Some(_) => Ok(ClassFragment {
+                interfaces: r,
+                ..Default::default()
+            }),
+            _ => Err("Failed to read interfaces".to_string())
         }
     }
 

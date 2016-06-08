@@ -6,14 +6,35 @@ use super::classfile::*;
 /// A class stream takes a vector of bytes (`u8`) and reads Java class file fragments from it.
 pub struct ClassStream<'a> {
     idx: usize,
-    bytes: &'a Vec<u8>
+    bytes: &'a Vec<u8>,
+    mark: Option<usize>
 }
 
 impl<'a> ClassStream<'a> {
 
     /// Create a new class stream operating on the given vector of bytes
     pub fn new(bytes: &'a Vec<u8>) -> ClassStream {
-        ClassStream { idx: 0, bytes: bytes }
+        ClassStream { idx: 0, bytes: bytes, mark: None }
+    }
+
+    /// Mark the current position in the stream allowing subsequent operations to return this
+    /// position using 'reset'
+    #[allow(dead_code)]
+    pub fn mark(&mut self) -> usize {
+        self.mark = Some(self.idx);
+        self.idx
+    }
+
+    /// Reset the current stream pointer to the last marked location. If there is no marked
+    /// position then this method will have no effect
+    #[allow(dead_code)]
+    pub fn reset(&mut self) -> usize {
+        match self.mark {
+            Some(mark) => self.idx = mark,
+            None => ()
+        }
+
+        self.idx
     }
 
     /// Reset the stream index back to the beginning of the stream
@@ -97,6 +118,19 @@ impl<'a> ClassStream<'a> {
         }
     }
 
+    pub fn read_interfaces(&mut self) -> Option<Vec<ConstantReference>> {
+        match self.read_u16() {
+            Some(count) => {
+                if self.available() >= (count * 2) as usize {
+                    (0..count).map(|_| self.read_constant_reference()).collect()
+                } else {
+                    None
+                }
+            },
+            _ => None
+        }
+    }
+
     pub fn read_fields(&mut self) -> Option<Vec<Field>> {
         let opt_count = self.read_u16();
 
@@ -112,7 +146,7 @@ impl<'a> ClassStream<'a> {
 
     pub fn read_field(&mut self) -> Option<Field> {
         // at least 8 bytes are required to parse a field
-        if self.bytes.len() >= 8 {
+        if self.available() >= 8 {
             let raw_flag = self.get_u16();
             let raw_name = self.get_u16();
             let raw_desc = self.get_u16();
@@ -166,6 +200,8 @@ pub trait ReadChunks {
     fn get_u32(&mut self) -> u32;
     fn get_u16(&mut self) -> u16;
     fn get_u8(&mut self) -> u8;
+
+    fn available(&self) -> usize;
 }
 
 impl<'a> ReadChunks for ClassStream<'a> {
@@ -227,6 +263,10 @@ impl<'a> ReadChunks for ClassStream<'a> {
 
     fn get_u8(&mut self) -> u8 {
         self.read_u8().unwrap_or(0)
+    }
+
+    fn available(&self) -> usize {
+        (self.bytes.len() - self.idx) as usize
     }
 }
 

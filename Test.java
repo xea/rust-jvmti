@@ -1,7 +1,8 @@
 import java.util.List;
 import java.util.ArrayList;
+import java.util.function.Consumer;
 
-public class Test extends Simple {
+public class Test extends Simple implements Consumer<String> {
 
     public static void main(final String[] args) throws Exception {
         final Test test = new Test();
@@ -76,5 +77,9 @@ public class Test extends Simple {
         for (final Thread thread : threads) {
             thread.join();
         }
+    }
+
+    public void accept(String string) {
+        System.out.println(string);
     }
 }
