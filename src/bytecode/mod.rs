@@ -1,195 +1,63 @@
-use self::class_stream::ClassStream;
-use self::classfile::*;
-use self::constants::*;
+use self::immutable::ImmutableCollection;
+use self::collections::{ ReadMapper, ReadChunks };
 
-pub mod constants;
-pub mod classfile;
-pub mod class_stream;
+pub mod attribute;
+pub mod collections;
+pub mod immutable;
 
-#[derive(Default)]
-pub struct ClassFragment {
-    major_version: Option<u16>,
-    minor_version: Option<u16>,
-    constant_pool: Option<Vec<ConstantType>>,
-    access_flags: Option<AccessFlag>,
-    this_class: Option<ConstantReference>,
-    super_class: Option<ConstantReference>,
-    interfaces: Option<Vec<ConstantReference>>,
-    fields: Option<Vec<Field>>,
-    methods: Option<Vec<Method>>,
-    attributes: Option<Vec<Attribute>>
+pub trait BytecodeItem {
+    fn from_bytes(bytes: &Vec<u8>) -> Self;
+    fn to_bytes(&self) -> Vec<u8>;
 }
 
-impl ClassFragment {
-    pub fn new() -> ClassFragment {
-        ClassFragment {
-            ..Default::default()
+pub struct Class {
+    version: ClassfileVersion,
+}
+
+pub struct ClassfileVersion {
+    pub minor_version: u16,
+    pub major_version: u16
+}
+
+pub struct ConstantPoolIndex {
+    index: u16
+}
+
+impl BytecodeItem for Class {
+
+    fn from_bytes(bytes: &Vec<u8>) -> Self {
+        Class {
+            version: ClassfileVersion::default()
         }
     }
 
-    pub fn merge(mut self, other: Self) -> Self {
-        self.major_version = other.major_version.or(self.major_version);
-        self.minor_version = other.minor_version.or(self.minor_version);
-        self.constant_pool = other.constant_pool.or(self.constant_pool);
-        self.access_flags = other.access_flags.or(self.access_flags);
-        self.this_class = other.this_class.or(self.this_class);
-        self.super_class = other.super_class.or(self.super_class);
-        self.interfaces = other.interfaces.or(self.interfaces);
-        self.fields = other.fields.or(self.fields);
-        self.methods = other.methods.or(self.methods);
-        self.attributes = other.attributes.or(self.attributes);
-        self
-    }
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut b: Vec<u8> = vec![];
+        b.append(&mut self.version.to_bytes());
 
-    pub fn to_classfile(self) -> Classfile {
-        Classfile {
-            major_version: self.major_version.unwrap_or(Classfile::default_major_version()),
-            minor_version: self.minor_version.unwrap_or(Classfile::default_minor_version()),
-            constant_pool: self.constant_pool.unwrap_or(Classfile::default_constant_pool()),
-            access_flags: self.access_flags.unwrap_or(AccessFlag::new()),
-            this_class: self.this_class.unwrap_or(ConstantReference::unknown()),
-            super_class: self.super_class.unwrap_or(ConstantReference::unknown()),
-            interfaces: self.interfaces.unwrap_or(vec![]),
-            fields: self.fields.unwrap_or(vec![]),
-            methods: self.methods.unwrap_or(vec![]),
-            attributes: self.attributes.unwrap_or(vec![])
-        }
+        b
     }
 }
 
-pub struct ClassReader {
+impl Default for ClassfileVersion {
+    fn default() -> Self {
+        ClassfileVersion { minor_version: 0, major_version: 52 }
+    }
 }
 
-impl ClassReader {
+impl BytecodeItem for ClassfileVersion {
 
-    pub fn parse_bytes<'a>(bytes: &'a Vec<u8>) -> Result<Classfile, String> {
-        let mut cs = ClassStream::new(bytes);
+    fn from_bytes(bytes: &Vec<u8>) -> Self {
+        const MIN_VERSION_LENGTH: usize = 4;
 
-        let fns: Vec<fn(&mut ClassStream) -> Result<ClassFragment, String>> = vec![
-            ClassReader::read_magic_bytes,
-            ClassReader::read_version_number,
-            ClassReader::read_constant_pool,
-            ClassReader::read_class_access_flags,
-            ClassReader::read_this_class,
-            ClassReader::read_super_class,
-            ClassReader::read_interfaces,
-            ClassReader::read_fields,
-            ClassReader::read_methods,
-            ClassReader::read_attributes
-        ];
-
-        let result: Result<ClassFragment, String> = fns.iter().fold(Ok(ClassFragment::new()), |acc, x| {
-            cs.mark();
-            match acc {
-                Ok(fragment) => match x(&mut cs) {
-                    Ok(xr) => Ok(xr.merge(fragment)),
-                    err@Err(_) => err
-                },
-                err@Err(_) => err
-            }
-        });
-
-        result.map(|i| i.to_classfile())
-    }
-
-    // TODO consider reimplementing the following methods in a generic implementation
-    //
-
-    fn read_magic_bytes(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_magic_bytes() {
-            true => Ok(ClassFragment::new()),
-            false => Err("Couldn't find class file magic constant (CAFEBABE)".to_string())
+        if bytes.len() >= MIN_VERSION_LENGTH {
+            ClassfileVersion { minor_version: 14, major_version: 52 }
+        } else {
+            ClassfileVersion::default()
         }
     }
 
-    fn read_version_number(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_version_number() {
-            Some((minor_version, major_version)) => Ok(ClassFragment {
-                major_version: Some(major_version),
-                minor_version: Some(minor_version),
-                ..Default::default()
-            }),
-            _ => Err("Couldn't read class version number from stream".to_string())
-        }
-    }
-
-    fn read_constant_pool(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_constant_pool() {
-            r@Some(_) => Ok(ClassFragment {
-                constant_pool: r,
-                ..Default::default()
-            }),
-            _ => Err("Failed to read constant pool from stream".to_string())
-        }
-    }
-
-    fn read_class_access_flags(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_class_access_flags() {
-            r@Some(_) => Ok(ClassFragment {
-                access_flags: r,
-                ..Default::default()
-            }),
-            _ => Err("Failed to read or parse class access flag".to_string())
-        }
-    }
-
-    fn read_this_class(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_constant_reference() {
-            r@Some(_) => Ok(ClassFragment {
-                this_class: r,
-                ..Default::default()
-            }),
-            _ => Err("Failed to read constant reference to this class".to_string())
-        }
-    }
-
-    fn read_super_class(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_constant_reference() {
-            r@Some(_) => Ok(ClassFragment {
-                this_class: r,
-                ..Default::default()
-            }),
-            _ => Err("Failed to read constant reference to super class".to_string())
-        }
-    }
-
-    fn read_interfaces(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_interfaces() {
-            r@Some(_) => Ok(ClassFragment {
-                interfaces: r,
-                ..Default::default()
-            }),
-            _ => Err("Failed to read interfaces".to_string())
-        }
-    }
-
-    fn read_fields(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_fields() {
-            r@Some(_) => Ok(ClassFragment {
-                fields: r,
-                ..Default::default()
-            }),
-            _ => Err("Failed to read field list".to_string())
-        }
-    }
-
-    fn read_methods(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_methods() {
-            r@Some(_) => Ok(ClassFragment {
-                methods: r,
-                ..Default::default()
-            }),
-            _ => Err("Failed to read method list".to_string())
-        }
-    }
-
-    fn read_attributes(stream: &mut ClassStream) -> Result<ClassFragment, String> {
-        match stream.read_attributes() {
-            r@Some(_) => Ok(ClassFragment {
-                attributes: r,
-                ..Default::default()
-            }),
-            _ => Err("Failed to read attribute list".to_string())
-        }
+    fn to_bytes(&self) -> Vec<u8> {
+        vec![ self.minor_version, self.major_version ].iter().map(|x| vec![ (x & 0xff00 >> 8) as u8, (x & 0xff) as u8 ]).flat_map(|x| x).collect()
     }
 }
