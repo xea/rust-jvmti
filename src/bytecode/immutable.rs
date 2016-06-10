@@ -16,3 +16,4 @@ impl<T> ImmutableCollection for Vec<T> {
         new_vec
     }
 }
+
