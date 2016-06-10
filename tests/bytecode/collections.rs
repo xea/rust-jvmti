@@ -3,7 +3,7 @@ extern crate jvmti;
 #[cfg(test)]
 mod tests {
     mod class_stream {
-        use jvmti::bytecode::collections::ClassStream;
+        use jvmti::bytecode::stream::ClassStream;
 
         #[test]
         fn peek_bytes_should_return_the_requested_number_of_bytes() {
