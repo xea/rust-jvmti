@@ -1,11 +1,11 @@
-/// Contains the definition of a single JVM class or interface. 
+/// Contains the definition of a single JVM class or interface.
 #[derive(Default)]
 pub struct Class {
     pub version: ClassfileVersion,
     pub constant_pool: Vec<Box<ConstantPoolEntry>>
 }
 
-/// Version number of the class file. 
+/// Version number of the class file.
 pub struct ClassfileVersion {
     pub minor_version: u16,
     pub major_version: u16,
@@ -13,16 +13,16 @@ pub struct ClassfileVersion {
 
 /// Points to an entry in the constant pool
 pub struct ConstantPoolIndex {
-    index: u16
+    pub index: u16
 }
 
 
 impl ClassfileVersion {
-    pub fn new(major_version: u16, minor_version: u16) -> ClassfileVersion { 
-        ClassfileVersion { 
+    pub fn new(major_version: u16, minor_version: u16) -> ClassfileVersion {
+        ClassfileVersion {
             minor_version: minor_version,
             major_version: major_version
-        } 
+        }
     }
 }
 
@@ -34,6 +34,7 @@ impl Default for ClassfileVersion {
 
 pub trait ConstantPoolEntry {
     fn entry_type(&self) -> ConstantType;
+    fn is_long_entry(&self) -> bool;
 }
 
 pub enum Constant {
@@ -49,6 +50,8 @@ impl ConstantPoolEntry for Constant {
             Constant::Utf8 { length: _ } => ConstantType::Utf8
         }
     }
+
+    fn is_long_entry(&self) -> bool { false }
 }
 
 /*

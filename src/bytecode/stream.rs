@@ -33,7 +33,6 @@ impl<'a> ClassInputStream<'a> {
         ClassInputStream { idx: Cell::new(0), marker: Cell::new(None), bytes: vec }
     }
 
-
     pub fn read_magic_bytes(&self) -> Result<(), ClassInputStreamError> {
         match self.read_u32() {
             Some(0xCAFEBABE) => Ok(()),
@@ -50,6 +49,41 @@ impl<'a> ClassInputStream<'a> {
     }
 
     pub fn read_constant_pool(&self) -> Result<Vec<Box<ConstantPoolEntry>>, ClassInputStreamError> {
+        match self.read_u16() {
+            Some(cp_len) => {
+                let fold_start: (usize, Result<Vec<Box<ConstantPoolEntry>>, ClassInputStreamError>) = (0, Ok(vec![]));
+
+                // TODO this needs some refactoring because it's rather overcomplicated but at least it seems working
+                let result = (1..cp_len).map(|_| self.read_constant()).map(|res_const| {
+                    match res_const {
+                        Ok(cnst) => Ok((if cnst.is_long_entry() { 2 } else { 1 }, cnst)),
+                        Err(err) => Err(err)
+                    }
+                }).fold(fold_start, |(n, acc), c| {
+                    match (acc, c) {
+                        (Ok(mut tmp_cp), Ok((len, cnst))) => {
+                            if n + len <= cp_len as usize {
+                                tmp_cp.push(cnst);
+                                (n + len, Ok(tmp_cp))
+                            } else {
+                                (n, Ok(tmp_cp))
+                            }
+                        },
+                        (e@Err(_), _) => (n, e),
+                        (_, Err(e)) => (n, Err(e))
+                    }
+                });
+
+                match result {
+                    (_, r@Ok(_)) => r,
+                    (_, r@Err(_)) => r
+                }
+            },
+            _ => Err(ClassInputStreamError::PrematureEnd)
+        }
+    }
+
+    fn read_constant(&self) -> Result<Box<ConstantPoolEntry>, ClassInputStreamError> {
         Err(ClassInputStreamError::NotImplemented)
     }
 

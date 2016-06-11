@@ -1,5 +1,5 @@
 use self::classfile::*;
-use self::stream::{ ClassInputStream, ClassOutputStream };
+use self::stream::{ ClassInputStream };
 
 pub mod classfile;
 pub mod collections;
@@ -90,6 +90,7 @@ impl ClassReader {
         }
     }
 
+/*
     /// Return access flags or return a readable error message
     fn read_access_flags(stream: &ClassInputStream) -> Result<ClassFragment, String> {
         Err("Not implemented".to_string())
@@ -124,6 +125,7 @@ impl ClassReader {
     fn read_attributes(stream: &ClassInputStream) -> Result<ClassFragment, String> {
         Err("Not implemented".to_string())
     }
+    */
 }
 
 

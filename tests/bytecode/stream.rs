@@ -3,6 +3,7 @@ extern crate jvmti;
 #[cfg(test)]
 mod tests {
 
+    use jvmti::bytecode::stream::ClassInputStream;
     use jvmti::bytecode::stream::ClassOutputStream;
     use jvmti::bytecode::stream::WriteChunks;
     use jvmti::bytecode::classfile::ClassfileVersion;
@@ -53,6 +54,41 @@ mod tests {
 
             assert_eq!(expected, os.to_vec());
 
+        }
+    }
+
+    #[test]
+    fn read_constant_pool_reads_exactly_the_desired_number_of_constants() {
+        let inputs: Vec<(Vec<u8>, usize, usize)> = vec![
+            // Empty constant pool
+            (vec![ 0, 1 ], 0, 0),
+            // Single integer constant
+            (vec![ 0, 2, 3, 1, 2, 3, 4 ], 1, 0),
+            // Two integer constants
+            (vec![ 0, 3, 3, 1, 1, 1, 1, 3, 2, 2, 2, 2 ], 2, 0),
+            // One long constant
+            (vec![ 0, 3, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 1, 0),
+            // Two long constants
+            (vec![ 0, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 2, 2, 2, 2, 2, 2, 2, 2 ], 2, 0),
+            // An integer and a long constant
+            (vec![ 0, 4, 3, 1, 1, 1, 1, 5, 2, 2, 2, 2, 2, 2, 2, 2 ], 2, 0),
+            // A long and an integer constant
+            (vec![ 0, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 2, 2, 2 ], 2, 0),
+            // long, int, long
+            (vec![ 6, 5, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 2, 2, 2, 5, 3, 3, 3, 3, 3, 3, 3, 3 ], 3, 0),
+        ];
+
+        for (bytes, expected_count, expected_avail) in inputs {
+            let is: ClassInputStream = ClassInputStream::from_vec(&bytes);
+
+            let result = is.read_constant_pool();
+
+            assert!(result.is_ok());
+
+            let cp = result.ok().unwrap();
+
+            assert_eq!(expected_count, cp.len());
+            assert_eq!(expected_avail, is.available());
         }
     }
 }
