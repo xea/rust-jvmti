@@ -1,28 +1,56 @@
 use std::cell::Cell;
+use super::classfile::*;
 
+pub enum ClassInputStreamError {
+    InvalidMagic(u32),
+    PrematureEnd,
+    NotImplemented
+}
 
-pub struct ClassStream<'a> {
+impl ClassInputStreamError {
+    /// Convert the current error object into a human-readable string explaining the error
+    pub fn to_string(&self) -> String {
+        match *self {
+            ClassInputStreamError::InvalidMagic(bad_magic) => format!("Invalid magic bytes: {:x}", bad_magic),
+            _ => format!("")
+        }
+    }
+}
+
+pub struct ClassInputStream<'a> {
     idx: Cell<usize>,
     marker: Cell<Option<usize>>,
     bytes: &'a Vec<u8>
 }
 
-pub enum ClassStreamError {
-    NotImplemented
+pub struct ClassOutputStream {
+    bytes: Vec<u8>
 }
 
-pub struct ClassFragment {
+impl<'a> ClassInputStream<'a> {
 
-}
+    pub fn from_vec(vec: &'a Vec<u8>) -> ClassInputStream {
+        ClassInputStream { idx: Cell::new(0), marker: Cell::new(None), bytes: vec }
+    }
 
-pub trait ClassInputStream {
-    fn read_magic_bytes(&self) -> Result<ClassFragment, ClassStreamError>;
-}
 
-impl<'a> ClassStream<'a> {
+    pub fn read_magic_bytes(&self) -> Result<(), ClassInputStreamError> {
+        match self.read_u32() {
+            Some(0xCAFEBABE) => Ok(()),
+            Some(m) => Err(ClassInputStreamError::InvalidMagic(m)),
+            None => Err(ClassInputStreamError::PrematureEnd),
+        }
+    }
 
-    pub fn from_vec(vec: &'a Vec<u8>) -> ClassStream {
-        ClassStream { idx: Cell::new(0), marker: Cell::new(None), bytes: vec }
+    pub fn read_version_number(&self) -> Result<ClassfileVersion, ClassInputStreamError> {
+        match (self.read_u16(), self.read_u16()) {
+            (Some(minor_version), Some(major_version)) => Ok(ClassfileVersion::new(major_version, minor_version)),
+            _ => Err(ClassInputStreamError::PrematureEnd)
+        }
+    }
+
+    pub fn read_constant_pool(&self) -> Result<Vec<Box<ConstantPoolEntry>>, ClassInputStreamError> {
+        Err(ClassInputStreamError::NotImplemented)
     }
 
     ///
@@ -88,6 +116,34 @@ impl<'a> ClassStream<'a> {
     }
 }
 
+impl ClassOutputStream {
+    pub fn new() -> ClassOutputStream {
+        ClassOutputStream {
+            bytes: vec![]
+        }
+    }
+
+    pub fn write_magic_bytes(&mut self) -> () {
+        self.write_u32(0xCAFEBABE);
+    }
+
+    pub fn write_version_number(&mut self, version: &ClassfileVersion) -> () {
+        self.write_u16(version.minor_version);
+        self.write_u16(version.major_version);
+    }
+
+    pub fn write_bytes(&mut self, bytes: &Vec<u8>) -> () {
+        for byte in bytes.iter() {
+            self.bytes.push(*byte);
+        }
+    }
+
+    pub fn to_vec(self) -> Vec<u8> {
+        self.bytes
+    }
+}
+
+
 pub trait ReadChunks {
     fn read_u64(&self) -> Option<u64>;
     fn read_u32(&self) -> Option<u32>;
@@ -100,7 +156,14 @@ pub trait ReadChunks {
     fn get_u8(&self) -> u8;
 }
 
-impl<'a> ReadChunks for ClassStream<'a> {
+pub trait WriteChunks {
+    fn write_u64(&mut self, value: u64) -> ();
+    fn write_u32(&mut self, value: u32) -> ();
+    fn write_u16(&mut self, value: u16) -> ();
+    fn write_u8(&mut self, value: u8) -> ();
+}
+
+impl<'a> ReadChunks for ClassInputStream<'a> {
     fn read_u64(&self) -> Option<u64> {
         self.read_bytes(8)
     }
@@ -134,84 +197,35 @@ impl<'a> ReadChunks for ClassStream<'a> {
     }
 }
 
-/*
-impl ReadChunks for Vec<u8> {
+impl<'a> WriteChunks for ClassOutputStream {
+    fn write_u64(&mut self, value: u64) -> () {
+        self.write_bytes(&vec![
+            ((value & 0xFF << 56) >> 56) as u8,
+            ((value & 0xFF << 48) >> 48) as u8,
+            ((value & 0xFF << 40) >> 40) as u8,
+            ((value & 0xFF << 32) >> 32) as u8,
+            ((value & 0xFF << 24) >> 24) as u8,
+            ((value & 0xFF << 16) >> 16) as u8,
+            ((value & 0xFF << 8) >> 8) as u8,
+            (value & 0xFF) as u8
+        ]);
 
-    fn read_u64(&self) -> Option<u64> {
-        None
     }
 
-    fn read_u32(&self) -> Option<u32> {
-        None
+    fn write_u32(&mut self, value: u32) -> () {
+        self.write_bytes(&vec![
+            ((value & 0xFF << 24) >> 24) as u8,
+            ((value & 0xFF << 16) >> 16) as u8,
+            ((value & 0xFF << 8) >> 8) as u8,
+            (value & 0xFF) as u8
+        ]);
     }
 
-    fn read_u16(&self) -> Option<u16> {
-        None
+    fn write_u16(&mut self, value: u16) -> () {
+        self.write_bytes(&vec![ ((value & 0xFF00) >> 8) as u8, (value & 0xFF) as u8 ]);
     }
 
-    fn read_u8(&self) -> Option<u8> {
-        None
-    }
-
-    fn get_u64(&self) -> u64 {
-        0
-    }
-
-    fn get_u32(&self) -> u32 {
-        0
-    }
-
-    fn get_u16(&self) -> u16 {
-        0
-    }
-
-    fn get_u8(&self) -> u8 {
-        0
+    fn write_u8(&mut self, value: u8) -> () {
+        self.write_bytes(&vec![value]);
     }
 }
-*/
-
-
-/*
-pub trait BytecodeItem {
-    fn from_bytes(bytes: &Vec<u8>) -> Self;
-    fn to_bytes(&self) -> Vec<u8>;
-}
-
-impl BytecodeItem for Class {
-
-    fn from_bytes(bytes: &Vec<u8>) -> Self {
-        Class {
-            version: ClassfileVersion::default()
-        }
-    }
-
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut b: Vec<u8> = vec![];
-        b.append(&mut self.version.to_bytes());
-
-        b
-    }
-}
-
-
-impl BytecodeItem for ClassfileVersion {
-
-    fn from_bytes(bytes: &Vec<u8>) -> Self {
-        const MIN_VERSION_LENGTH: usize = 4;
-
-        if bytes.len() >= MIN_VERSION_LENGTH {
-            ClassfileVersion { minor_version: 14, major_version: 52 }
-        } else {
-            ClassfileVersion::default()
-        }
-    }
-
-    fn to_bytes(&self) -> Vec<u8> {
-        vec![ self.minor_version, self.major_version ]
-            .iter()
-            .map(|x| vec![ (x & 0xff00 >> 8) as u8, (x & 0xff) as u8 ])
-            .flat_map(|x| x).collect()
-    }
-}
-*/

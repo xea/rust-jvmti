@@ -1,4 +1,5 @@
 use super::collections::ReadChunks;
+use super::stream::ClassStreamItem;
 use super::ConstantPoolIndex;
 
 pub trait Attribute {
