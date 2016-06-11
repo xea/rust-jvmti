@@ -42,10 +42,15 @@ impl<'a> ClassInputStream<'a> {
     }
 
     pub fn read_version_number(&self) -> Result<ClassfileVersion, ClassInputStreamError> {
+        match ClassfileVersion::read_element(self) {
+            Ok(boxed) => Ok(*boxed),
+            err@_ => err
+        }
+        /*
         match (self.read_u16(), self.read_u16()) {
             (Some(minor_version), Some(major_version)) => Ok(ClassfileVersion::new(major_version, minor_version)),
             _ => Err(ClassInputStreamError::PrematureEnd)
-        }
+        }*/
     }
 
     pub fn read_constant_pool(&self) -> Result<Vec<Box<ConstantPoolEntry>>, ClassInputStreamError> {
@@ -148,6 +153,11 @@ impl<'a> ClassInputStream<'a> {
     fn get_bytes(&self, count: usize) -> u64 {
         self.read_bytes(count).unwrap_or(0)
     }
+}
+
+pub trait ClassStreamEntry {
+    fn read_element(stream: &ClassInputStream) -> Result<Box<Self>, ClassInputStreamError>;
+    fn write_element(&self, stream: &mut ClassOutputStream);
 }
 
 impl ClassOutputStream {

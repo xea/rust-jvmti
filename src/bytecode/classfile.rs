@@ -1,3 +1,10 @@
+use super::stream::ClassOutputStream;
+use super::stream::ClassInputStream;
+use super::stream::ClassInputStreamError;
+use super::stream::ClassStreamEntry;
+use super::stream::ReadChunks;
+use super::stream::WriteChunks;
+
 /// Contains the definition of a single JVM class or interface.
 #[derive(Default)]
 pub struct Class {
@@ -32,13 +39,29 @@ impl Default for ClassfileVersion {
     }
 }
 
+impl ClassStreamEntry for ClassfileVersion {
+    fn read_element(stream: &ClassInputStream) -> Result<Box<Self>, ClassInputStreamError> {
+        match (stream.read_u16(), stream.read_u16()) {
+            (Some(minor_version), Some(major_version)) => Ok(Box::new(ClassfileVersion::new(major_version, minor_version))),
+            _ => Err(ClassInputStreamError::PrematureEnd)
+        }
+    }
+
+    fn write_element(&self, stream: &mut ClassOutputStream) {
+        stream.write_u16(self.minor_version);
+        stream.write_u16(self.major_version);
+    }
+}
+
 pub trait ConstantPoolEntry {
     fn entry_type(&self) -> ConstantType;
     fn is_long_entry(&self) -> bool;
 }
 
 pub enum Constant {
-    Utf8 { length: usize }
+    Utf8 { length: usize },
+    Integer { bytes: u32 },
+    Long { high_bytes: u32, low_bytes: u32 }
 }
 
 impl Constant {
@@ -47,7 +70,9 @@ impl Constant {
 impl ConstantPoolEntry for Constant {
     fn entry_type(&self) -> ConstantType {
         match *self {
-            Constant::Utf8 { length: _ } => ConstantType::Utf8
+            Constant::Utf8 { length: _ } => ConstantType::Utf8,
+            Constant::Integer { bytes: _ } => ConstantType::Integer,
+            Constant::Long { high_bytes: _, low_bytes: _ } => ConstantType::Long
         }
     }
 
