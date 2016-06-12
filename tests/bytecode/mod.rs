@@ -15,8 +15,8 @@ mod tests {
         }
 
         fn test_class() -> &'static [u8] {
-            include_bytes!("../../Test.class") 
-        } 
+            include_bytes!("../../Test.class")
+        }
 
         #[test]
         fn read_bytes_reads_simple_class_version_number_correctly() {

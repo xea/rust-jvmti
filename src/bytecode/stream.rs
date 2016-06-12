@@ -1,8 +1,10 @@
 use std::cell::Cell;
 use super::classfile::*;
+use super::constant::*;
 
 pub enum ClassInputStreamError {
     InvalidMagic(u32),
+    InvalidConstantTag(u8),
     PrematureEnd,
     NotImplemented
 }
@@ -42,21 +44,13 @@ impl<'a> ClassInputStream<'a> {
     }
 
     pub fn read_version_number(&self) -> Result<ClassfileVersion, ClassInputStreamError> {
-        match ClassfileVersion::read_element(self) {
-            Ok(boxed) => Ok(*boxed),
-            err@_ => err
-        }
-        /*
-        match (self.read_u16(), self.read_u16()) {
-            (Some(minor_version), Some(major_version)) => Ok(ClassfileVersion::new(major_version, minor_version)),
-            _ => Err(ClassInputStreamError::PrematureEnd)
-        }*/
+        ClassfileVersion::read_element(self)
     }
 
-    pub fn read_constant_pool(&self) -> Result<Vec<Box<ConstantPoolEntry>>, ClassInputStreamError> {
+    pub fn read_constant_pool(&self) -> Result<ConstantPool, ClassInputStreamError> {
         match self.read_u16() {
             Some(cp_len) => {
-                let fold_start: (usize, Result<Vec<Box<ConstantPoolEntry>>, ClassInputStreamError>) = (0, Ok(vec![]));
+                let fold_start: (usize, Result<Vec<Constant>, ClassInputStreamError>) = (0, Ok(vec![]));
 
                 // TODO this needs some refactoring because it's rather overcomplicated but at least it seems working
                 let result = (1..cp_len).map(|_| self.read_constant()).map(|res_const| {
@@ -80,15 +74,15 @@ impl<'a> ClassInputStream<'a> {
                 });
 
                 match result {
-                    (_, r@Ok(_)) => r,
-                    (_, r@Err(_)) => r
+                    (_, Ok(r)) => Ok(ConstantPool::from_vec(r)),
+                    (_, Err(r)) => Err(r)
                 }
             },
             _ => Err(ClassInputStreamError::PrematureEnd)
         }
     }
 
-    fn read_constant(&self) -> Result<Box<ConstantPoolEntry>, ClassInputStreamError> {
+    fn read_constant(&self) -> Result<Constant, ClassInputStreamError> {
         Err(ClassInputStreamError::NotImplemented)
     }
 
@@ -155,8 +149,8 @@ impl<'a> ClassInputStream<'a> {
     }
 }
 
-pub trait ClassStreamEntry {
-    fn read_element(stream: &ClassInputStream) -> Result<Box<Self>, ClassInputStreamError>;
+pub trait ClassStreamEntry: Sized {
+    fn read_element(stream: &ClassInputStream) -> Result<Self, ClassInputStreamError>;
     fn write_element(&self, stream: &mut ClassOutputStream);
 }
 

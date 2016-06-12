@@ -1,8 +1,10 @@
 use self::classfile::*;
+use self::constant::*;
 use self::stream::{ ClassInputStream };
 
 pub mod classfile;
 pub mod collections;
+pub mod constant;
 pub mod stream;
 
 ///
@@ -134,7 +136,7 @@ impl ClassReader {
 #[derive(Default)]
 struct ClassFragment {
     version: Option<ClassfileVersion>,
-    constant_pool: Option<Vec<Box<ConstantPoolEntry>>>
+    constant_pool: Option<ConstantPool>
 }
 
 impl ClassFragment {
@@ -154,7 +156,7 @@ impl ClassFragment {
     pub fn to_class(self) -> Class {
         Class {
             version: self.version.unwrap_or(ClassfileVersion::default()),
-            constant_pool: self.constant_pool.unwrap_or(vec![])
+            constant_pool: self.constant_pool.unwrap_or(ConstantPool::default())
         }
     }
 }

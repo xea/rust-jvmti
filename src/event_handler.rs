@@ -166,7 +166,7 @@ unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env:
                 Ok(current_thread) => {
                     let class_id = env.get_object_class(&object);
 
-                    function(ObjectAllocationEvent { class_id: class_id, size: size, thread: current_thread })
+                    function(ObjectAllocationEvent { class_id: class_id, size: size as i64, thread: current_thread })
                 },
                 Err(err) => {
                     match err {
