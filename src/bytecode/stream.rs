@@ -2,6 +2,7 @@ use std::cell::Cell;
 use super::classfile::*;
 use super::constant::*;
 
+#[derive(Debug)]
 pub enum ClassInputStreamError {
     InvalidMagic(u32),
     InvalidConstantTag(u8),
@@ -14,7 +15,9 @@ impl ClassInputStreamError {
     pub fn to_string(&self) -> String {
         match *self {
             ClassInputStreamError::InvalidMagic(bad_magic) => format!("Invalid magic bytes: {:x}", bad_magic),
-            _ => format!("")
+            ClassInputStreamError::InvalidConstantTag(bad_tag) => format!("Invalid constant tag: {}", bad_tag),
+            ClassInputStreamError::PrematureEnd => format!("Premature end of stream"),
+            _ => format!("Unimplemented stream error")
         }
     }
 }
@@ -50,40 +53,24 @@ impl<'a> ClassInputStream<'a> {
     pub fn read_constant_pool(&self) -> Result<ConstantPool, ClassInputStreamError> {
         match self.read_u16() {
             Some(cp_len) => {
-                let fold_start: (usize, Result<Vec<Constant>, ClassInputStreamError>) = (0, Ok(vec![]));
-
-                // TODO this needs some refactoring because it's rather overcomplicated but at least it seems working
-                let result = (1..cp_len).map(|_| self.read_constant()).map(|res_const| {
-                    match res_const {
-                        Ok(cnst) => Ok((if cnst.is_long_entry() { 2 } else { 1 }, cnst)),
-                        Err(err) => Err(err)
-                    }
-                }).fold(fold_start, |(n, acc), c| {
-                    match (acc, c) {
-                        (Ok(mut tmp_cp), Ok((len, cnst))) => {
-                            if n + len <= cp_len as usize {
-                                tmp_cp.push(cnst);
-                                (n + len, Ok(tmp_cp))
-                            } else {
-                                (n, Ok(tmp_cp))
-                            }
-                        },
-                        (e@Err(_), _) => (n, e),
-                        (_, Err(e)) => (n, Err(e))
-                    }
-                });
-
-                match result {
-                    (_, Ok(r)) => Ok(ConstantPool::from_vec(r)),
-                    (_, Err(r)) => Err(r)
-                }
+                self.read_constants(cp_len as usize, 1).map(|v| ConstantPool::from_vec(v))
             },
-            _ => Err(ClassInputStreamError::PrematureEnd)
+            None => Err(ClassInputStreamError::PrematureEnd)
         }
     }
 
-    fn read_constant(&self) -> Result<Constant, ClassInputStreamError> {
-        Err(ClassInputStreamError::NotImplemented)
+    fn read_constants(&self, cp_len: usize, current_len: usize) -> Result<Vec<Constant>, ClassInputStreamError> {
+        if cp_len > current_len {
+            match Constant::read_element(self) {
+                Err(err) => Err(err),
+                Ok(cnst) => {
+                    let offset = if cnst.is_long_entry() { 2 } else { 1 };
+                    self.read_constants(cp_len, current_len + offset).map(|mut v| { v.insert(0, cnst); v })
+                }
+            }
+        } else {
+            Ok(vec![])
+        }
     }
 
     ///
@@ -188,6 +175,8 @@ pub trait ReadChunks {
     fn read_u16(&self) -> Option<u16>;
     fn read_u8(&self) -> Option<u8>;
 
+    fn read_n(&self, len: usize) -> Option<Vec<u8>>;
+
     fn get_u64(&self) -> u64;
     fn get_u32(&self) -> u32;
     fn get_u16(&self) -> u16;
@@ -199,6 +188,8 @@ pub trait WriteChunks {
     fn write_u32(&mut self, value: u32) -> ();
     fn write_u16(&mut self, value: u16) -> ();
     fn write_u8(&mut self, value: u8) -> ();
+
+    fn write_n(&mut self, value: Vec<u8>) -> ();
 }
 
 impl<'a> ReadChunks for ClassInputStream<'a> {
@@ -216,6 +207,19 @@ impl<'a> ReadChunks for ClassInputStream<'a> {
 
     fn read_u8(&self) -> Option<u8> {
         self.read_bytes(1).map(|v| v as u8)
+    }
+
+    fn read_n(&self, len: usize) -> Option<Vec<u8>> {
+        if self.available() >= len {
+            let cur_idx = self.idx.get();
+            let upper_bound = (cur_idx + len) as usize;
+
+            let r = Some(self.bytes[cur_idx..upper_bound].to_vec());
+            self.idx.set(cur_idx + len);
+            r
+        } else {
+            None
+        }
     }
 
     fn get_u64(&self) -> u64 {
@@ -265,5 +269,9 @@ impl<'a> WriteChunks for ClassOutputStream {
 
     fn write_u8(&mut self, value: u8) -> () {
         self.write_bytes(&vec![value]);
+    }
+
+    fn write_n(&mut self, value: Vec<u8>) -> () {
+        self.write_bytes(&value);
     }
 }

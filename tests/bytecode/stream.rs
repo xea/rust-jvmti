@@ -7,6 +7,7 @@ mod tests {
     use jvmti::bytecode::stream::ClassOutputStream;
     use jvmti::bytecode::stream::WriteChunks;
     use jvmti::bytecode::classfile::ClassfileVersion;
+    use jvmti::bytecode::constant::Constant;
 
     #[test]
     fn write_u8_writes_a_single_byte_at_the_end_of_the_stream() {
@@ -62,20 +63,24 @@ mod tests {
         let inputs: Vec<(Vec<u8>, usize, usize)> = vec![
             // Empty constant pool
             (vec![ 0, 1 ], 0, 0),
+            // Empty constant pool with overflowing bytes
+            (vec![ 0, 1, 0xf, 0xf, 0xf ], 0, 3),
             // Single integer constant
             (vec![ 0, 2, 3, 1, 2, 3, 4 ], 1, 0),
+            // Single integer constant with overflowing bytes
+            (vec![ 0, 2, 3, 1, 2, 3, 4, 0xf, 0xf, 0xf ], 1, 3),
             // Two integer constants
             (vec![ 0, 3, 3, 1, 1, 1, 1, 3, 2, 2, 2, 2 ], 2, 0),
             // One long constant
-            (vec![ 0, 3, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 1, 0),
+            (vec![ 0, 3, 5, 1, 1, 1, 1, 1, 1, 1, 1 ], 1, 0),
             // Two long constants
-            (vec![ 0, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 2, 2, 2, 2, 2, 2, 2, 2 ], 2, 0),
+            (vec![ 0, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 5, 2, 2, 2, 2, 2, 2, 2, 2 ], 2, 0),
             // An integer and a long constant
             (vec![ 0, 4, 3, 1, 1, 1, 1, 5, 2, 2, 2, 2, 2, 2, 2, 2 ], 2, 0),
             // A long and an integer constant
             (vec![ 0, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 2, 2, 2 ], 2, 0),
             // long, int, long
-            (vec![ 6, 5, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 2, 2, 2, 5, 3, 3, 3, 3, 3, 3, 3, 3 ], 3, 0),
+            (vec![ 0, 6, 5, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 2, 2, 2, 5, 3, 3, 3, 3, 3, 3, 3, 3 ], 3, 0),
         ];
 
         for (bytes, expected_count, expected_avail) in inputs {
@@ -83,12 +88,24 @@ mod tests {
 
             let result = is.read_constant_pool();
 
-            assert!(result.is_ok());
+            assert!(result.is_ok(), format!("Bytes {:?} Error: {:?}", bytes, result.err().unwrap()));
 
             let cp = result.ok().unwrap();
 
-            assert_eq!(expected_count, cp.len());
-            assert_eq!(expected_avail, is.available());
+            //assert_eq!(expected_count, cp.len());
+            assert!(expected_count == cp.len(), format!("Bytes {:?} Expected: {} Found: {}", bytes, expected_count, cp.len()));
+            assert!(expected_avail == is.available(), format!("Bytes {:?} Expected: {} Available: {}", bytes, expected_avail, is.available()));
+        }
+    }
+
+    #[test]
+    fn read_constant_detects_the_correct_constant() {
+        let test_cases: Vec<(Vec<u8>, Constant)> = vec![
+            (vec![3, 1, 2, 3, 4], Constant::Integer(0x01020304))
+        ];
+
+        for (bytes, expected) in test_cases {
+            let is: ClassInputStream = ClassInputStream::from_vec(&bytes);
         }
     }
 }

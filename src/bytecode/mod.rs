@@ -30,7 +30,7 @@ impl ClassReader {
             ClassReader::read_magic_bytes,
             ClassReader::read_version_number,
             ClassReader::read_constant_pool,
-            //ClassReader::read_access_flags,
+            ClassReader::read_access_flags,
             //ClassReader::read_this_class,
             //ClassReader::read_super_class,
             //ClassReader::read_interfaces,
@@ -92,12 +92,12 @@ impl ClassReader {
         }
     }
 
-/*
     /// Return access flags or return a readable error message
     fn read_access_flags(stream: &ClassInputStream) -> Result<ClassFragment, String> {
-        Err("Not implemented".to_string())
+        Err("Reading access flags is not implemented".to_string())
     }
 
+/*
     /// Return this class or return a readable error message
     fn read_this_class(stream: &ClassInputStream) -> Result<ClassFragment, String> {
         Err("Not implemented".to_string())
@@ -153,6 +153,8 @@ impl ClassFragment {
         self
     }
 
+    /// Transform this class fragment into a final class file. Members set on the fragment will
+    /// be defined on the class too, other members will be initialized with their default values
     pub fn to_class(self) -> Class {
         Class {
             version: self.version.unwrap_or(ClassfileVersion::default()),

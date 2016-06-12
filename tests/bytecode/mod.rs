@@ -1,6 +1,7 @@
 extern crate jvmti;
 
 mod collections;
+mod constant;
 mod stream;
 
 #[cfg(test)]
@@ -22,7 +23,7 @@ mod tests {
         fn read_bytes_reads_simple_class_version_number_correctly() {
             let result = ClassReader::read_array(simple_class());
 
-            assert!(result.is_ok());
+            assert!(result.is_ok(), format!("Error: {}", result.err().unwrap()));
             let class = result.ok().unwrap();
 
             assert_eq!(52, class.version.major_version);
