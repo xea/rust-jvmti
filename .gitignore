@@ -8,3 +8,4 @@ Cargo.lock
 Makefile
 CMake*
 old
+.vscode

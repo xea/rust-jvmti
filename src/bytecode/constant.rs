@@ -1,4 +1,5 @@
 use super::stream::*;
+use super::classfile::ConstantPoolIndex;
 
 #[derive(Default)]
 pub struct ConstantPool {
@@ -8,27 +9,54 @@ pub struct ConstantPool {
 impl ConstantPool {
     pub fn from_vec(vec: Vec<Constant>) -> ConstantPool {
         ConstantPool {
-            constants: vec
+            constants: ConstantPool::move_elements(vec)
         }
+    }
+
+    fn move_elements(vec: Vec<Constant>) -> Vec<Constant> {
+        match vec.iter().peekable().peek() {
+            Some(&&Constant::Placeholder) => vec,
+            Some(_) => ConstantPool::drain_constants(vec),
+            _ => vec
+        }
+    }
+
+    fn drain_constants(mut vec: Vec<Constant>) -> Vec<Constant> {
+        vec.drain(..).fold(vec![], |mut pool, c| {
+            let need_placeholder = c.is_long_entry();
+
+            pool.push(c);
+
+            if need_placeholder {
+                pool.push(Constant::Placeholder);
+            }
+
+            pool
+        })
     }
 
     pub fn len(&self) -> usize {
         self.constants.len()
     }
 
-    pub fn get(&self, idx: usize) -> Option<&Constant> {
-        self.constants.get(idx)
+    pub fn get(&self, idx: &ConstantPoolIndex) -> Option<&Constant> {
+        match idx {
+            &ConstantPoolIndex { idx: 0 } => None,
+            _ => self.constants.get(idx.idx as usize - 1)
+        }
+    }
+
+    pub fn get_idx(&self, idx: u16) -> Option<&Constant> {
+        match idx {
+            0 => None,
+            _ => self.constants.get(idx as usize - 1)
+        }
     }
 }
 
 impl ClassStreamEntry for ConstantPool {
-    fn read_element(stream: &ClassInputStream) -> Result<Self, ClassInputStreamError> {
-        match stream.read_u16() {
-            Some(cp_len) => {
-                Ok(ConstantPool { constants: vec![] })
-            },
-            None => Err(ClassInputStreamError::PrematureEnd)
-        }
+    fn read_element(_: &ClassInputStream) -> Result<Self, ClassInputStreamError> {
+        Err(ClassInputStreamError::NotImplemented)
     }
 
     fn write_element(&self, stream: &mut ClassOutputStream) {
@@ -40,6 +68,7 @@ impl ClassStreamEntry for ConstantPool {
     }
 }
 
+#[derive(Debug)]
 pub enum Constant {
     Utf8(Vec<u8>),
     Integer(u32),

@@ -73,6 +73,31 @@ impl<'a> ClassInputStream<'a> {
         }
     }
 
+    pub fn read_class_access_flags(&self) -> Result<AccessFlags, ClassInputStreamError> {
+        match self.read_u16() {
+            Some(val) => Ok(AccessFlags::of(val)),
+            _ => Err(ClassInputStreamError::PrematureEnd)
+        }
+    }
+
+    pub fn read_constant_pool_index(&self) -> Result<ConstantPoolIndex, ClassInputStreamError> {
+        ConstantPoolIndex::read_element(&self)
+    }
+
+    pub fn read_interfaces(&self) -> Result<Vec<ConstantPoolIndex>, ClassInputStreamError> {
+        match self.read_u16() {
+            Some(len) => {
+                // each entry takes up two bytes
+                if self.available() >= len as usize * 2 {
+                    Ok((0..len).map(|_| self.read_constant_pool_index().unwrap()).collect())
+                } else {
+                    Err(ClassInputStreamError::PrematureEnd)
+                }
+            },
+            _ => Err(ClassInputStreamError::PrematureEnd)
+        }
+    }
+
     ///
     /// Mark the current position in the stream so subsequent `reset()` calls can return to this
     /// position. This can be used to define "safe points" in the stream.

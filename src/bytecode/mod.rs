@@ -31,9 +31,9 @@ impl ClassReader {
             ClassReader::read_version_number,
             ClassReader::read_constant_pool,
             ClassReader::read_access_flags,
-            //ClassReader::read_this_class,
-            //ClassReader::read_super_class,
-            //ClassReader::read_interfaces,
+            ClassReader::read_this_class,
+            ClassReader::read_super_class,
+            ClassReader::read_interfaces,
             //ClassReader::read_fields,
             //ClassReader::read_methods,
             //ClassReader::read_attributes
@@ -94,25 +94,50 @@ impl ClassReader {
 
     /// Return access flags or return a readable error message
     fn read_access_flags(stream: &ClassInputStream) -> Result<ClassFragment, String> {
-        Err("Reading access flags is not implemented".to_string())
+        match stream.read_class_access_flags() {
+            Ok(access_flags) => Ok(ClassFragment {
+                access_flags: Some(access_flags),
+                ..Default::default()
+            }),
+            Err(err) => Err(err.to_string())
+        }
+
     }
 
-/*
     /// Return this class or return a readable error message
     fn read_this_class(stream: &ClassInputStream) -> Result<ClassFragment, String> {
-        Err("Not implemented".to_string())
+        match stream.read_constant_pool_index() {
+            Ok(this_class) => Ok(ClassFragment {
+                this_class: Some(this_class),
+                ..Default::default()
+            }),
+            Err(err) => Err(err.to_string())
+        }
     }
 
     /// Return super class or return a readable error message
     fn read_super_class(stream: &ClassInputStream) -> Result<ClassFragment, String> {
-        Err("Not implemented".to_string())
+        match stream.read_constant_pool_index() {
+            Ok(super_class) => Ok(ClassFragment {
+                super_class: Some(super_class),
+                ..Default::default()
+            }),
+            Err(err) => Err(err.to_string())
+        }
     }
 
     /// Return interface list or return a readable error message
     fn read_interfaces(stream: &ClassInputStream) -> Result<ClassFragment, String> {
-        Err("Not implemented".to_string())
+        match stream.read_interfaces() {
+            Ok(interfaces) => Ok(ClassFragment {
+                interfaces: Some(interfaces),
+                ..Default::default()
+            }),
+            Err(err) => Err(err.to_string())
+        }
     }
 
+/*
     /// Return field list or return a readable error message
     fn read_fields(stream: &ClassInputStream) -> Result<ClassFragment, String> {
         Err("Not implemented".to_string())
@@ -136,7 +161,11 @@ impl ClassReader {
 #[derive(Default)]
 struct ClassFragment {
     version: Option<ClassfileVersion>,
-    constant_pool: Option<ConstantPool>
+    constant_pool: Option<ConstantPool>,
+    access_flags: Option<AccessFlags>,
+    this_class: Option<ConstantPoolIndex>,
+    super_class: Option<ConstantPoolIndex>,
+    interfaces: Option<Vec<ConstantPoolIndex>>
 }
 
 impl ClassFragment {
@@ -150,6 +179,10 @@ impl ClassFragment {
     pub fn merge(mut self, other: Self) -> Self {
         self.version = other.version.or(self.version);
         self.constant_pool = other.constant_pool.or(self.constant_pool);
+        self.access_flags = other.access_flags.or(self.access_flags);
+        self.this_class = other.this_class.or(self.this_class);
+        self.super_class = other.super_class.or(self.super_class);
+        self.interfaces = other.interfaces.or(self.interfaces);
         self
     }
 
@@ -158,7 +191,11 @@ impl ClassFragment {
     pub fn to_class(self) -> Class {
         Class {
             version: self.version.unwrap_or(ClassfileVersion::default()),
-            constant_pool: self.constant_pool.unwrap_or(ConstantPool::default())
+            constant_pool: self.constant_pool.unwrap_or(ConstantPool::default()),
+            access_flags: self.access_flags.unwrap_or(AccessFlags::new()),
+            this_class: self.this_class.unwrap_or(ConstantPoolIndex::new()),
+            super_class: self.super_class.unwrap_or(ConstantPoolIndex::new()),
+            interfaces: self.interfaces.unwrap_or(vec![]),
         }
     }
 }
