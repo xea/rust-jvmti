@@ -1,6 +1,7 @@
 use std::cell::Cell;
 use super::classfile::*;
 use super::constant::*;
+use super::attribute::*;
 
 #[derive(Debug)]
 pub enum ClassInputStreamError {
@@ -25,7 +26,7 @@ impl ClassInputStreamError {
 pub struct ClassInputStream<'a> {
     idx: Cell<usize>,
     marker: Cell<Option<usize>>,
-    bytes: &'a Vec<u8>
+    bytes: &'a Vec<u8>,
 }
 
 pub struct ClassOutputStream {
@@ -53,7 +54,9 @@ impl<'a> ClassInputStream<'a> {
     pub fn read_constant_pool(&self) -> Result<ConstantPool, ClassInputStreamError> {
         match self.read_u16() {
             Some(cp_len) => {
-                self.read_constants(cp_len as usize, 1).map(|v| ConstantPool::from_vec(v))
+                let cp = self.read_constants(cp_len as usize, 1).map(|v| ConstantPool::from_vec(v));
+
+                cp
             },
             None => Err(ClassInputStreamError::PrematureEnd)
         }
@@ -96,6 +99,18 @@ impl<'a> ClassInputStream<'a> {
             },
             _ => Err(ClassInputStreamError::PrematureEnd)
         }
+    }
+
+    pub fn read_fields(&self) -> Result<Vec<Field>, ClassInputStreamError> {
+        Err(ClassInputStreamError::NotImplemented)
+    }
+
+    pub fn read_methods(&self) -> Result<Vec<Method>, ClassInputStreamError> {
+        Err(ClassInputStreamError::NotImplemented)
+    }
+
+    pub fn read_attributes(&self, constant_pool: &ConstantPool) -> Result<Vec<Attribute>, ClassInputStreamError> {
+        Err(ClassInputStreamError::NotImplemented)
     }
 
     ///
@@ -192,7 +207,6 @@ impl ClassOutputStream {
         self.bytes
     }
 }
-
 
 pub trait ReadChunks {
     fn read_u64(&self) -> Option<u64>;

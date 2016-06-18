@@ -1,7 +1,7 @@
 use super::stream::*;
 use super::classfile::ConstantPoolIndex;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ConstantPool {
     pub constants: Vec<Constant>
 }
@@ -68,7 +68,7 @@ impl ClassStreamEntry for ConstantPool {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Constant {
     Utf8(Vec<u8>),
     Integer(u32),

@@ -1,7 +1,9 @@
 use self::classfile::*;
 use self::constant::*;
 use self::stream::{ ClassInputStream };
+use self::attribute::*;
 
+pub mod attribute;
 pub mod classfile;
 pub mod collections;
 pub mod constant;
@@ -26,7 +28,7 @@ impl ClassReader {
     pub fn read_bytes(bytes: &Vec<u8>) -> Result<Class, String> {
         let mut stream = ClassInputStream::from_vec(bytes);
 
-        let extractors: Vec<fn(&ClassInputStream) -> Result<ClassFragment, String>> = vec![
+        let extractors: Vec<fn(&ClassInputStream, ClassFragment) -> Result<ClassFragment, String>> = vec![
             ClassReader::read_magic_bytes,
             ClassReader::read_version_number,
             ClassReader::read_constant_pool,
@@ -34,10 +36,9 @@ impl ClassReader {
             ClassReader::read_this_class,
             ClassReader::read_super_class,
             ClassReader::read_interfaces,
-            //ClassReader::read_fields,
-            //ClassReader::read_methods,
-            //ClassReader::read_attributes
-
+            ClassReader::read_fields,
+            ClassReader::read_methods,
+            ClassReader::read_attributes
         ];
 
         // the idea is this: we start out with an Ok() value and fold items until we either reach
@@ -48,7 +49,7 @@ impl ClassReader {
         // meaningful message describing the error
         let result: Result<ClassFragment, String> = extractors.iter().fold(Ok(ClassFragment::new()), |acc, x| {
             match acc {
-                Ok(class_fragment) => match x(&mut stream) {
+                Ok(class_fragment) => match x(&mut stream, class_fragment) {
                     // only if both the accumulator and the current element are valid values do we
                     // continue processing, otherwise we fall back to Err
                     Ok(current_fragment) => Ok(current_fragment.merge(class_fragment)),
@@ -62,7 +63,7 @@ impl ClassReader {
     }
 
     /// Read magic bytes or return a readable error message
-    fn read_magic_bytes(stream: &ClassInputStream) -> Result<ClassFragment, String> {
+    fn read_magic_bytes(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_magic_bytes() {
             Ok(_) => Ok(ClassFragment::default()),
             Err(err) => Err(err.to_string())
@@ -71,7 +72,7 @@ impl ClassReader {
 
 
     /// Return the class file version number or return a readable error message
-    fn read_version_number(stream: &ClassInputStream) -> Result<ClassFragment, String> {
+    fn read_version_number(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_version_number() {
             Ok(version) => Ok(ClassFragment {
                 version: Some(version),
@@ -82,18 +83,20 @@ impl ClassReader {
     }
 
     /// Return the constant pool or return a readable error message
-    fn read_constant_pool(stream: &ClassInputStream) -> Result<ClassFragment, String> {
+    fn read_constant_pool(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_constant_pool() {
-            Ok(constant_pool) => Ok(ClassFragment {
-                constant_pool: Some(constant_pool),
-                ..Default::default()
-            }),
+            Ok(constant_pool) => {
+                Ok(ClassFragment {
+                    constant_pool: Some(constant_pool),
+                    ..Default::default()
+                })
+            },
             Err(err) => Err(err.to_string())
         }
     }
 
     /// Return access flags or return a readable error message
-    fn read_access_flags(stream: &ClassInputStream) -> Result<ClassFragment, String> {
+    fn read_access_flags(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_class_access_flags() {
             Ok(access_flags) => Ok(ClassFragment {
                 access_flags: Some(access_flags),
@@ -105,7 +108,7 @@ impl ClassReader {
     }
 
     /// Return this class or return a readable error message
-    fn read_this_class(stream: &ClassInputStream) -> Result<ClassFragment, String> {
+    fn read_this_class(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_constant_pool_index() {
             Ok(this_class) => Ok(ClassFragment {
                 this_class: Some(this_class),
@@ -116,7 +119,7 @@ impl ClassReader {
     }
 
     /// Return super class or return a readable error message
-    fn read_super_class(stream: &ClassInputStream) -> Result<ClassFragment, String> {
+    fn read_super_class(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_constant_pool_index() {
             Ok(super_class) => Ok(ClassFragment {
                 super_class: Some(super_class),
@@ -127,7 +130,7 @@ impl ClassReader {
     }
 
     /// Return interface list or return a readable error message
-    fn read_interfaces(stream: &ClassInputStream) -> Result<ClassFragment, String> {
+    fn read_interfaces(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_interfaces() {
             Ok(interfaces) => Ok(ClassFragment {
                 interfaces: Some(interfaces),
@@ -137,22 +140,47 @@ impl ClassReader {
         }
     }
 
-/*
     /// Return field list or return a readable error message
-    fn read_fields(stream: &ClassInputStream) -> Result<ClassFragment, String> {
-        Err("Not implemented".to_string())
+    fn read_fields(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+        match stream.read_fields() {
+            Ok(fields) => Ok(ClassFragment {
+                fields: Some(fields),
+                ..Default::default()
+            }),
+            Err(err) => Err(err.to_string())
+        }
     }
 
     /// Return method list or return a readable error message
-    fn read_methods(stream: &ClassInputStream) -> Result<ClassFragment, String> {
-        Err("Not implemented".to_string())
+    fn read_methods(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+        match stream.read_methods() {
+            Ok(methods) => Ok(ClassFragment {
+                methods: Some(methods),
+                ..Default::default()
+            }),
+            Err(err) => Err(err.to_string())
+        }
     }
 
     /// Return class attributes or return a readable error message
-    fn read_attributes(stream: &ClassInputStream) -> Result<ClassFragment, String> {
-        Err("Not implemented".to_string())
+    fn read_attributes(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
+        match &fragment.constant_pool {
+            &Some(_) => (),
+            _ => ()
+        }
+        /*
+        match fragment.constant_pool {
+            Some(cp) => match stream.read_attributes(&cp) {
+                Ok(attributes) => Ok(ClassFragment {
+                    attributes: Some(attributes),
+                    ..Default::default()
+                }),
+                Err(err) => Err(err.to_string())
+            },
+            None => Err("Missing constant pool".to_string())
+        }*/
+        Err("lofasz".to_string())
     }
-    */
 }
 
 
@@ -165,7 +193,10 @@ struct ClassFragment {
     access_flags: Option<AccessFlags>,
     this_class: Option<ConstantPoolIndex>,
     super_class: Option<ConstantPoolIndex>,
-    interfaces: Option<Vec<ConstantPoolIndex>>
+    interfaces: Option<Vec<ConstantPoolIndex>>,
+    fields: Option<Vec<Field>>,
+    methods: Option<Vec<Method>>,
+    attributes: Option<Vec<Attribute>>
 }
 
 impl ClassFragment {
@@ -183,6 +214,9 @@ impl ClassFragment {
         self.this_class = other.this_class.or(self.this_class);
         self.super_class = other.super_class.or(self.super_class);
         self.interfaces = other.interfaces.or(self.interfaces);
+        self.fields = other.fields.or(self.fields);
+        self.methods = other.methods.or(self.methods);
+        self.attributes = other.attributes.or(self.attributes);
         self
     }
 
@@ -196,6 +230,9 @@ impl ClassFragment {
             this_class: self.this_class.unwrap_or(ConstantPoolIndex::new()),
             super_class: self.super_class.unwrap_or(ConstantPoolIndex::new()),
             interfaces: self.interfaces.unwrap_or(vec![]),
+            fields: self.fields.unwrap_or(vec![]),
+            methods: self.methods.unwrap_or(vec![]),
+            attributes: self.attributes.unwrap_or(vec![])
         }
     }
 }
