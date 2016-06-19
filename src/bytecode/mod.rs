@@ -2,6 +2,7 @@ use self::classfile::*;
 use self::constant::*;
 use self::stream::{ ClassInputStream, ClassInputStreamError };
 use self::attribute::*;
+use std::fs::File;
 
 pub mod attribute;
 pub mod classfile;
@@ -12,6 +13,9 @@ pub mod stream;
 ///
 /// Provides functionality for reading JVM class files as a whole
 pub struct ClassReader {
+}
+
+pub struct ClassWriter {
 }
 
 impl ClassReader {
@@ -158,7 +162,7 @@ impl ClassReader {
     /// Return class attributes or return a readable error message
     fn read_attributes(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
         let attributes = match fragment.constant_pool.as_ref() {
-            Some(cp_ref) => stream.read_attributes(),
+            Some(_) => stream.read_attributes(),
             None => Err(ClassInputStreamError::MissingConstantPool)
         };
 

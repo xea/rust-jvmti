@@ -20,6 +20,16 @@ pub struct Class {
     pub attributes: Vec<Attribute>
 }
 
+impl ClassStreamEntry for Class {
+
+    fn read_element(stream: &ClassInputStream) -> Result<Self, ClassInputStreamError> {
+        Err(ClassInputStreamError::NotImplemented)
+    }
+
+    fn write_element(&self, stream: &mut ClassOutputStream) {
+    }
+}
+
 pub struct ClassfileVersion {
     pub minor_version: u16,
     pub major_version: u16
