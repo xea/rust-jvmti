@@ -7,6 +7,9 @@ use super::attribute::*;
 pub enum ClassInputStreamError {
     InvalidMagic(u32),
     InvalidConstantTag(u8),
+    MissingConstantPool,
+    UnrecognisedAttribute,
+    InvalidAttribute,
     PrematureEnd,
     NotImplemented
 }
@@ -17,6 +20,7 @@ impl ClassInputStreamError {
         match *self {
             ClassInputStreamError::InvalidMagic(bad_magic) => format!("Invalid magic bytes: {:x}", bad_magic),
             ClassInputStreamError::InvalidConstantTag(bad_tag) => format!("Invalid constant tag: {}", bad_tag),
+            ClassInputStreamError::MissingConstantPool => format!("Could not find a constant pool for reference"),
             ClassInputStreamError::PrematureEnd => format!("Premature end of stream"),
             _ => format!("Unimplemented stream error")
         }
@@ -102,15 +106,67 @@ impl<'a> ClassInputStream<'a> {
     }
 
     pub fn read_fields(&self) -> Result<Vec<Field>, ClassInputStreamError> {
-        Err(ClassInputStreamError::NotImplemented)
+        match self.read_u16() {
+            Some(count) => (0..count).fold(Ok(vec![]), |acc, x| {
+                match acc {
+                    Ok(mut vec) => {
+                        match Field::read_element(self) {
+                            Ok(field) => {
+                                vec.push(field);
+                                Ok(vec)
+                            },
+                            Err(err) => Err(err)
+                        }
+                    },
+                    err@_ => err
+                }
+            }),
+            None => Err(ClassInputStreamError::PrematureEnd)
+        }
     }
 
     pub fn read_methods(&self) -> Result<Vec<Method>, ClassInputStreamError> {
-        Err(ClassInputStreamError::NotImplemented)
+        match self.read_u16() {
+            Some(count) => (0..count).fold(Ok(vec![]), |acc, x| {
+                match acc {
+                    Ok(mut vec) => {
+                        match Method::read_element(self) {
+                            Ok(method) => {
+                                vec.push(method);
+                                Ok(vec)
+                            },
+                            Err(err) => Err(err)
+                        }
+                    },
+                    err@_ => err
+                }
+            }),
+            None => Err(ClassInputStreamError::PrematureEnd)
+        }
     }
 
-    pub fn read_attributes(&self, constant_pool: &ConstantPool) -> Result<Vec<Attribute>, ClassInputStreamError> {
-        Err(ClassInputStreamError::NotImplemented)
+    pub fn read_attributes(&self) -> Result<Vec<Attribute>, ClassInputStreamError> {
+        match self.read_u16() {
+            Some(count) => (0..count).fold(Ok(vec![]), |acc, _| {
+                match acc {
+                    Ok(mut vec) => {
+                        match self.read_attribute() {
+                            Ok(attribute) => {
+                                vec.push(attribute);
+                                Ok(vec)
+                            },
+                            Err(err) => Err(err)
+                        }
+                    },
+                    err@_ => err
+                }
+            }),
+            None => Err(ClassInputStreamError::PrematureEnd)
+        }
+    }
+
+    pub fn read_attribute(&self) -> Result<Attribute, ClassInputStreamError> {
+        Attribute::resolve_element(self)
     }
 
     ///

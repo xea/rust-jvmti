@@ -160,3 +160,49 @@ pub struct Method {
     pub descriptor_index: ConstantPoolIndex,
     pub attributes: Vec<Attribute>
 }
+
+impl ClassStreamEntry for Field {
+
+    fn read_element(stream: &ClassInputStream) -> Result<Self, ClassInputStreamError> {
+        match (stream.read_u16(), stream.read_u16(), stream.read_u16()) {
+            (Some(access_flags), Some(name_index), Some(descriptor_index)) => {
+                match stream.read_attributes() {
+                    Ok(attributes) => Ok(Field {
+                        access_flags: AccessFlags::of(access_flags),
+                        name_index: ConstantPoolIndex::of(name_index),
+                        descriptor_index: ConstantPoolIndex::of(descriptor_index),
+                        attributes: attributes
+                    }),
+                    Err(err) => Err(err)
+                }
+            },
+            _ => Err(ClassInputStreamError::PrematureEnd)
+        }
+    }
+
+    fn write_element(&self, stream: &mut ClassOutputStream) {
+    }
+}
+
+impl ClassStreamEntry for Method {
+
+    fn read_element(stream: &ClassInputStream) -> Result<Self, ClassInputStreamError> {
+        match (stream.read_u16(), stream.read_u16(), stream.read_u16()) {
+            (Some(access_flags), Some(name_index), Some(descriptor_index)) => {
+                match stream.read_attributes() {
+                    Ok(attributes) => Ok(Method {
+                        access_flags: AccessFlags::of(access_flags),
+                        name_index: ConstantPoolIndex::of(name_index),
+                        descriptor_index: ConstantPoolIndex::of(descriptor_index),
+                        attributes: attributes
+                    }),
+                    Err(err) => Err(err)
+                }
+            },
+            _ => Err(ClassInputStreamError::PrematureEnd)
+        }
+    }
+
+    fn write_element(&self, stream: &mut ClassOutputStream) {
+    }
+}

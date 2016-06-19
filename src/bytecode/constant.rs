@@ -52,6 +52,13 @@ impl ConstantPool {
             _ => self.constants.get(idx as usize - 1)
         }
     }
+
+    pub fn get_utf8(&self, idx: u16) -> Option<String> {
+        match self.get_idx(idx) {
+            Some(utf_ref@&Constant::Utf8(_)) => utf_ref.to_string(),
+            _ => None
+        }
+    }
 }
 
 impl ClassStreamEntry for ConstantPool {
@@ -94,6 +101,14 @@ impl Constant {
             Constant::Long(_) => true,
             Constant::Double(_) => true,
             _ => false
+        }
+    }
+
+    pub fn to_string(&self) -> Option<String> {
+        match self.clone() {
+            // TODO extend to other types and implement error handling
+            Constant::Utf8(bytes) => Some(String::from_utf8(bytes).ok().unwrap()),
+            _ => None
         }
     }
 }

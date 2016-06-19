@@ -1,6 +1,6 @@
 use self::classfile::*;
 use self::constant::*;
-use self::stream::{ ClassInputStream };
+use self::stream::{ ClassInputStream, ClassInputStreamError };
 use self::attribute::*;
 
 pub mod attribute;
@@ -49,12 +49,7 @@ impl ClassReader {
         // meaningful message describing the error
         let result: Result<ClassFragment, String> = extractors.iter().fold(Ok(ClassFragment::new()), |acc, x| {
             match acc {
-                Ok(class_fragment) => match x(&mut stream, class_fragment) {
-                    // only if both the accumulator and the current element are valid values do we
-                    // continue processing, otherwise we fall back to Err
-                    Ok(current_fragment) => Ok(current_fragment.merge(class_fragment)),
-                    err@Err(_) => err
-                },
+                Ok(class_fragment) => x(&mut stream, class_fragment),
                 err@Err(_) => err
             }
         });
@@ -72,114 +67,108 @@ impl ClassReader {
 
 
     /// Return the class file version number or return a readable error message
-    fn read_version_number(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+    fn read_version_number(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_version_number() {
-            Ok(version) => Ok(ClassFragment {
+            Ok(version) => Ok(fragment.merge(ClassFragment {
                 version: Some(version),
                 ..Default::default()
-            }),
+            })),
             Err(err) => Err(err.to_string())
         }
     }
 
     /// Return the constant pool or return a readable error message
-    fn read_constant_pool(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+    fn read_constant_pool(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_constant_pool() {
-            Ok(constant_pool) => {
-                Ok(ClassFragment {
+            Ok(constant_pool) => Ok(fragment.merge(ClassFragment {
                     constant_pool: Some(constant_pool),
                     ..Default::default()
-                })
-            },
+            })),
             Err(err) => Err(err.to_string())
         }
     }
 
     /// Return access flags or return a readable error message
-    fn read_access_flags(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+    fn read_access_flags(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_class_access_flags() {
-            Ok(access_flags) => Ok(ClassFragment {
+            Ok(access_flags) => Ok(fragment.merge(ClassFragment {
                 access_flags: Some(access_flags),
                 ..Default::default()
-            }),
+            })),
             Err(err) => Err(err.to_string())
         }
 
     }
 
     /// Return this class or return a readable error message
-    fn read_this_class(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+    fn read_this_class(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_constant_pool_index() {
-            Ok(this_class) => Ok(ClassFragment {
+            Ok(this_class) => Ok(fragment.merge(ClassFragment {
                 this_class: Some(this_class),
                 ..Default::default()
-            }),
+            })),
             Err(err) => Err(err.to_string())
         }
     }
 
     /// Return super class or return a readable error message
-    fn read_super_class(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+    fn read_super_class(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_constant_pool_index() {
-            Ok(super_class) => Ok(ClassFragment {
+            Ok(super_class) => Ok(fragment.merge(ClassFragment {
                 super_class: Some(super_class),
                 ..Default::default()
-            }),
+            })),
             Err(err) => Err(err.to_string())
         }
     }
 
     /// Return interface list or return a readable error message
-    fn read_interfaces(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+    fn read_interfaces(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_interfaces() {
-            Ok(interfaces) => Ok(ClassFragment {
+            Ok(interfaces) => Ok(fragment.merge(ClassFragment {
                 interfaces: Some(interfaces),
                 ..Default::default()
-            }),
+            })),
             Err(err) => Err(err.to_string())
         }
     }
 
     /// Return field list or return a readable error message
-    fn read_fields(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+    fn read_fields(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_fields() {
-            Ok(fields) => Ok(ClassFragment {
+            Ok(fields) => Ok(fragment.merge(ClassFragment {
                 fields: Some(fields),
                 ..Default::default()
-            }),
+            })),
             Err(err) => Err(err.to_string())
         }
     }
 
     /// Return method list or return a readable error message
-    fn read_methods(stream: &ClassInputStream, _: ClassFragment) -> Result<ClassFragment, String> {
+    fn read_methods(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
         match stream.read_methods() {
-            Ok(methods) => Ok(ClassFragment {
+            Ok(methods) => Ok(fragment.merge(ClassFragment {
                 methods: Some(methods),
                 ..Default::default()
-            }),
+            })),
             Err(err) => Err(err.to_string())
         }
     }
 
     /// Return class attributes or return a readable error message
     fn read_attributes(stream: &ClassInputStream, fragment: ClassFragment) -> Result<ClassFragment, String> {
-        match &fragment.constant_pool {
-            &Some(_) => (),
-            _ => ()
+        let attributes = match fragment.constant_pool.as_ref() {
+            Some(cp_ref) => stream.read_attributes(),
+            None => Err(ClassInputStreamError::MissingConstantPool)
+        };
+
+        match attributes {
+            Ok(attributes) => Ok(fragment.merge(ClassFragment {
+                attributes: Some(attributes),
+                ..Default::default()
+            })),
+            Err(err) => Err(err.to_string())
         }
-        /*
-        match fragment.constant_pool {
-            Some(cp) => match stream.read_attributes(&cp) {
-                Ok(attributes) => Ok(ClassFragment {
-                    attributes: Some(attributes),
-                    ..Default::default()
-                }),
-                Err(err) => Err(err.to_string())
-            },
-            None => Err("Missing constant pool".to_string())
-        }*/
-        Err("lofasz".to_string())
     }
 }
 
