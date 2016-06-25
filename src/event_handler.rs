@@ -8,8 +8,12 @@ use super::native::*;
 use super::native::jvmti_native::*;
 use super::runtime::*;
 use libc::{c_char, c_uchar, c_void};
+use std::mem;
 use std::mem::size_of;
+use std::ptr;
 use super::util::stringify;
+use super::bytecode::*;
+use std::io::{ Cursor, Read, Write, Error };
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
@@ -412,14 +416,33 @@ unsafe extern "C" fn local_cb_breakpoint(jvmti_env: *mut jvmtiEnv, jni_env: *mut
 unsafe extern "C" fn local_cb_class_file_load_hook(jvmti_env: JVMTIEnvPtr, jni_env: JNIEnvPtr, class_being_redefined: JavaClass, loader: JavaObject,
                                                    name: *const c_char, protection_domain: JavaObject, class_data_len: jint, class_data: *const c_uchar,
                                                    new_class_data_len: *mut jint, new_class_data: *mut *mut c_uchar) -> () {
-
     match CALLBACK_TABLE.class_file_load_hook {
         Some(function) => {
             let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
 
-            println!("Loading class {}", stringify(name));
-//            let bc = RawBytecode::from_raw_bytes(class_data, class_data_len);
+            let mut raw_data: Vec<u8> = Vec::with_capacity(class_data_len as usize);
+            let data_ptr = raw_data.as_mut_ptr();
 
+            ptr::copy_nonoverlapping(class_data, data_ptr, class_data_len as usize);
+            raw_data.set_len(class_data_len as usize);
+
+            let mut cursor = Cursor::new(raw_data);
+            let mut class_result = ClassReader::read_class(&mut cursor);
+
+            match class_result {
+                Ok(classfile) => {
+                    let output_class: Vec<u8> = vec![];
+                    let mut write_cursor = Cursor::new(output_class);
+                    let mut writer = ClassWriter::new(&mut write_cursor);
+                    match writer.write_class(&classfile) {
+                        Ok(len) => (),
+                        Err(error) => ()
+                    }
+                },
+                Err(error) => ()
+            }
+
+            println!("Loading class {} with length {}", stringify(name), class_data_len);
         },
         None => println!("No dynamic callback method was found for class file load events")
     }

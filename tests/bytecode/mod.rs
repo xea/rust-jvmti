@@ -1,86 +1,49 @@
 extern crate jvmti;
 
-mod collections;
-mod constant;
-mod stream;
-
 #[cfg(test)]
 mod tests {
 
-    mod class_reader {
+    use jvmti::bytecode::*;
+    use std::io::{ Cursor, Read, Write };
 
-        use jvmti::bytecode::classfile::*;
-        use jvmti::bytecode::constant::*;
-        use jvmti::bytecode::ClassReader;
+    #[test]
+    fn test_cursor_read_usage() {
+        let mut cursor = Cursor::new(vec![ 1, 2, 3, 4 as u8 ]);
 
-        fn simple_class() -> &'static [u8] {
-            include_bytes!("../../Simple.class")
+        let mut input = [ 0, 0 ];
+
+        match cursor.read(&mut input) {
+            Ok(_) => {
+                assert_eq!([ 1, 2 ], input)
+            },
+            _ => assert!(false)
         }
 
-        fn test_class() -> &'static [u8] {
-            include_bytes!("../../Test.class")
+        match cursor.read(&mut input) {
+            Ok(_) => {
+                assert_eq!([ 3, 4 ], input)
+            },
+            _ => assert!(false)
         }
-
-        #[test]
-        fn read_bytes_reads_simple_class_version_number_correctly() {
-            let result = ClassReader::read_array(simple_class());
-
-            assert!(result.is_ok(), format!("Error: {}", result.err().unwrap()));
-            let class = result.ok().unwrap();
-
-            assert_eq!(52, class.version.major_version);
-            assert_eq!(0, class.version.minor_version);
-        }
-
-        #[test]
-        fn read_bytes_reads_simple_constant_pool_correctly() {
-            let result = ClassReader::read_array(simple_class());
-
-            assert!(result.is_ok(), format!("Error: {}", result.err().unwrap()));
-            let class = result.ok().unwrap();
-
-            assert!(class.constant_pool.get(&class.this_class).is_some());
-
-            let this_class: &Constant = class.constant_pool.get(&class.this_class).unwrap();
-
-            match this_class {
-                &Constant::Class(idx) => {
-                    assert!(class.constant_pool.get(&ConstantPoolIndex::of(idx)).is_some(), format!("Referenced constant missing: {}", idx));
-                },
-                _ => assert!(false, format!("{:?}", this_class))
-            }
-
-        }
-
-        #[test]
-        fn read_bytes_reads_simple_access_flags_correctly() {
-            let result = ClassReader::read_array(simple_class());
-
-            assert!(result.is_ok(), format!("Error: {}", result.err().unwrap()));
-            let class = result.ok().unwrap();
-
-            assert!(class.access_flags.has_flag(ClassAccessFlags::PUBLIC as u16));
-            assert!(class.access_flags.has_flag(ClassAccessFlags::SUPER as u16));
-            assert!(!class.access_flags.has_flag(ClassAccessFlags::INTERFACE as u16));
-            assert!(!class.access_flags.has_flag(ClassAccessFlags::ENUM as u16));
-        }
-
-        #[test]
-        fn read_bytes_reads_interfaces_correctly() {
-            let result = ClassReader::read_array(simple_class());
-
-            assert!(result.is_ok(), format!("Error: {}", result.err().unwrap()));
-            let class = result.ok().unwrap();
-
-            assert_eq!(0, class.interfaces.len());
-        }
-
-        #[test]
-        fn read_bytes_reads_test_class_correctly() {
-            let reader = ClassReader::read_array(test_class());
-
-            assert!(reader.is_ok());
-        }
-
     }
+
+    #[test]
+    fn test_cursor_write_usage() {
+        let mut cursor: Cursor<Vec<u8>> = Cursor::new(vec![]);
+
+        match cursor.write(&[ 1, 2 ]) {
+            Ok(_) => assert!(true),
+            _ => assert!(false)
+        }
+
+        match cursor.write(&[ 3, 4 ]) {
+            Ok(_) => assert!(true),
+            _ => assert!(false)
+        }
+
+        let output = cursor.into_inner();
+
+        assert_eq!(vec![ 1, 2, 3, 4 ], output);
+    }
+
 }
