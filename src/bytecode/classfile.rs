@@ -273,5 +273,6 @@ pub struct Method {
 }
 
 pub enum Attribute {
-    ConstantValue(ConstantPoolIndex)
+    ConstantValue(ConstantPoolIndex),
+    RawAttribute { name_index: ConstantPoolIndex, info: Vec<u8> }
 }

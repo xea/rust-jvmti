@@ -16,6 +16,10 @@ impl ClassReader {
             ClassReader::read_access_flags,
             ClassReader::read_this_class,
             ClassReader::read_super_class,
+            ClassReader::read_interfaces,
+            ClassReader::read_fields,
+            ClassReader::read_methods,
+            ClassReader::read_class_attributes
         ];
 
         let result = fns.iter().fold(Ok(ClassFragment::default()), |acc, x| {
@@ -163,6 +167,149 @@ impl ClassReader {
         }
     }
 
+    fn read_interfaces(reader: &mut BlockReader, _: &ClassFragment) -> Result<ClassFragment, Error> {
+        match reader.read_u16() {
+            Ok(ifs_len) => {
+                (0..ifs_len).fold(Ok(vec![]), |acc, _| {
+                    match acc {
+                        Ok(mut ifs) => match ClassReader::read_constant_pool_index(reader) {
+                            Ok(interface) => {
+                                ifs.push(interface);
+                                Ok(ifs)
+                            },
+                            Err(err) => Err(err)
+                        },
+                        err@_ => err
+                    }
+                })
+            },
+            Err(err) => Err(err)
+        }.map(|ifs| ClassFragment {
+            interfaces: Some(ifs),
+            ..Default::default()
+        })
+    }
+
+    fn read_fields(reader: &mut BlockReader, cf: &ClassFragment) -> Result<ClassFragment, Error> {
+        match reader.read_u16() {
+            Ok(fields_len) => {
+                (0..fields_len).fold(Ok(vec![]), |acc, _| {
+                    match acc {
+                        Ok(mut fields) => match ClassReader::read_field(reader, cf) {
+                            Ok(field) => {
+                                fields.push(field);
+                                Ok(fields)
+                            },
+                            Err(err) => Err(err)
+                        },
+                        err@_ => err
+                    }
+                })
+            },
+            Err(err) => Err(err)
+        }.map(|fields| ClassFragment {
+            fields: Some(fields),
+            ..Default::default()
+        })
+    }
+
+    fn read_field(reader: &mut BlockReader, cf: &ClassFragment) -> Result<Field, Error> {
+        match ClassReader::require_n(reader, 6, |mut r| { (r.get_u16(), r.get_u16(), r.get_u16()) }) {
+            Ok((flags, n_idx, d_idx)) => match ClassReader::read_attributes(reader, cf) {
+                Ok(attributes) => Ok(Field {
+                    access_flags: AccessFlags::of(flags),
+                    name_index: ConstantPoolIndex::new(n_idx as usize),
+                    descriptor_index: ConstantPoolIndex::new(d_idx as usize),
+                    attributes: attributes
+                }),
+                Err(err) => Err(err)
+            },
+            Err(err) => Err(err)
+        }
+    }
+
+    fn read_methods(reader: &mut BlockReader, cf: &ClassFragment) -> Result<ClassFragment, Error> {
+        match reader.read_u16() {
+            Ok(methods_len) => {
+                (0..methods_len).fold(Ok(vec![]), |acc, _| {
+                    match acc {
+                        Ok(mut methods) => match ClassReader::read_method(reader, cf) {
+                            Ok(method) => {
+                                methods.push(method);
+                                Ok(methods)
+                            },
+                            Err(err) => Err(err)
+                        },
+                        err@_ => err
+                    }
+                })
+            },
+            Err(err) => Err(err)
+        }.map(|methods| ClassFragment {
+            methods: Some(methods),
+            ..Default::default()
+        })
+    }
+
+    fn read_method(reader: &mut BlockReader, cf: &ClassFragment) -> Result<Method, Error> {
+        match ClassReader::require_n(reader, 6, |mut r| { (r.get_u16(), r.get_u16(), r.get_u16()) }) {
+            Ok((flags, n_idx, d_idx)) => match ClassReader::read_attributes(reader, cf) {
+                Ok(attributes) => Ok(Method {
+                    access_flags: AccessFlags::of(flags),
+                    name_index: ConstantPoolIndex::new(n_idx as usize),
+                    descriptor_index: ConstantPoolIndex::new(d_idx as usize),
+                    attributes: attributes
+                }),
+                Err(err) => Err(err)
+            },
+            Err(err) => Err(err)
+        }
+    }
+
+    fn read_class_attributes(reader: &mut BlockReader, cf: &ClassFragment) -> Result<ClassFragment, Error> {
+        match ClassReader::read_attributes(reader, cf) {
+            Ok(attributes) => Ok(ClassFragment {
+                attributes: Some(attributes),
+                ..Default::default()
+            }),
+            Err(err) => Err(err)
+        }
+    }
+
+    fn read_attributes(reader: &mut BlockReader, cf: &ClassFragment) -> Result<Vec<Attribute>, Error> {
+        match reader.read_u16() {
+            Ok(attr_len) => (0..attr_len).fold(Ok(vec![]), |acc, _| {
+                match acc {
+                    Ok(mut attributes) => match ClassReader::read_attribute(reader, cf) {
+                        Ok(attribute) => {
+                            attributes.push(attribute);
+                            Ok(attributes)
+                        },
+                        Err(err) => Err(err)
+                    },
+                    err@_ => err
+                }
+            }),
+            Err(err) => Err(err)
+        }
+    }
+
+    fn read_attribute(reader: &mut BlockReader, _: &ClassFragment) -> Result<Attribute, Error> {
+        match reader.read_u16() {
+            Ok(n_idx) => match reader.read_u32() {
+                Ok(a_len) => match reader.read_n(a_len as usize) {
+                    Ok(bytes) => Ok(Attribute::RawAttribute {
+                        name_index: ConstantPoolIndex::new(n_idx as usize),
+                        info: bytes
+                    }),
+                    Err(err) => Err(err)
+                },
+                Err(err) => Err(err)
+            },
+            Err(err) => Err(err)
+        }
+    }
+
     fn read_constant_pool_index(reader: &mut BlockReader) -> Result<ConstantPoolIndex, Error> {
         match reader.read_u16() {
             Ok(idx) => Ok(ConstantPoolIndex::new(idx as usize)),
@@ -293,6 +440,10 @@ impl<'a> ClassWriter<'a> {
         .and(self.write_access_flags(&classfile.access_flags))
         .and(self.write_constant_pool_index(&classfile.this_class))
         .and(self.write_constant_pool_index(&classfile.super_class))
+        .and(self.write_interfaces(&classfile.interfaces))
+        .and(self.write_fields(&classfile.fields))
+        .and(self.write_methods(&classfile.methods))
+        .and(self.write_attributes(&classfile.attributes))
     }
 
     pub fn write_magic_bytes(&mut self) -> Result<usize, Error> {
@@ -339,6 +490,63 @@ impl<'a> ClassWriter<'a> {
 
     fn write_constant_pool_index(&mut self, class_index: &ConstantPoolIndex) -> Result<usize, Error> {
         self.write_u16(class_index.idx as u16)
+    }
+
+    fn write_interfaces(&mut self, ifs: &Vec<ConstantPoolIndex>) -> Result<usize, Error> {
+        ifs.iter().fold(self.write_u16(ifs.len() as u16), |acc, x| {
+            match acc {
+                Ok(ctr) => self.write_u16(x.idx as u16).map(|c| c + ctr),
+                err@_ => err
+            }
+        })
+    }
+
+    fn write_fields(&mut self, fields: &Vec<Field>) -> Result<usize, Error> {
+        fields.iter().fold(self.write_u16(fields.len() as u16), |acc, x| {
+            match acc {
+                Ok(ctr) => self.write_field(x).map(|c| c + ctr),
+                err@_ => err
+            }
+        })
+    }
+
+    fn write_field(&mut self, field: &Field) -> Result<usize, Error> {
+        self.write_access_flags(&field.access_flags)
+            .and(self.write_constant_pool_index(&field.name_index))
+            .and(self.write_constant_pool_index(&field.descriptor_index))
+            .and(self.write_attributes(&field.attributes))
+    }
+
+    fn write_methods(&mut self, methods: &Vec<Method>) -> Result<usize, Error> {
+        methods.iter().fold(self.write_u16(methods.len() as u16), |acc, x| {
+            match acc {
+                Ok(ctr) => self.write_method(x).map(|c| c + ctr),
+                err@_ => err
+            }
+        })
+    }
+
+    fn write_method(&mut self, method: &Method) -> Result<usize, Error> {
+        self.write_access_flags(&method.access_flags)
+            .and(self.write_constant_pool_index(&method.name_index))
+            .and(self.write_constant_pool_index(&method.descriptor_index))
+            .and(self.write_attributes(&method.attributes))
+    }
+
+    fn write_attributes(&mut self, attributes: &Vec<Attribute>) -> Result<usize, Error> {
+        attributes.iter().fold(self.write_u16(attributes.len() as u16), |acc, x| {
+            match acc {
+                Ok(ctr) => self.write_attribute(x).map(|c| c + ctr),
+                err@_ => err
+            }
+        })
+    }
+
+    fn write_attribute(&mut self, attribute: &Attribute) -> Result<usize, Error> {
+        match attribute {
+            &Attribute::RawAttribute { name_index: ref n_idx, info: ref bytes } => self.write_u16(n_idx.idx as u16).and(self.write_u32(bytes.len() as u32)).and(self.write_n(bytes)),
+            _ => Ok(0)
+        }
     }
 
     pub fn write_n(&mut self, bytes: &Vec<u8>) -> Result<usize, Error> {

@@ -39,10 +39,18 @@ mod tests {
             access_flags: AccessFlags::of(0x000F),
             this_class: ConstantPoolIndex::new(1),
             super_class: ConstantPoolIndex::new(2),
-            interfaces: vec![],
-            fields: vec![],
+            interfaces: vec![
+                ConstantPoolIndex::new(7),
+                ConstantPoolIndex::new(8)
+            ],
+            fields: vec![
+                Field { access_flags: AccessFlags::of(0x0011), name_index: ConstantPoolIndex::new(70), descriptor_index: ConstantPoolIndex::new(71), attributes: vec![] }
+            ],
             methods: vec![],
-            attributes: vec![]
+            attributes: vec![
+                Attribute::RawAttribute { name_index: ConstantPoolIndex::new(13), info: vec![ 1, 2, 3, 4 ] },
+                Attribute::RawAttribute { name_index: ConstantPoolIndex::new(15), info: vec![ 11, 12, 13, 14, 15 ] }
+            ]
         };
 
         let r1_version = (class.version.major_version, class.version.minor_version);
@@ -50,6 +58,10 @@ mod tests {
         let r1_aflag = class.access_flags.flags;
         let r1_this_idx = class.this_class.idx;
         let r1_super_idx = class.super_class.idx;
+        let r1_ifs_len = class.interfaces.len();
+        let r1_fields_len = class.fields.len();
+        let r1_methods_len = class.methods.len();
+        let r1_attributes_len = class.attributes.len();
 
         let mut target: Vec<u8> = vec![];
         {
@@ -69,7 +81,7 @@ mod tests {
 
             let read_class = read_result.ok().unwrap();
             {
-                //assert!(false, format!("{:?}  {:?}", target, read_class.constant_pool.constants));
+//                assert!(false, format!("{:?}  {:?}", target, read_class.constant_pool.constants));
             }
             assert_eq!(r1_version.0, read_class.version.major_version);
             assert_eq!(r1_version.1, read_class.version.minor_version);
@@ -77,6 +89,10 @@ mod tests {
             assert_eq!(r1_aflag, read_class.access_flags.flags);
             assert_eq!(r1_this_idx, read_class.this_class.idx);
             assert_eq!(r1_super_idx, read_class.super_class.idx);
+            assert_eq!(r1_ifs_len, read_class.interfaces.len());
+            assert_eq!(r1_fields_len, read_class.fields.len());
+            assert_eq!(r1_methods_len, read_class.methods.len());
+            assert_eq!(r1_attributes_len, read_class.attributes.len());
         }
         assert!(true, format!("{:?}", target));
     }
