@@ -69,7 +69,7 @@ mod tests {
 
             let read_class = read_result.ok().unwrap();
             {
-                assert!(false, format!("{:?}", read_class.constant_pool.constants));
+                //assert!(false, format!("{:?}  {:?}", target, read_class.constant_pool.constants));
             }
             assert_eq!(r1_version.0, read_class.version.major_version);
             assert_eq!(r1_version.1, read_class.version.minor_version);

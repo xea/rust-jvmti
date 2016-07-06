@@ -15,7 +15,7 @@ impl ClassReader {
             ClassReader::read_constant_pool,
             ClassReader::read_access_flags,
             ClassReader::read_this_class,
-            //ClassReader::read_super_class,
+            ClassReader::read_super_class,
         ];
 
         let result = fns.iter().fold(Ok(ClassFragment::default()), |acc, x| {
@@ -56,57 +56,29 @@ impl ClassReader {
     fn read_constant_pool(reader: &mut BlockReader, _: &ClassFragment) -> Result<ClassFragment, Error> {
         match reader.read_u16() {
             Ok(cp_len) => {
-                (1..cp_len).fold(Ok(vec![ Constant::Placeholder ]), |acc, _| {
-                    match (acc, acc.map(|v| v.len() < cp_len as usize - 1).unwrap_or(false)) {
-                        (Ok(mut constants), true) => match ClassReader::read_constant(reader) {
-                            Ok(constant) => Err(Error::new(ErrorKind::AddrInUse, "blablba")),
-                            Err(err) => Err(err)
-                            /*
+                let mut constants: Vec<Constant> = vec![ Constant::Placeholder ];
+
+                for _ in 1..cp_len {
+                    if constants.len() < cp_len as usize {
+                        match ClassReader::read_constant(reader) {
                             Ok(constant) => {
-                                let constant_oversize = constant.cp_size();
+                                let constant_size = constant.cp_size();
 
                                 constants.push(constant);
 
-                                for _ in 1..constant_oversize {
-                                    constants.push(Constant::Placeholder)
+                                for _ in 1..constant_size {
+                                    constants.push(Constant::Placeholder);
                                 }
-
-                                Ok(constants)
                             },
-                            Err(err) => Err(err)
-                            */
-                        },
-                        (_, false) => acc,
-                        (Err(err), _) => Err(err)
+                            Err(err) => return Err(err)
+                        }
                     }
-                }).map(|constants| ClassFragment {
+                }
+
+                Ok(ClassFragment {
                     constant_pool: Some(ConstantPool::new(constants)),
                     ..Default::default()
                 })
-                /*
-                (1..cp_len).fold(Ok(vec![ Constant::Placeholder ]), |acc, _| {
-                    match acc {
-                        Ok(mut constants) => match ClassReader::read_constant(reader) {
-                            Ok(constant) => {
-                                let constant_oversize = constant.cp_size();
-
-                                constants.push(constant);
-
-                                for _ in 1..constant_oversize {
-                                    constants.push(Constant::Placeholder)
-                                }
-
-                                Ok(constants)
-                            },
-                            Err(err) => Err(err)
-                        },
-                        err@_ => err
-                    }
-                }).map(|constants| ClassFragment {
-                    constant_pool: Some(ConstantPool::new(constants)),
-                    ..Default::default()
-                })
-                */
             },
             Err(err) => Err(err)
         }
