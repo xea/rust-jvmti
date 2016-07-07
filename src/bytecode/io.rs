@@ -294,20 +294,21 @@ impl ClassReader {
         }
     }
 
-    fn read_attribute(reader: &mut BlockReader, _: &ClassFragment) -> Result<Attribute, Error> {
+    fn read_attribute(reader: &mut BlockReader, cf: &ClassFragment) -> Result<Attribute, Error> {
         match reader.read_u16() {
             Ok(n_idx) => match reader.read_u32() {
                 Ok(a_len) => match reader.read_n(a_len as usize) {
-                    Ok(bytes) => Ok(Attribute::RawAttribute {
-                        name_index: ConstantPoolIndex::new(n_idx as usize),
-                        info: bytes
-                    }),
+                    Ok(bytes) => Ok(ClassReader::parse_attribute(n_idx, &bytes, cf)),
                     Err(err) => Err(err)
                 },
                 Err(err) => Err(err)
             },
             Err(err) => Err(err)
         }
+    }
+
+    fn parse_attribute(idx: u16, bytes: &Vec<u8>, cf: &ClassFragment) -> Attribute {
+        Attribute::ConstantValue(ConstantPoolIndex::new(13))
     }
 
     fn read_constant_pool_index(reader: &mut BlockReader) -> Result<ConstantPoolIndex, Error> {
