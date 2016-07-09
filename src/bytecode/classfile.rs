@@ -270,6 +270,25 @@ pub enum MethodAccessFlags {
     Synthetic = 0x1000 //	Declared synthetic; not present in the source code.
 }
 
+pub enum InnerClassAccessFlags {
+    Public = 0x0001, //	Marked or implicitly public in source.
+    Private = 0x0002, //	Marked private in source.
+    Protected = 0x0004, //	Marked protected in source.
+    Static = 0x0008, //	Marked or implicitly static in source.
+    Final = 0x0010, //	Marked final in source.
+    Interface = 0x0200, //	Was an interface in source.
+    Abstract = 0x0400, //	Marked or implicitly abstract in source.
+    Synthetic = 0x1000, //	Declared synthetic; not present in the source code.
+    Annotation = 0x2000, //	Declared as an annotation type.
+    Enum = 0x4000, //	Declared as an enum type.
+}
+
+pub enum ParameterAccessFlags {
+    Final = 0x0010,
+    Synthetic = 0x1000,
+    Mandated = 0x8000
+}
+
 #[derive(Default)]
 pub struct Field {
     pub access_flags: AccessFlags,
@@ -292,6 +311,24 @@ pub enum Attribute {
     Code { max_stack: u16, max_locals: u16, code: Vec<u8>, exception_table: Vec<ExceptionHandler>, attributes: Vec<Attribute> },
     Exceptions(Vec<ConstantPoolIndex>),
     InnerClass(Vec<InnerClass>),
+    EnclosingMethod { class_index: ConstantPoolIndex, method_index: ConstantPoolIndex },
+    Synthetic,
+    Signature(ConstantPoolIndex),
+    SourceFile(ConstantPoolIndex),
+    SourceDebugExtension(Vec<u8>),
+    LineNumbeTable(Vec<LineNumberTable>),
+    LocalVariableTable(Vec<LocalVariableTable>),
+    LocalVariableTableType(Vec<LocalVariableTableType>),
+    Deprecated,
+    RuntimeVisibleAnnotations(Vec<Annotation>),
+    RuntimeInvisibleAnnotations(Vec<Annotation>),
+    RuntimeVisibleParameterAnnotations(Vec<Vec<Annotation>>),
+    RuntimeInvisibleParameterAnnotations(Vec<Vec<Annotation>>),
+    RuntimeVisibleTypeAnnotations(Vec<TypeAnnotation>),
+    RuntimeInvisibleTypeAnnotations(Vec<TypeAnnotation>),
+    AnnotationDefault(ElementValue),
+    BootstrapMethods(Vec<BootstrapMethod>),
+    MethodParameters(Vec<MethodParameter>),
     RawAttribute { name_index: ConstantPoolIndex, info: Vec<u8> }
 }
 
@@ -308,5 +345,66 @@ pub struct InnerClass {
     pub inner_class_info_index: ConstantPoolIndex,
     pub outer_class_info_index: ConstantPoolIndex,
     pub inner_name_index: ConstantPoolIndex,
+    pub access_flags: AccessFlags
+}
+
+#[derive(Debug)]
+pub struct LineNumberTable {
+    pub start_pc: u16,
+    pub line_number: u16
+}
+
+#[derive(Debug)]
+pub struct LocalVariableTable {
+    pub start_pc: u16,
+    pub length: u16,
+    pub name_index: ConstantPoolIndex,
+    pub descriptor_index: ConstantPoolIndex,
+    pub index: u16
+}
+
+#[derive(Debug)]
+pub struct LocalVariableTableType {
+    pub start_pc: u16,
+    pub length: u16,
+    pub name_index: ConstantPoolIndex,
+    pub signature_index: ConstantPoolIndex,
+    pub index: u16
+}
+
+#[derive(Debug)]
+pub struct Annotation {
+    pub type_index: ConstantPoolIndex,
+    pub element_value_pairs: Vec<ElementValuePair>
+}
+
+#[derive(Debug)]
+pub struct ElementValuePair {
+    pub element_name_index: ConstantPoolIndex,
+    pub value: ElementValue
+}
+
+
+#[derive(Debug)]
+pub struct ElementValue {
+    pub tag: u8,
+
+    // TODO finish
+}
+
+#[derive(Debug)]
+pub struct TypeAnnotation {
+    // TODO
+}
+
+#[derive(Debug)]
+pub struct BootstrapMethod {
+    pub bootstrap_method_ref: ConstantPoolIndex,
+    pub bootstrap_arguments: Vec<ConstantPoolIndex>
+}
+
+#[derive(Debug)]
+pub struct MethodParameter {
+    pub name_index: ConstantPoolIndex,
     pub access_flags: AccessFlags
 }

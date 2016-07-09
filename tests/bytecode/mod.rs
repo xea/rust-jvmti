@@ -7,6 +7,12 @@ mod tests {
     use std::io::{ Cursor, Read, Write, Error };
 
     #[test]
+    fn test_read_simple() {
+        let mut bytes = include_bytes!("../../Simple.class");
+        let mut reader = BlockReader::new(&mut Cursor::new(&mut bytes));
+    }
+
+    #[test]
     fn test_read_n() {
         let mut target: Vec<u8> = vec![ 1, 2, 3, 4, 5, 6, 7, 8, 9 ];
         let mut cursor = Cursor::new(&mut target);

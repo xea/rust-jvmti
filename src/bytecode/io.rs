@@ -339,6 +339,9 @@ impl ClassReader {
                             access_flags: AccessFlags::of(reader.get_u16())
                             }).collect()
                         })),
+                    "EnclosingMethod" => Some(Attribute::EnclosingMethod { class_index: ConstantPoolIndex::new(reader.get_u16() as usize), method_index: ConstantPoolIndex::new(reader.get_u16() as usize)}),
+                    "Synthetic" => Some(Attribute::Synthetic),
+                    "Signature" => Some(Attribute::Signature(ConstantPoolIndex::new(reader.get_u16() as usize))),
                     _ => None
                 },
                 _ => None
