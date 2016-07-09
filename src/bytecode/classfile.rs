@@ -85,6 +85,20 @@ impl ConstantPool {
         }
     }
 
+    pub fn get_utf8_string(&self, idx: u16) -> Option<String> {
+        match self.get_utf8(idx) {
+            Some(bytes) => match String::from_utf8(bytes.clone()) {
+                Ok(string) => Some(string),
+                _ => None
+            },
+            _ => None
+        }
+    }
+
+    pub fn get_utf8_index(&self) -> Option<usize> {
+        None
+    }
+
     pub fn resolve_index(&self, idx: &ConstantPoolIndex) -> Option<&Constant> {
         self.constants.get(idx.idx)
     }

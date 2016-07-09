@@ -298,7 +298,8 @@ impl ClassReader {
         match reader.read_u16() {
             Ok(n_idx) => match reader.read_u32() {
                 Ok(a_len) => match reader.read_n(a_len as usize) {
-                    Ok(bytes) => Ok(ClassReader::parse_attribute(n_idx, &bytes, cf)),
+                    //Ok(bytes) => Ok(ClassReader::parse_attribute(n_idx, &bytes, cf)),
+                    Ok(mut bytes) => Ok(ClassReader::parse_attribute(n_idx, BlockReader::new(&mut Cursor::new(&mut bytes)), cf)),
                     Err(err) => Err(err)
                 },
                 Err(err) => Err(err)
@@ -307,9 +308,37 @@ impl ClassReader {
         }
     }
 
-    fn parse_attribute(idx: u16, bytes: &Vec<u8>, cf: &ClassFragment) -> Attribute {
-        Attribute::ConstantValue(ConstantPoolIndex::new(13))
+    fn parse_attribute(idx: u16, mut reader: BlockReader, cf: &ClassFragment) -> Attribute {
+        match cf.constant_pool {
+            Some(ref cp) => match cp.get_utf8_string(idx) {
+                Some(ref s) => match s.as_str() {
+                    "ConstantValue" => Some(Attribute::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize))),
+                    "Code" => None,
+                    "StackMapTable" => None,
+                    "Exceptions" => None,
+                    "InnerClass" => None,
+                    _ => None
+                },
+                _ => None
+            },
+            _ => None
+        }.unwrap_or(Attribute::RawAttribute { name_index: ConstantPoolIndex::new(idx as usize), info: reader.get_bytes() })
     }
+
+/*
+    fn parse_attribute(idx: u16, bytes: &Vec<u8>, cf: &ClassFragment) -> Attribute {
+        match cf.constant_pool {
+            Some(ref cp) => match cp.get_utf8_string(idx) {
+                Some(ref s) => match s.as_str() {
+                    "ConstantValue" => Attribute::ConstantValue(ConstantPoolIndex::new(idx)),
+                    _ => Attribute::RawAttribute { name_index: ConstantPoolIndex::new(idx as usize), info: bytes.clone() }
+                },
+                _ => Attribute::RawAttribute { name_index: ConstantPoolIndex::new(idx as usize), info: bytes.clone() }
+            },
+            _ => Attribute::RawAttribute { name_index: ConstantPoolIndex::new(idx as usize), info: bytes.clone() }
+        }
+    }
+    */
 
     fn read_constant_pool_index(reader: &mut BlockReader) -> Result<ConstantPoolIndex, Error> {
         match reader.read_u16() {
@@ -415,13 +444,23 @@ impl<'a> BlockReader<'a> {
             Ok(_) => Ok(tmp),
             Err(err) => Err(err)
         }
+    }
 
-/*
-        let r = match self.source.read_exact(tmp.as_mut_slice()) {
+    pub fn read_bytes(&mut self) -> Result<Vec<u8>, Error> {
+        let mut tmp: Vec<u8> = vec![];
+
+        match self.source.read_to_end(&mut tmp) {
             Ok(_) => Ok(tmp),
             Err(err) => Err(err)
-        };
-        */
+        }
+    }
+
+    pub fn get_bytes(&mut self) -> Vec<u8> {
+        let mut tmp: Vec<u8> = vec![];
+
+        let _ = self.source.read_to_end(&mut tmp);
+
+        tmp
     }
 }
 
