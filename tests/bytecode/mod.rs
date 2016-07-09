@@ -35,7 +35,7 @@ mod tests {
                 Constant::Placeholder,
                 Constant::Utf8("AAAAAA".to_string().into_bytes()),
                 Constant::Class(ConstantPoolIndex::new(3))
-                ]),
+            ]),
             access_flags: AccessFlags::of(0x000F),
             this_class: ConstantPoolIndex::new(1),
             super_class: ConstantPoolIndex::new(2),

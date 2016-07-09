@@ -288,5 +288,13 @@ pub struct Method {
 
 pub enum Attribute {
     ConstantValue(ConstantPoolIndex),
+    Code { max_stack: u16, max_locals: u16, code: Vec<u8>, exception_table: Vec<ExceptionHandler>, attributes: Vec<Attribute> },
     RawAttribute { name_index: ConstantPoolIndex, info: Vec<u8> }
+}
+
+pub struct ExceptionHandler {
+    pub start_pc: u16,
+    pub end_pc: u16,
+    pub handler_pc: u16,
+    pub catch_type: u16
 }
