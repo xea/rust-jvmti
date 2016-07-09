@@ -4,6 +4,7 @@
 /// itself, it doesn't represent every byte in the class definition, though, many information are
 /// encoded in the type system instead. This approach may seem restrictive but it helps achieving
 /// bytecode safety.
+#[derive(Debug)]
 pub struct Classfile {
     pub version: ClassfileVersion,
     pub constant_pool: ConstantPool,
@@ -41,7 +42,7 @@ impl Default for Classfile {
 
 ///
 /// Describe a classfile version number.
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct ClassfileVersion {
     pub minor_version: u16,
     pub major_version: u16
@@ -65,6 +66,7 @@ impl Default for ClassfileVersion {
 ///
 /// A `ConstantPool` is a table of various string and number literal constants that are referred
 /// within the substructures of the `Classfile`.
+#[derive(Debug)]
 pub struct ConstantPool {
     pub constants: Vec<Constant>
 }
@@ -289,7 +291,7 @@ pub enum ParameterAccessFlags {
     Mandated = 0x8000
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Field {
     pub access_flags: AccessFlags,
     pub name_index: ConstantPoolIndex,
@@ -297,7 +299,7 @@ pub struct Field {
     pub attributes: Vec<Attribute>
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Method {
     pub access_flags: AccessFlags,
     pub name_index: ConstantPoolIndex,

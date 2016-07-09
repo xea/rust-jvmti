@@ -4,12 +4,23 @@ extern crate jvmti;
 mod tests {
 
     use jvmti::bytecode::*;
+    use std::fs::File;
     use std::io::{ Cursor, Read, Write, Error };
 
     #[test]
     fn test_read_simple() {
-        let mut bytes = include_bytes!("../../Simple.class");
-        let mut reader = BlockReader::new(&mut Cursor::new(&mut bytes));
+        match File::open("Simple.class") {
+            Ok(mut file) => {
+                match ClassReader::read_class(&mut file) {
+                    Ok(class) => {
+                            assert!(false, format!("{:?}", class));
+                    },
+                    Err(err) => assert!(false, format!("{:?}", err))
+                }
+
+            },
+            Err(err) => assert!(false, format!("{:?}", err))
+        }
     }
 
     #[test]
