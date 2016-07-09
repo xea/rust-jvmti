@@ -342,6 +342,36 @@ impl ClassReader {
                     "EnclosingMethod" => Some(Attribute::EnclosingMethod { class_index: ConstantPoolIndex::new(reader.get_u16() as usize), method_index: ConstantPoolIndex::new(reader.get_u16() as usize)}),
                     "Synthetic" => Some(Attribute::Synthetic),
                     "Signature" => Some(Attribute::Signature(ConstantPoolIndex::new(reader.get_u16() as usize))),
+                    "SourceFile" => Some(Attribute::SourceFile(ConstantPoolIndex::new(reader.get_u16() as usize))),
+                    "SourceDebugExtension" => Some(Attribute::SourceDebugExtension(reader.get_bytes())),
+                    "LineNumberTable" => Some(Attribute::LineNumbeTable({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| LineNumberTable {
+                            start_pc: reader.get_u16(),
+                            line_number: reader.get_u16()
+                        }).collect()
+                    })),
+                    "LocalVariableTable" => Some(Attribute::LocalVariableTable({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| LocalVariableTable {
+                            start_pc: reader.get_u16(),
+                            length: reader.get_u16(),
+                            name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            descriptor_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            index: reader.get_u16()
+                        }).collect()
+                    })),
+                    "LocalVariableTypeTable" => Some(Attribute::LocalVariableTableType({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| LocalVariableTableType {
+                            start_pc: reader.get_u16(),
+                            length: reader.get_u16(),
+                            name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            signature_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            index: reader.get_u16()
+                        }).collect()
+                    })),
+                    "Deprecated" => Some(Attribute::Deprecated),
                     _ => None
                 },
                 _ => None
