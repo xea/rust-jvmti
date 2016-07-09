@@ -205,7 +205,7 @@ impl ReferenceKind {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct AccessFlags {
     pub flags: u16
 }
@@ -286,15 +286,27 @@ pub struct Method {
     pub attributes: Vec<Attribute>
 }
 
+#[derive(Debug)]
 pub enum Attribute {
     ConstantValue(ConstantPoolIndex),
     Code { max_stack: u16, max_locals: u16, code: Vec<u8>, exception_table: Vec<ExceptionHandler>, attributes: Vec<Attribute> },
+    Exceptions(Vec<ConstantPoolIndex>),
+    InnerClass(Vec<InnerClass>),
     RawAttribute { name_index: ConstantPoolIndex, info: Vec<u8> }
 }
 
+#[derive(Debug)]
 pub struct ExceptionHandler {
     pub start_pc: u16,
     pub end_pc: u16,
     pub handler_pc: u16,
-    pub catch_type: u16
+    pub catch_type: ConstantPoolIndex
+}
+
+#[derive(Debug)]
+pub struct InnerClass {
+    pub inner_class_info_index: ConstantPoolIndex,
+    pub outer_class_info_index: ConstantPoolIndex,
+    pub inner_name_index: ConstantPoolIndex,
+    pub access_flags: AccessFlags
 }

@@ -321,13 +321,24 @@ impl ClassReader {
                         },
                         exception_table: {
                             let n = reader.get_u16();
-                            (0..n).map(|_| ExceptionHandler { start_pc: reader.get_u16(), end_pc: reader.get_u16(), handler_pc: reader.get_u16(), catch_type: reader.get_u16() }).collect()
+                            (0..n).map(|_| ExceptionHandler { start_pc: reader.get_u16(), end_pc: reader.get_u16(), handler_pc: reader.get_u16(), catch_type: ConstantPoolIndex::new(reader.get_u16() as usize) }).collect()
                         },
                         attributes: ClassReader::read_attributes(&mut reader, cf).unwrap_or(vec![])
                         }),
-                    "StackMapTable" => None,
-                    "Exceptions" => None,
-                    "InnerClass" => None,
+                    "StackMapTable" => None, // TODO
+                    "Exceptions" => Some(Attribute::Exceptions({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| ConstantPoolIndex::new(reader.get_u16() as usize)).collect()
+                        })),
+                    "InnerClass" => Some(Attribute::InnerClass({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| InnerClass {
+                            inner_class_info_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            outer_class_info_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            inner_name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            access_flags: AccessFlags::of(reader.get_u16())
+                            }).collect()
+                        })),
                     _ => None
                 },
                 _ => None
