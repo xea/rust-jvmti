@@ -372,6 +372,21 @@ impl ClassReader {
                         }).collect()
                     })),
                     "Deprecated" => Some(Attribute::Deprecated),
+                    "RuntimeVisibleAnnotations" => Some(Attribute::RuntimeVisibleAnnotations({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| Annotation {
+                            type_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            element_value_pairs: {
+                                let en = reader.get_u16();
+                                (0..en).map(|_| ElementValuePair {
+                                    element_name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                                    value: ElementValue {
+                                        tag: reader.get_u8()
+                                    }
+                                }).collect()
+                            }
+                        }).collect()
+                    })),
                     _ => None
                 },
                 _ => None

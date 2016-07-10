@@ -13,7 +13,7 @@ mod tests {
             Ok(mut file) => {
                 match ClassReader::read_class(&mut file) {
                     Ok(class) => {
-                            assert!(false, format!("{:?}", class));
+                            assert!(false, format!("{:?}", class.attributes));
                     },
                     Err(err) => assert!(false, format!("{:?}", err))
                 }
@@ -37,7 +37,6 @@ mod tests {
 
         let r3 = reader.read_u8();
         assert_eq!(9, r3.ok().unwrap());
-
         assert!(reader.read_u8().is_err());
     }
 
