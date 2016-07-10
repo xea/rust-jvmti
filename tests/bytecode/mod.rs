@@ -13,7 +13,7 @@ mod tests {
             Ok(mut file) => {
                 match ClassReader::read_class(&mut file) {
                     Ok(class) => {
-                            assert!(false, format!("{:?}", class.attributes));
+                            assert!(false, format!("{:?}", class.fields));
                     },
                     Err(err) => assert!(false, format!("{:?}", err))
                 }

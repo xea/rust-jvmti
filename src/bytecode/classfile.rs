@@ -343,7 +343,8 @@ pub enum StackMapFrame {
     ChopFrame { offset_delta: u16 },
     SameFrameExtended { offset_delta: u16 },
     AppendFrame { offset_delta: u16, locals: Vec<VerificationType> },
-    FullFrame { offset_delta: u16, locals: Vec<VerificationType>, stack: Vec<VerificationType> }
+    FullFrame { offset_delta: u16, locals: Vec<VerificationType>, stack: Vec<VerificationType> },
+    FutureUse
 }
 
 #[derive(Debug)]
