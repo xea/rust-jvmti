@@ -311,6 +311,7 @@ pub struct Method {
 pub enum Attribute {
     ConstantValue(ConstantPoolIndex),
     Code { max_stack: u16, max_locals: u16, code: Vec<u8>, exception_table: Vec<ExceptionHandler>, attributes: Vec<Attribute> },
+    StackMapTable(Vec<StackMapFrame>),
     Exceptions(Vec<ConstantPoolIndex>),
     InnerClass(Vec<InnerClass>),
     EnclosingMethod { class_index: ConstantPoolIndex, method_index: ConstantPoolIndex },
@@ -332,6 +333,30 @@ pub enum Attribute {
     BootstrapMethods(Vec<BootstrapMethod>),
     MethodParameters(Vec<MethodParameter>),
     RawAttribute { name_index: ConstantPoolIndex, info: Vec<u8> }
+}
+
+#[derive(Debug)]
+pub enum StackMapFrame {
+    SameFrame,
+    SameLocals1StackItemFrame { stack: VerificationType },
+    SameLocals1StackItemFrameExtended { offset_delta: u16, stack: VerificationType },
+    ChopFrame { offset_delta: u16 },
+    SameFrameExtended { offset_delta: u16 },
+    AppendFrame { offset_delta: u16, locals: Vec<VerificationType> },
+    FullFrame { offset_delta: u16, locals: Vec<VerificationType>, stack: Vec<VerificationType> }
+}
+
+#[derive(Debug)]
+pub enum VerificationType {
+    Top,
+    Integer,
+    Float,
+    Long,
+    Double,
+    Null,
+    Uninitializedthis,
+    Object { cpool_index: ConstantPoolIndex },
+    Uninitialized { offset: u16 }
 }
 
 #[derive(Debug)]
@@ -388,10 +413,12 @@ pub struct ElementValuePair {
 
 
 #[derive(Debug)]
-pub struct ElementValue {
-    pub tag: u8,
-
-    // TODO finish
+pub enum ElementValue {
+    ConstantValue(ConstantPoolIndex),
+    Enum { type_name_index: ConstantPoolIndex, const_name_index: ConstantPoolIndex },
+    ClassInfo(ConstantPoolIndex),
+    Annotation(Annotation),
+    Array(Vec<ElementValue>)
 }
 
 #[derive(Debug)]
