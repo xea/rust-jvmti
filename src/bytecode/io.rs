@@ -325,7 +325,42 @@ impl ClassReader {
                         },
                         attributes: ClassReader::read_attributes(&mut reader, cf).unwrap_or(vec![])
                         }),
-                    "StackMapTable" => None, // TODO
+                    "StackMapTable" => Some(Attribute::StackMapTable({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| {
+                            let frame_type = reader.get_u8();
+
+                            let read_verification_type = |r: &mut BlockReader| match r.get_u8() {
+                                0 => VerificationType::Top,
+                                1 => VerificationType::Integer,
+                                2 => VerificationType::Float,
+                                3 => VerificationType::Double,
+                                4 => VerificationType::Long,
+                                5 => VerificationType::Null,
+                                6 => VerificationType::Uninitializedthis,
+                                7 => VerificationType::Object { cpool_index: ConstantPoolIndex::new(r.get_u16() as usize ) },
+                                8 => VerificationType::Uninitialized { offset: r.get_u16() },
+                                _ => VerificationType::Top
+                            };
+
+                            match frame_type {
+                                0...63 => StackMapFrame::SameFrame,
+                                64...127 => StackMapFrame::SameLocals1StackItemFrame { stack: read_verification_type(&mut reader) },
+                                247 => StackMapFrame::SameLocals1StackItemFrameExtended { offset_delta: reader.get_u16(), stack: read_verification_type(&mut reader) },
+                                248...250 => StackMapFrame::ChopFrame { offset_delta: reader.get_u16() },
+                                251 => StackMapFrame::SameFrameExtended { offset_delta: reader.get_u16() },
+                                i@252...254 => StackMapFrame::AppendFrame { offset_delta: reader.get_u16(), locals: (0..i - 251).map(|_| read_verification_type(&mut reader)).collect() },
+                                255 => StackMapFrame::FullFrame { offset_delta: reader.get_u16(), locals: {
+                                    let n = reader.get_u16();
+                                    (0..n).map(|_| read_verification_type(&mut reader)).collect()
+                                }, stack: {
+                                    let n = reader.get_u16();
+                                    (0..n).map(|_| read_verification_type(&mut reader)).collect()
+                                }},
+                                _ => StackMapFrame::FutureUse,
+                            }
+                        }).collect()
+                    })),
                     "Exceptions" => Some(Attribute::Exceptions({
                         let n = reader.get_u16();
                         (0..n).map(|_| ConstantPoolIndex::new(reader.get_u16() as usize)).collect()
