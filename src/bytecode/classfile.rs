@@ -81,6 +81,7 @@ impl ConstantPool {
     pub fn get_utf8(&self, idx: u16) -> Option<&Vec<u8>> {
         match self.constants.get(idx as usize) {
             Some(constant) => match constant {
+                &Constant::Utf8(ref bytes) => Some(bytes),
                 _ => None
             },
             _ => None

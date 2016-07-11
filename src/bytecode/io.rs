@@ -374,17 +374,45 @@ impl ClassReader {
                     "Deprecated" => Some(Attribute::Deprecated),
                     "RuntimeVisibleAnnotations" => Some(Attribute::RuntimeVisibleAnnotations({
                         let n = reader.get_u16();
-                        (0..n).map(|_| Annotation {
-                            type_index: ConstantPoolIndex::new(reader.get_u16() as usize),
-                            element_value_pairs: {
-                                let en = reader.get_u16();
-                                (0..en).map(|_| ElementValuePair {
-                                    element_name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
-                                    value: ElementValue {
-                                        tag: reader.get_u8()
-                                    }
-                                }).collect()
+                        (0..n).map(|_| ClassReader::read_annotation(&mut reader)).collect()
+                    })),
+                    "RuntimeInvisibleAnnotations" => Some(Attribute::RuntimeInvisibleAnnotations({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| ClassReader::read_annotation(&mut reader)).collect()
+                    })),
+                    "RuntimeVisibleParameterAnnotations" => Some(Attribute::RuntimeVisibleParameterAnnotations({
+                        let n = reader.get_u8();
+
+                        (0..n).map(|_| {
+                            let m = reader.get_u16();
+                            (0..m).map(|_| ClassReader::read_annotation(&mut reader)).collect()
+                        }).collect()
+                    })),
+                    "RuntimeInvisibleParameterAnnotations" => Some(Attribute::RuntimeInvisibleParameterAnnotations({
+                        let n = reader.get_u8();
+
+                        (0..n).map(|_| {
+                            let m = reader.get_u16();
+                            (0..m).map(|_| ClassReader::read_annotation(&mut reader)).collect()
+                        }).collect()
+                    })),
+                    // TODO TypeAnnotations
+                    "AnnotationDefault" => Some(Attribute::AnnotationDefault(ClassReader::read_element_value(&mut reader))),
+                    "BootstrapMethods" => Some(Attribute::BootstrapMethods({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| BootstrapMethod {
+                            bootstrap_method_ref: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            bootstrap_arguments: {
+                                let m = reader.get_u16();
+                                (0..m).map(|_| ConstantPoolIndex::new(reader.get_u16() as usize)).collect()
                             }
+                        }).collect()
+                    })),
+                    "MethodParameters" => Some(Attribute::MethodParameters({
+                        let n = reader.get_u8();
+                        (0..n).map(|_| MethodParameter {
+                            name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                            access_flags: AccessFlags::of(reader.get_u16())
                         }).collect()
                     })),
                     _ => None
@@ -393,6 +421,45 @@ impl ClassReader {
             },
             _ => None
         }.unwrap_or(Attribute::RawAttribute { name_index: ConstantPoolIndex::new(idx as usize), info: reader.get_bytes() })
+    }
+
+    fn read_annotation(reader: &mut BlockReader) -> Annotation {
+        Annotation {
+            type_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+            element_value_pairs: {
+                let en = reader.get_u16();
+                (0..en).map(|_| ElementValuePair {
+                    element_name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                    value: ClassReader::read_element_value(reader)
+                }).collect()
+            }
+        }
+    }
+
+    fn read_element_value(reader: &mut BlockReader) -> ElementValue {
+        let tag = reader.get_u8();
+
+        match tag {
+            66 /* B */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            67 /* C */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            68 /* D */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            70 /* F */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            73 /* I */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            74 /* J */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            83 /* S */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            90 /* Z */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            115 /* s */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            101 /* e */ => ElementValue::Enum {
+                type_name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                const_name_index: ConstantPoolIndex::new(reader.get_u16() as usize) },
+            99 /* c */ => ElementValue::ClassInfo(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            64 /* @ */ => ElementValue::Annotation(ClassReader::read_annotation(reader)),
+            91 /* [ */ => ElementValue::Array({
+                let n = reader.get_u16();
+                (0..n).map(|_| ClassReader::read_element_value(reader)).collect()
+            }),
+            _ => ElementValue::ConstantValue(ConstantPoolIndex::new(0)) // TODO this deserves a better error handling
+        }
     }
 
     fn read_constant_pool_index(reader: &mut BlockReader) -> Result<ConstantPoolIndex, Error> {

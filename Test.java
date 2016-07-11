@@ -15,6 +15,7 @@ public class Test extends Simple implements Consumer<String> {
     }
 
 
+    @Deprecated
     public void printSomething() {
         System.out.println("Lofasz");
     }

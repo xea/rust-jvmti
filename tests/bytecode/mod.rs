@@ -13,7 +13,7 @@ mod tests {
             Ok(mut file) => {
                 match ClassReader::read_class(&mut file) {
                     Ok(class) => {
-                            assert!(false, format!("{:?}", class.attributes));
+                            assert!(false, format!("{:?}", class));
                     },
                     Err(err) => assert!(false, format!("{:?}", err))
                 }
@@ -64,8 +64,8 @@ mod tests {
             ],
             methods: vec![],
             attributes: vec![
-                Attribute::RawAttribute { name_index: ConstantPoolIndex::new(13), info: vec![ 1, 2, 3, 4 ] },
-                Attribute::RawAttribute { name_index: ConstantPoolIndex::new(15), info: vec![ 11, 12, 13, 14, 15 ] }
+                Attribute::RawAttribute { name_index: ConstantPoolIndex::new(4), info: vec![ 1, 2, 3, 4 ] },
+                Attribute::RawAttribute { name_index: ConstantPoolIndex::new(4), info: vec![ 11, 12, 13, 14, 15 ] }
             ]
         };
 
