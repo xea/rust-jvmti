@@ -1,4 +1,5 @@
 use std::io::{ Cursor, Read, Write, Error, ErrorKind };
+use std::cell::Cell;
 use super::classfile::*;
 
 pub struct ClassReader {
@@ -307,6 +308,231 @@ impl ClassReader {
         }
     }
 
+    fn parse_code(len: usize, reader: &mut BlockReader) -> Vec<Instruction> {
+        let read_bytes: Cell<usize> = Cell::new(0);
+
+        (0..len).take_while(|_| read_bytes.get() < len).map(|_| {
+            let instruction = ClassReader::parse_instruction(reader);
+
+            read_bytes.set(read_bytes.get() + instruction.len());
+            instruction
+        }).collect()
+    }
+
+    fn parse_instruction(reader: &mut BlockReader) -> Instruction {
+        let opcode = reader.get_u8();
+
+        let instruction = match opcode {
+            0x32 => Instruction::AALOAD,
+            0x53 => Instruction::AASTORE,
+            0x01 => Instruction::ACONST_NULL,
+            0x19 => Instruction::ALOAD(reader.get_u8()),
+            0x2a => Instruction::ALOAD_0,
+            0x2b => Instruction::ALOAD_1,
+            0x2c => Instruction::ALOAD_2,
+            0x2d => Instruction::ALOAD_3,
+            0xbd => Instruction::ANEWARRAY(reader.get_u16()),
+            0xb0 => Instruction::ARETURN,
+            0xbe => Instruction::ARRAYLENGTH,
+            0x3a => Instruction::ASTORE(reader.get_u8()),
+            0x4b => Instruction::ASTORE_0,
+            0x4c => Instruction::ASTORE_1,
+            0x4d => Instruction::ASTORE_2,
+            0x4e => Instruction::ASTORE_3,
+            0xbf => Instruction::ATHROW,
+            0x33 => Instruction::BALOAD,
+            0x54 => Instruction::BASTORE,
+            0x10 => Instruction::BIPUSH,
+            0x34 => Instruction::CALOAD,
+            0x55 => Instruction::CASTORE,
+            0xc0 => Instruction::CHECKCAST(reader.get_u16()),
+            0x90 => Instruction::D2F,
+            0x8e => Instruction::D2I,
+            0x8f => Instruction::D2L,
+            0x63 => Instruction::DADD,
+            0x31 => Instruction::DALOAD,
+            0x52 => Instruction::DASTORE,
+            0x97 => Instruction::DCMPL,
+            0x98 => Instruction::DCMPG,
+            0x0e => Instruction::DCONST_0,
+            0x0f => Instruction::DCONST_1,
+            0x6f => Instruction::DDIV,
+            0x18 => Instruction::DLOAD(reader.get_u8()),
+            0x26 => Instruction::DLOAD_0,
+            0x27 => Instruction::DLOAD_1,
+            0x28 => Instruction::DLOAD_2,
+            0x29 => Instruction::DLOAD_3,
+            0x6b => Instruction::DMUL,
+            0x77 => Instruction::DNEG,
+            0x73 => Instruction::DREM,
+            0xaf => Instruction::DRETURN,
+            0x39 => Instruction::DSTORE(reader.get_u8()),
+            0x47 => Instruction::DSTORE_0,
+            0x48 => Instruction::DSTORE_1,
+            0x49 => Instruction::DSTORE_2,
+            0x4a => Instruction::DSTORE_3,
+            0x67 => Instruction::DSUB,
+            0x59 => Instruction::DUP,
+            0x5a => Instruction::DUP_X1,
+            0x5b => Instruction::DUP_X2,
+            0x5c => Instruction::DUP2,
+            0x5d => Instruction::DUP2_X1,
+            0x5e => Instruction::DUP2_X2,
+            0x8d => Instruction::F2D,
+            0x8b => Instruction::F2I,
+            0x8c => Instruction::F2L,
+            0x62 => Instruction::FADD,
+            0x30 => Instruction::FALOAD,
+            0x51 => Instruction::FASTORE,
+            0x95 => Instruction::FCMPL,
+            0x96 => Instruction::FCMPG,
+            0x0b => Instruction::FCONST_0,
+            0x0c => Instruction::FCONST_1,
+            0x0d => Instruction::FCONST_2,
+            0x6e => Instruction::FDIV,
+            0x17 => Instruction::FLOAD(reader.get_u8()),
+            0x22 => Instruction::FLOAD_0,
+            0x23 => Instruction::FLOAD_1,
+            0x24 => Instruction::FLOAD_2,
+            0x25 => Instruction::FLOAD_3,
+            0x6a => Instruction::FMUL,
+            0x76 => Instruction::FNEG,
+            0x72 => Instruction::FREM,
+            0xae => Instruction::FRETURN,
+            0x38 => Instruction::FSTORE(reader.get_u8()),
+            0x43 => Instruction::FSTORE_0,
+            0x44 => Instruction::FSTORE_1,
+            0x45 => Instruction::FSTORE_2,
+            0x46 => Instruction::FSTORE_3,
+            0x66 => Instruction::FSUB,
+            0xb4 => Instruction::GETFIELD(reader.get_u16()),
+            0xb2 => Instruction::GETSTATIC(reader.get_u16()),
+            0xa7 => Instruction::GOTO(reader.get_u16()),
+            0xc8 => Instruction::GOTO_W(reader.get_u32()),
+            0x91 => Instruction::I2B,
+            0x92 => Instruction::I2C,
+            0x87 => Instruction::I2D,
+            0x86 => Instruction::I2F,
+            0x85 => Instruction::I2L,
+            0x93 => Instruction::I2S,
+            0x60 => Instruction::IADD,
+            0x2e => Instruction::IALOAD,
+            0x7e => Instruction::IAND,
+            0x4f => Instruction::IASTORE,
+            0x02 => Instruction::ICONST_M1,
+            0x03 => Instruction::ICONST_0,
+            0x04 => Instruction::ICONST_1,
+            0x05 => Instruction::ICONST_2,
+            0x06 => Instruction::ICONST_3,
+            0x07 => Instruction::ICONST_4,
+            0x08 => Instruction::ICONST_5,
+            0x6c => Instruction::IDIV,
+            0xa5 => Instruction::IF_ACMPEQ(reader.get_u16()),
+            0xa6 => Instruction::IF_ACMPNE(reader.get_u16()),
+            0x9f => Instruction::IF_ICMPEQ(reader.get_u16()),
+            0xa0 => Instruction::IF_ICMPNE(reader.get_u16()),
+            0xa1 => Instruction::IF_ICMPLT(reader.get_u16()),
+            0xa2 => Instruction::IF_ICMPGE(reader.get_u16()),
+            0xa3 => Instruction::IF_ICMPGT(reader.get_u16()),
+            0xa4 => Instruction::IF_ICMPLE(reader.get_u16()),
+            0x99 => Instruction::IFEQ(reader.get_u16()),
+            0x9a => Instruction::IFNE(reader.get_u16()),
+            0x9b => Instruction::IFLT(reader.get_u16()),
+            0x9c => Instruction::IFGE(reader.get_u16()),
+            0x9d => Instruction::IFGT(reader.get_u16()),
+            0x9e => Instruction::IFLE(reader.get_u16()),
+            0xc7 => Instruction::IFNONNULL(reader.get_u16()),
+            0xc6 => Instruction::IFNULL(reader.get_u16()),
+            0x84 => Instruction::IINC(reader.get_u8(), reader.get_u8() as i8),
+            0x15 => Instruction::ILOAD(reader.get_u8()),
+            0x1a => Instruction::ILOAD_0,
+            0x1b => Instruction::ILOAD_1,
+            0x1c => Instruction::ILOAD_2,
+            0x1d => Instruction::ILOAD_3,
+            0x68 => Instruction::IMUL,
+            0x74 => Instruction::INEG,
+            0xc1 => Instruction::INSTANCEOF(reader.get_u16()),
+            0xba => Instruction::INVOKEDYNAMIC(reader.get_u16()),
+            0xb9 => Instruction::INVOKEINTERFACE(reader.get_u16(), reader.get_u8()),
+            0xb7 => Instruction::INVOKESPECIAL(reader.get_u16()),
+            0xb8 => Instruction::INVOKESTATIC(reader.get_u16()),
+            0xb6 => Instruction::INVOKEVIRTUAL(reader.get_u16()),
+            0x80 => Instruction::IOR,
+            0x70 => Instruction::IREM,
+            0xac => Instruction::IRETURN,
+            0x78 => Instruction::ISHL,
+            0x7a => Instruction::ISHR,
+            0x36 => Instruction::ISTORE(reader.get_u8()),
+            0x3b => Instruction::ISTORE_0,
+            0x3c => Instruction::ISTORE_1,
+            0x3d => Instruction::ISTORE_2,
+            0x3e => Instruction::ISTORE_3,
+            0x64 => Instruction::ISUB,
+            0x7c => Instruction::IUSHR,
+            0x82 => Instruction::IXOR,
+            0xa8 => Instruction::JSR(reader.get_u16()),
+            0xc9 => Instruction::JSR_W(reader.get_u32()),
+            0x8a => Instruction::L2D,
+            0x89 => Instruction::L2F,
+            0x88 => Instruction::L2I,
+            0x61 => Instruction::LADD,
+            0x2f => Instruction::LALOAD,
+            0x7f => Instruction::LAND,
+            0x50 => Instruction::LASTORE,
+            0x94 => Instruction::LCMP,
+            0x09 => Instruction::LCONST_0,
+            0x0a => Instruction::LCONST_1,
+            0x12 => Instruction::LDC(reader.get_u8()),
+            0x13 => Instruction::LDC_W(reader.get_u16()),
+            0x14 => Instruction::LDC2_W(reader.get_u16()),
+            0x6d => Instruction::LDIV,
+            0x16 => Instruction::LLOAD,
+            0x1e => Instruction::LLOAD_0,
+            0x1f => Instruction::LLOAD_1,
+            0x20 => Instruction::LLOAD_2,
+            0x21 => Instruction::LLOAD_3,
+            0x69 => Instruction::LMUL,
+            0x75 => Instruction::LNEG,
+            //0xab => Instruction::LOOKUPSWITCH(i32, Vec<(i32, i32)>),
+            0x81 => Instruction::LOR,
+            0x71 => Instruction::LREM,
+            0xad => Instruction::LRETURN,
+            0x79 => Instruction::LSHL,
+            0x7b => Instruction::LSHR,
+            0x37 => Instruction::LSTORE(reader.get_u8()),
+            0x3f => Instruction::LSTORE_0,
+            0x40 => Instruction::LSTORE_1,
+            0x41 => Instruction::LSTORE_2,
+            0x42 => Instruction::LSTORE_3,
+            0x65 => Instruction::LSUB,
+            0x7d => Instruction::LUSHR,
+            0x83 => Instruction::LXOR,
+            0xc2 => Instruction::MONITORENTER,
+            0xc3 => Instruction::MONITOREXIT,
+            0xc5 => Instruction::MULTIANEWARRAY(reader.get_u16(), reader.get_u8()),
+            0xbb => Instruction::NEW(reader.get_u16()),
+            0xbc => Instruction::NEWARRAY(reader.get_u8()),
+            0x00 => Instruction::NOP,
+            0x57 => Instruction::POP,
+            0x58 => Instruction::POP2,
+            0xb5 => Instruction::PUTFIELD(reader.get_u16()),
+            0xb3 => Instruction::PUTSTATIC(reader.get_u16()),
+            0xa9 => Instruction::RET(reader.get_u8()),
+            0xb1 => Instruction::RETURN,
+            0x35 => Instruction::SALOAD,
+            0x56 => Instruction::SASTORE,
+            0x11 => Instruction::SIPUSH(reader.get_u16()),
+            0x5f => Instruction::SWAP,
+            //0xaa => Instruction::TABLESWITCH ..
+            //0xc4 => Instruction::WIDE(u8, )
+
+
+            _ => Instruction::NOP
+        };
+
+        instruction
+    }
+
     fn parse_attribute(idx: u16, mut reader: BlockReader, cf: &ClassFragment) -> Attribute {
         match cf.constant_pool {
             Some(ref cp) => match cp.get_utf8_string(idx) {
@@ -316,8 +542,8 @@ impl ClassReader {
                         max_stack: reader.get_u16(),
                         max_locals: reader.get_u16(),
                         code: {
-                            let n = reader.get_u32();
-                            reader.get_n(n as usize)
+                            let n = reader.get_u32() as usize;
+                            ClassReader::parse_code(n, &mut BlockReader::new(&mut Cursor::new(reader.get_n(n as usize))))
                         },
                         exception_table: {
                             let n = reader.get_u16();
@@ -431,7 +657,10 @@ impl ClassReader {
                             (0..m).map(|_| ClassReader::read_annotation(&mut reader)).collect()
                         }).collect()
                     })),
-                    // TODO TypeAnnotations
+                    "RuntimeVisibleTypeAnnotations" => Some(Attribute::RuntimeVisibleTypeAnnotations({
+                        let n = reader.get_u16();
+                        (0..n).map(|_| ClassReader::read_type_annotation(&mut reader)).collect()
+                    })),
                     "AnnotationDefault" => Some(Attribute::AnnotationDefault(ClassReader::read_element_value(&mut reader))),
                     "BootstrapMethods" => Some(Attribute::BootstrapMethods({
                         let n = reader.get_u16();
@@ -464,6 +693,56 @@ impl ClassReader {
             element_value_pairs: {
                 let en = reader.get_u16();
                 (0..en).map(|_| ElementValuePair {
+                    element_name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+                    value: ClassReader::read_element_value(reader)
+                }).collect()
+            }
+        }
+    }
+
+    fn read_type_annotation(reader: &mut BlockReader) -> TypeAnnotation {
+        TypeAnnotation {
+            target_info: match reader.get_u8() {
+                // type parameter declaration of generic class or interface
+                0x00 => TargetInfo::TypeParameter,
+                // type parameter declaration of generic method or constructor
+                0x01 => TargetInfo::TypeParameter,
+                // type in extends or implements clause of class declaration (including the direct superclass or direct superinterface of an anonymous class declaration), or in extends clause of interface declaration
+                0x10 => TargetInfo::SuperType,
+                // type in bound of type parameter declaration of generic class or interface
+                0x11 => TargetInfo::TypeParameterBound,
+                // type in bound of type parameter declaration of generic method or constructor
+                0x12 => TargetInfo::TypeParameterBound,
+                // type in field declaration
+                0x13 => TargetInfo::Empty,
+                // return type of method, or type of newly constructed object
+                0x14 => TargetInfo::Empty,
+                // receiver type of method or constructor
+                0x15 => TargetInfo::Empty,
+                // type in formal parameter declaration of method, constructor, or lambda expression
+                0x16 => TargetInfo::MethodFormalParameter,
+                // type in throws clause of method or constructor
+                0x17 => TargetInfo::Throws,
+                // TODO replace the below fallback branch with proper error handling
+                _ => TargetInfo::Empty
+            },
+            target_path: TypePath {
+                path: {
+                    let n = reader.get_u8();
+                    (0..n).map(|_| (match reader.get_u8() {
+                        0 => TypePathKind::Array,
+                        1 => TypePathKind::Nested,
+                        2 => TypePathKind::Wildcard,
+                        3 => TypePathKind::TypeArgument,
+                        // TODO replace the below fallback branch with proper error handling
+                        _ => TypePathKind::Array
+                    }, reader.get_u8())).collect()
+                }
+            },
+            type_index: ConstantPoolIndex::new(reader.get_u16() as usize),
+            element_value_pairs: {
+                let n = reader.get_u16();
+                (0..n).map(|_| ElementValuePair {
                     element_name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
                     value: ClassReader::read_element_value(reader)
                 }).collect()

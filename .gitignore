@@ -9,3 +9,5 @@ Makefile
 CMake*
 old
 .vscode
+.idea
+*.iml
