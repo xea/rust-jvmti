@@ -24,6 +24,22 @@ mod tests {
     }
 
     #[test]
+    fn test_read_test() {
+        match File::open("Test.class") {
+            Ok(mut file) => {
+                match ClassReader::read_class(&mut file) {
+                    Ok(class) => {
+                        assert!(false, format!("{:#?}", class.methods));
+                    },
+                    Err(err) => assert!(false, format!("{:?}", err))
+                }
+
+            },
+            Err(err) => assert!(false, format!("{:?}", err))
+        }
+    }
+
+    #[test]
     fn test_read_n() {
         let mut target: Vec<u8> = vec![ 1, 2, 3, 4, 5, 6, 7, 8, 9 ];
         let mut cursor = Cursor::new(&mut target);

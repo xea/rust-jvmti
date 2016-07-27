@@ -312,14 +312,14 @@ impl ClassReader {
         let read_bytes: Cell<usize> = Cell::new(0);
 
         (0..len).take_while(|_| read_bytes.get() < len).map(|_| {
-            let instruction = ClassReader::parse_instruction(reader);
+            let instruction = ClassReader::parse_instruction(reader, read_bytes.get());
 
             read_bytes.set(read_bytes.get() + instruction.len());
             instruction
         }).collect()
     }
 
-    fn parse_instruction(reader: &mut BlockReader) -> Instruction {
+    fn parse_instruction(reader: &mut BlockReader, current_offset: usize) -> Instruction {
         let opcode = reader.get_u8();
 
         let instruction = match opcode {
@@ -407,8 +407,8 @@ impl ClassReader {
             0x66 => Instruction::FSUB,
             0xb4 => Instruction::GETFIELD(reader.get_u16()),
             0xb2 => Instruction::GETSTATIC(reader.get_u16()),
-            0xa7 => Instruction::GOTO(reader.get_u16()),
-            0xc8 => Instruction::GOTO_W(reader.get_u32()),
+            0xa7 => Instruction::GOTO(reader.get_u16() as i16),
+            0xc8 => Instruction::GOTO_W(reader.get_u32() as i32),
             0x91 => Instruction::I2B,
             0x92 => Instruction::I2C,
             0x87 => Instruction::I2D,
@@ -427,22 +427,22 @@ impl ClassReader {
             0x07 => Instruction::ICONST_4,
             0x08 => Instruction::ICONST_5,
             0x6c => Instruction::IDIV,
-            0xa5 => Instruction::IF_ACMPEQ(reader.get_u16()),
-            0xa6 => Instruction::IF_ACMPNE(reader.get_u16()),
-            0x9f => Instruction::IF_ICMPEQ(reader.get_u16()),
-            0xa0 => Instruction::IF_ICMPNE(reader.get_u16()),
-            0xa1 => Instruction::IF_ICMPLT(reader.get_u16()),
-            0xa2 => Instruction::IF_ICMPGE(reader.get_u16()),
-            0xa3 => Instruction::IF_ICMPGT(reader.get_u16()),
-            0xa4 => Instruction::IF_ICMPLE(reader.get_u16()),
-            0x99 => Instruction::IFEQ(reader.get_u16()),
-            0x9a => Instruction::IFNE(reader.get_u16()),
-            0x9b => Instruction::IFLT(reader.get_u16()),
-            0x9c => Instruction::IFGE(reader.get_u16()),
-            0x9d => Instruction::IFGT(reader.get_u16()),
-            0x9e => Instruction::IFLE(reader.get_u16()),
-            0xc7 => Instruction::IFNONNULL(reader.get_u16()),
-            0xc6 => Instruction::IFNULL(reader.get_u16()),
+            0xa5 => Instruction::IF_ACMPEQ(reader.get_u16() as i16),
+            0xa6 => Instruction::IF_ACMPNE(reader.get_u16() as i16),
+            0x9f => Instruction::IF_ICMPEQ(reader.get_u16() as i16),
+            0xa0 => Instruction::IF_ICMPNE(reader.get_u16() as i16),
+            0xa1 => Instruction::IF_ICMPLT(reader.get_u16() as i16),
+            0xa2 => Instruction::IF_ICMPGE(reader.get_u16() as i16),
+            0xa3 => Instruction::IF_ICMPGT(reader.get_u16() as i16),
+            0xa4 => Instruction::IF_ICMPLE(reader.get_u16() as i16),
+            0x99 => Instruction::IFEQ(reader.get_u16() as i16),
+            0x9a => Instruction::IFNE(reader.get_u16() as i16),
+            0x9b => Instruction::IFLT(reader.get_u16() as i16),
+            0x9c => Instruction::IFGE(reader.get_u16() as i16),
+            0x9d => Instruction::IFGT(reader.get_u16() as i16),
+            0x9e => Instruction::IFLE(reader.get_u16() as i16),
+            0xc7 => Instruction::IFNONNULL(reader.get_u16() as i16),
+            0xc6 => Instruction::IFNULL(reader.get_u16() as i16),
             0x84 => Instruction::IINC(reader.get_u8(), reader.get_u8() as i8),
             0x15 => Instruction::ILOAD(reader.get_u8()),
             0x1a => Instruction::ILOAD_0,
@@ -453,7 +453,7 @@ impl ClassReader {
             0x74 => Instruction::INEG,
             0xc1 => Instruction::INSTANCEOF(reader.get_u16()),
             0xba => Instruction::INVOKEDYNAMIC(reader.get_u16()),
-            0xb9 => Instruction::INVOKEINTERFACE(reader.get_u16(), reader.get_u8()),
+            0xb9 => (Instruction::INVOKEINTERFACE(reader.get_u16(), reader.get_u8()), reader.get_u8()).0,
             0xb7 => Instruction::INVOKESPECIAL(reader.get_u16()),
             0xb8 => Instruction::INVOKESTATIC(reader.get_u16()),
             0xb6 => Instruction::INVOKEVIRTUAL(reader.get_u16()),
@@ -470,8 +470,8 @@ impl ClassReader {
             0x64 => Instruction::ISUB,
             0x7c => Instruction::IUSHR,
             0x82 => Instruction::IXOR,
-            0xa8 => Instruction::JSR(reader.get_u16()),
-            0xc9 => Instruction::JSR_W(reader.get_u32()),
+            0xa8 => Instruction::JSR(reader.get_u16() as i16),
+            0xc9 => Instruction::JSR_W(reader.get_u32() as i32),
             0x8a => Instruction::L2D,
             0x89 => Instruction::L2F,
             0x88 => Instruction::L2I,
@@ -493,7 +493,14 @@ impl ClassReader {
             0x21 => Instruction::LLOAD_3,
             0x69 => Instruction::LMUL,
             0x75 => Instruction::LNEG,
-            //0xab => Instruction::LOOKUPSWITCH(i32, Vec<(i32, i32)>),
+            0xab => {
+                Instruction::LOOKUPSWITCH(reader.get_u32() as i32, {
+                    let padding = (4 - ((current_offset + 1) % 4)) % 4;
+                    let _ = reader.get_n(padding);
+                    let n = reader.get_u32();
+                    (0..n).map(|_| (reader.get_u32() as i32, reader.get_u32() as i32)).collect()
+                })
+            },
             0x81 => Instruction::LOR,
             0x71 => Instruction::LREM,
             0xad => Instruction::LRETURN,
@@ -523,11 +530,53 @@ impl ClassReader {
             0x56 => Instruction::SASTORE,
             0x11 => Instruction::SIPUSH(reader.get_u16()),
             0x5f => Instruction::SWAP,
-            //0xaa => Instruction::TABLESWITCH ..
-            //0xc4 => Instruction::WIDE(u8, )
+            0xaa => {
+                let padding = (4 - ((current_offset + 1) % 4)) % 4;
+                let _ = reader.get_n(padding);
 
+                let default = reader.get_u32() as i32;
+                let low = reader.get_u32() as i32;
+                let high = reader.get_u32() as i32;
 
-            _ => Instruction::NOP
+                Instruction::TABLESWITCH(default, low, high, (0..high - low + 1).map(|_| reader.get_u32() as i32).collect())
+            },
+            /*
+            0xaa => Instruction::TABLESWITCH({
+                    let padding = (4 - ((current_offset + 1) % 4)) % 4;
+                    let _ = reader.get_n(padding);
+                    reader.get_u32() as i32()
+                },
+                {
+                    let (low, high) = (reader.get_u32() as i32, reader.get_u32() as i32);
+                    (0..high - low + 1).map(|_| reader.get_u32() as i32).collect()
+                }),
+                */
+            0xc4 => {
+                let opcode = reader.get_u8();
+                let index = reader.get_u16();
+
+                match opcode {
+                    0x15 => Instruction::ILOAD_W(index),
+                    0x17 => Instruction::FLOAD_W(index),
+                    0x19 => Instruction::ALOAD_W(index),
+                    0x16 => Instruction::LLOAD_W(index),
+                    0x18 => Instruction::DLOAD_W(index),
+                    0x36 => Instruction::ISTORE_W(index),
+                    0x38 => Instruction::FSTORE_W(index),
+                    0x3a => Instruction::ASTORE_W(index),
+                    0x37 => Instruction::LSTORE_W(index),
+                    0x39 => Instruction::DSTORE_W(index),
+                    0xa9 => Instruction::RET_W(index),
+                    0x84 => {
+                        let constbyte = reader.get_u16();
+                        Instruction::IINC_W(index, constbyte as i16)
+                    },
+                    // This should not be happening
+                    _ => Instruction::WTF(opcode as u32)
+
+                }
+            },
+            _ => Instruction::WTF(opcode as u32)
         };
 
         instruction

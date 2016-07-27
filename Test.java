@@ -83,4 +83,20 @@ public class Test extends Simple implements Consumer<String> {
     public void accept(String string) {
         System.out.println(string);
     }
+
+    public void testSwitch() {
+        int i = 3;
+
+        switch (i) {
+            case 1:
+            case 2:
+                System.out.println(i);
+                break;
+            case 3:
+                System.out.println("Found it");
+                break;
+            default:
+                break;
+        }
+    }
 }
