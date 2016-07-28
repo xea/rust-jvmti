@@ -13,7 +13,7 @@ mod tests {
             Ok(mut file) => {
                 match ClassReader::read_class(&mut file) {
                     Ok(class) => {
-                            assert!(false, format!("{:?}", class));
+                            assert!(true, format!("{:?}", class));
                     },
                     Err(err) => assert!(false, format!("{:?}", err))
                 }
@@ -29,7 +29,7 @@ mod tests {
             Ok(mut file) => {
                 match ClassReader::read_class(&mut file) {
                     Ok(class) => {
-                        assert!(false, format!("{:#?}", class.methods));
+                        assert!(true, format!("{:#?}", class.methods));
                     },
                     Err(err) => assert!(false, format!("{:?}", err))
                 }
