@@ -98,8 +98,22 @@ impl ConstantPool {
         }
     }
 
-    pub fn get_utf8_index(&self) -> Option<usize> {
+    pub fn find_ut8_index(&self, utf8: &'static str) -> Option<usize> {
+        for i in 0..self.constants.len() {
+            match self.constants[i] {
+                Constant::Utf8(ref bytes) => {
+                    if bytes.as_slice() == utf8.as_bytes() {
+                        return Some(i);
+                    }
+                },
+                _ => ()
+            }
+        }
         None
+    }
+
+    pub fn get_utf8_index(&self, utf8: &'static str) -> usize {
+        self.find_ut8_index(utf8).unwrap_or(0)
     }
 
     pub fn resolve_index(&self, idx: &ConstantPoolIndex) -> Option<&Constant> {
@@ -346,6 +360,12 @@ pub enum StackMapFrame {
     AppendFrame { offset_delta: u16, locals: Vec<VerificationType> },
     FullFrame { offset_delta: u16, locals: Vec<VerificationType>, stack: Vec<VerificationType> },
     FutureUse
+}
+
+impl StackMapFrame {
+    pub fn len(&self) -> usize {
+        0
+    }
 }
 
 #[derive(Debug)]

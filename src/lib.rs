@@ -37,8 +37,9 @@ fn on_method_entry(event: MethodInvocationEvent) {
 
 fn on_method_exit(event: MethodInvocationEvent) {
     match static_context().method_exit(&event.thread.id) {
-        Some(_) => (),//println!("Method exited after {}", duration),
-        None => println!("Method has no start")
+        Some(_) => (),
+        //Some(duration) => println!("Method {} exited after {}", event.method_sig.name, duration),
+        None => println!("Method has no start: {}", event.method_sig.name)
     }
 }
 

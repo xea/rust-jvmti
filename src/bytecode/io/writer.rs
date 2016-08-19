@@ -122,8 +122,304 @@ impl<'a> ClassWriter<'a> {
     fn write_attribute(&mut self, attribute: &Attribute, cp: &ConstantPool) -> Result<usize, Error> {
         match attribute {
             &Attribute::RawAttribute { name_index: ref n_idx, info: ref bytes } => self.write_u16(n_idx.idx as u16).and(self.write_u32(bytes.len() as u32)).and(self.write_n(bytes)),
+            &Attribute::ConstantValue(ref idx) => self.write_u16(cp.get_utf8_index("ConstantValue") as u16).and(self.write_u32(2)).and(self.write_u16(idx.idx as u16)),
+            &Attribute::Code { max_stack, max_locals, ref code, ref exception_table, ref attributes } => {
+                self.write_u16(cp.get_utf8_index("Code") as u16)
+                .and(self.write_u16(max_stack))
+                .and(self.write_u16(max_locals))
+                .and(self.write_instructions(code))
+                .and(self.write_exception_handlers(exception_table))
+                .and(self.write_attributes(attributes, cp))
+            },
+            &Attribute::StackMapTable(ref table) => self.write_u16(cp.get_utf8_index("StackMapTable") as u16).and(self.write_stack_map_table(table, cp)),
             _ => Ok(0)
         }
+    }
+
+    fn write_stack_map_table(&mut self, table: &Vec<StackMapFrame>, cp: &ConstantPool) -> Result<usize, Error> {
+        self.write_u16(cp.get_utf8_index("StackMapTable") as u16).and(self.write_u32(2 + table.iter().map(|st| st.len()).fold(0, |acc, x| acc + x) as u32))
+    }
+
+    fn write_instructions(&mut self, instructions: &Vec<Instruction>) -> Result<usize, Error> {
+        let mut target: Vec<u8> = vec![];
+        let written_bytes = {
+            let mut instr_writer = ClassWriter::new(&mut target);
+
+            instructions.iter().fold(0 as usize, |counter, instr| {
+                counter + instr_writer.render_instruction(instr, counter)
+            })
+        };
+
+        self.write_u32(written_bytes as u32).and(self.write_n(&target))
+    }
+
+    /// Renders a single instruction into the output stream
+    fn render_instruction(&mut self, instruction: &Instruction, offset: usize) -> usize {
+        match instruction {
+            &Instruction::AALOAD => self.write_u8(0x32),
+            &Instruction::AASTORE => self.write_u8(0x53),
+            &Instruction::ACONST_NULL => self.write_u8(0x01),
+            &Instruction::ALOAD_0 => self.write_u8(0x2a),
+            &Instruction::ALOAD_1 => self.write_u8(0x2b),
+            &Instruction::ALOAD_2 => self.write_u8(0x2c),
+            &Instruction::ALOAD_3 => self.write_u8(0x2d),
+            &Instruction::ANEWARRAY(b) => self.write_u8(0xbd).and(self.write_u16(b)),
+            &Instruction::ARETURN => self.write_u8(0xb0),
+            &Instruction::ARRAYLENGTH => self.write_u8(0xbe),
+            &Instruction::ASTORE(value) => self.write_u8(0x3a).and(self.write_u8(value)),
+            &Instruction::ASTORE_0 => self.write_u8(0x4b),
+            &Instruction::ASTORE_1 => self.write_u8(0x4c),
+            &Instruction::ASTORE_2 => self.write_u8(0x4d),
+            &Instruction::ASTORE_3 => self.write_u8(0x4e),
+            &Instruction::ATHROW => self.write_u8(0xbf),
+            &Instruction::BALOAD => self.write_u8(0x33),
+            &Instruction::BASTORE => self.write_u8(0x54),
+            &Instruction::BIPUSH => self.write_u8(0x10),
+            &Instruction::CALOAD => self.write_u8(0x34),
+            &Instruction::CASTORE => self.write_u8(0x55),
+            &Instruction::CHECKCAST(value) => self.write_u8(0xc0).and(self.write_u16(value)),
+            &Instruction::D2F => self.write_u8(0x90),
+            &Instruction::D2I => self.write_u8(0x8e),
+            &Instruction::D2L => self.write_u8(0x8f),
+            &Instruction::DADD => self.write_u8(0x63),
+            &Instruction::DALOAD => self.write_u8(0x31),
+            &Instruction::DASTORE => self.write_u8(0x52),
+            &Instruction::DCMPL => self.write_u8(0x97),
+            &Instruction::DCMPG => self.write_u8(0x98),
+            &Instruction::DCONST_0 => self.write_u8(0x0e),
+            &Instruction::DCONST_1 => self.write_u8(0x0f),
+            &Instruction::DDIV => self.write_u8(0x6f),
+            &Instruction::DLOAD(value) => self.write_u8(0x18).and(self.write_u8(value)),
+            &Instruction::DLOAD_0 => self.write_u8(0x26),
+            &Instruction::DLOAD_1 => self.write_u8(0x27),
+            &Instruction::DLOAD_2 => self.write_u8(0x28),
+            &Instruction::DLOAD_3 => self.write_u8(0x29),
+            &Instruction::DMUL => self.write_u8(0x6b),
+            &Instruction::DNEG => self.write_u8(0x77),
+            &Instruction::DREM => self.write_u8(0x73),
+            &Instruction::DRETURN => self.write_u8(0xaf),
+            &Instruction::DSTORE(value) => self.write_u8(0x39).and(self.write_u8(value)),
+            &Instruction::DSTORE_0 => self.write_u8(0x47),
+            &Instruction::DSTORE_1 => self.write_u8(0x48),
+            &Instruction::DSTORE_2 => self.write_u8(0x49),
+            &Instruction::DSTORE_3 => self.write_u8(0x4a),
+            &Instruction::DSUB => self.write_u8(0x67),
+            &Instruction::DUP => self.write_u8(0x59),
+            &Instruction::DUP_X1 => self.write_u8(0x5a),
+            &Instruction::DUP_X2 => self.write_u8(0x5b),
+            &Instruction::DUP2 => self.write_u8(0x5c),
+            &Instruction::DUP2_X1 => self.write_u8(0x5d),
+            &Instruction::DUP2_X2 => self.write_u8(0x5e),
+            &Instruction::F2D => self.write_u8(0x8d),
+            &Instruction::F2I => self.write_u8(0x8b),
+            &Instruction::F2L => self.write_u8(0x8c),
+            &Instruction::FADD => self.write_u8(0x62),
+            &Instruction::FALOAD => self.write_u8(0x30),
+            &Instruction::FASTORE => self.write_u8(0x51),
+            &Instruction::FCMPL => self.write_u8(0x95),
+            &Instruction::FCMPG => self.write_u8(0x96),
+            &Instruction::FCONST_0 => self.write_u8(0x0b),
+            &Instruction::FCONST_1 => self.write_u8(0x0c),
+            &Instruction::FCONST_2 => self.write_u8(0x0d),
+            &Instruction::FDIV => self.write_u8(0x6e),
+            &Instruction::FLOAD(value) => self.write_u8(0x17).and(self.write_u8(value)),
+            &Instruction::FLOAD_0 => self.write_u8(0x22),
+            &Instruction::FLOAD_1 => self.write_u8(0x23),
+            &Instruction::FLOAD_2 => self.write_u8(0x24),
+            &Instruction::FLOAD_3 => self.write_u8(0x25),
+            &Instruction::FMUL => self.write_u8(0x6a),
+            &Instruction::FNEG => self.write_u8(0x76),
+            &Instruction::FREM => self.write_u8(0x72),
+            &Instruction::FRETURN => self.write_u8(0xae),
+            &Instruction::FSTORE(value) => self.write_u8(0x38),
+            &Instruction::FSTORE_0 => self.write_u8(0x43),
+            &Instruction::FSTORE_1 => self.write_u8(0x44),
+            &Instruction::FSTORE_2 => self.write_u8(0x45),
+            &Instruction::FSTORE_3 => self.write_u8(0x46),
+            &Instruction::FSUB => self.write_u8(0x66),
+            &Instruction::GETFIELD(value) => self.write_u8(0xb4).and(self.write_u16(value)),
+            &Instruction::GETSTATIC(value) => self.write_u8(0xb2).and(self.write_u16(value)),
+            &Instruction::GOTO(value) => self.write_u8(0xa7).and(self.write_u16(value as u16)),
+            &Instruction::GOTO_W(value) => self.write_u8(0xc8).and(self.write_u32(value as u32)),
+            &Instruction::I2B => self.write_u8(0x91),
+            &Instruction::I2C => self.write_u8(0x92),
+            &Instruction::I2D => self.write_u8(0x87),
+            &Instruction::I2F => self.write_u8(0x86),
+            &Instruction::I2L => self.write_u8(0x85),
+            &Instruction::I2S => self.write_u8(0x93),
+            &Instruction::IADD => self.write_u8(0x60),
+            &Instruction::IALOAD => self.write_u8(0x2e),
+            &Instruction::IAND => self.write_u8(0x7e),
+            &Instruction::IASTORE => self.write_u8(0x4f),
+            &Instruction::ICONST_M1 => self.write_u8(0x02),
+            &Instruction::ICONST_0 => self.write_u8(0x03),
+            &Instruction::ICONST_1 => self.write_u8(0x04),
+            &Instruction::ICONST_2 => self.write_u8(0x05),
+            &Instruction::ICONST_3 => self.write_u8(0x06),
+            &Instruction::ICONST_4 => self.write_u8(0x07),
+            &Instruction::ICONST_5 => self.write_u8(0x08),
+            &Instruction::IDIV => self.write_u8(0x6c),
+            &Instruction::IF_ACMPEQ(value) => self.write_u8(0xa5).and(self.write_u16(value as u16)),
+            &Instruction::IF_ACMPNE(value) => self.write_u8(0xa6).and(self.write_u16(value as u16)),
+            &Instruction::IF_ICMPEQ(value) => self.write_u8(0x9f).and(self.write_u16(value as u16)),
+            &Instruction::IF_ICMPNE(value) => self.write_u8(0xa0).and(self.write_u16(value as u16)),
+            &Instruction::IF_ICMPLT(value) => self.write_u8(0xa1).and(self.write_u16(value as u16)),
+            &Instruction::IF_ICMPGE(value) => self.write_u8(0xa2).and(self.write_u16(value as u16)),
+            &Instruction::IF_ICMPGT(value) => self.write_u8(0xa3).and(self.write_u16(value as u16)),
+            &Instruction::IF_ICMPLE(value) => self.write_u8(0xa4).and(self.write_u16(value as u16)),
+            &Instruction::IFEQ(value) => self.write_u8(0x99).and(self.write_u16(value as u16)),
+            &Instruction::IFNE(value) => self.write_u8(0x9a).and(self.write_u16(value as u16)),
+            &Instruction::IFLT(value) => self.write_u8(0x9b).and(self.write_u16(value as u16)),
+            &Instruction::IFGE(value) => self.write_u8(0x9c).and(self.write_u16(value as u16)),
+            &Instruction::IFGT(value) => self.write_u8(0x9d).and(self.write_u16(value as u16)),
+            &Instruction::IFLE(value) => self.write_u8(0x9e).and(self.write_u16(value as u16)),
+            &Instruction::IFNONNULL(value) => self.write_u8(0xc7).and(self.write_u16(value as u16)),
+            &Instruction::IFNULL(value) => self.write_u8(0xc6).and(self.write_u16(value as u16)),
+            &Instruction::IINC(a, b) => self.write_u8(0x84).and(self.write_u8(a)).and(self.write_u8(b as u8)),
+            &Instruction::ILOAD(value) => self.write_u8(0x15).and(self.write_u8(value)),
+            &Instruction::ILOAD_0 => self.write_u8(0x1a),
+            &Instruction::ILOAD_1 => self.write_u8(0x1b),
+            &Instruction::ILOAD_2 => self.write_u8(0x1c),
+            &Instruction::ILOAD_3 => self.write_u8(0x1d),
+            &Instruction::IMUL => self.write_u8(0x68),
+            &Instruction::INEG => self.write_u8(0x74),
+            &Instruction::INSTANCEOF(value) => self.write_u8(0xc1).and(self.write_u16(value)),
+            &Instruction::INVOKEDYNAMIC(value) => self.write_u8(0xba).and(self.write_u16(value)),
+            &Instruction::INVOKEINTERFACE(a, b) => self.write_u8(0xb9).and(self.write_u16(a)).and(self.write_u8(b)),
+            &Instruction::INVOKESPECIAL(value) => self.write_u8(0xb7).and(self.write_u16(value)),
+            &Instruction::INVOKESTATIC(value) => self.write_u8(0xb8).and(self.write_u16(value)),
+            &Instruction::INVOKEVIRTUAL(value) => self.write_u8(0xb6).and(self.write_u16(value)),
+            &Instruction::IOR => self.write_u8(0x80),
+            &Instruction::IREM => self.write_u8(0x70),
+            &Instruction::IRETURN => self.write_u8(0xac),
+            &Instruction::ISHL => self.write_u8(0x78),
+            &Instruction::ISHR => self.write_u8(0x7a),
+            &Instruction::ISTORE(value) => self.write_u8(0x36).and(self.write_u8(value)),
+            &Instruction::ISTORE_0 => self.write_u8(0x3b),
+            &Instruction::ISTORE_1 => self.write_u8(0x3c),
+            &Instruction::ISTORE_2 => self.write_u8(0x3d),
+            &Instruction::ISTORE_3 => self.write_u8(0x3e),
+            &Instruction::ISUB => self.write_u8(0x64),
+            &Instruction::IUSHR => self.write_u8(0x7c),
+            &Instruction::IXOR => self.write_u8(0x82),
+            &Instruction::JSR(value) => self.write_u8(0xa8).and(self.write_u16(value as u16)),
+            &Instruction::JSR_W(value) => self.write_u8(0xc9).and(self.write_u32(value as u32)),
+            &Instruction::L2D => self.write_u8(0x8a),
+            &Instruction::L2F => self.write_u8(0x89),
+            &Instruction::L2I => self.write_u8(0x88),
+            &Instruction::LADD => self.write_u8(0x61),
+            &Instruction::LALOAD => self.write_u8(0x2f),
+            &Instruction::LAND => self.write_u8(0x7f),
+            &Instruction::LASTORE => self.write_u8(0x50),
+            &Instruction::LCMP => self.write_u8(0x94),
+            &Instruction::LCONST_0 => self.write_u8(0x09),
+            &Instruction::LCONST_1 => self.write_u8(0x0a),
+            &Instruction::LDC(value) => self.write_u8(0x12).and(self.write_u8(value)),
+            &Instruction::LDC_W(value) => self.write_u8(0x13).and(self.write_u16(value)),
+            &Instruction::LDC2_W(value) => self.write_u8(0x14).and(self.write_u16(value)),
+            &Instruction::LDIV => self.write_u8(0x6d),
+            &Instruction::LLOAD => self.write_u8(0x16),
+            &Instruction::LLOAD_0 => self.write_u8(0x1e),
+            &Instruction::LLOAD_1 => self.write_u8(0x1f),
+            &Instruction::LLOAD_2 => self.write_u8(0x20),
+            &Instruction::LLOAD_3 => self.write_u8(0x21),
+            &Instruction::LMUL => self.write_u8(0x69),
+            &Instruction::LNEG => self.write_u8(0x75),
+            //LOOKUPSWITCH(i32, Vec<(i32, i32)>),
+            &Instruction::LOOKUPSWITCH(a, ref l) => {
+                self.write_u8(0xab);
+                let padding = (4 - ((offset + 1) % 4)) % 4;
+
+                for _ in 0..padding {
+                    self.write_u8(0);
+                }
+
+                let padding = (4 - ((offset + 1) % 4)) % 4;
+
+                for _ in 0..padding {
+                    self.write_u8(0);
+                }
+
+                self.write_u32(a as u32);
+                self.write_u32(l.len() as u32);
+
+                for &(p1, p2) in l {
+                    self.write_u32(p1 as u32);
+                    self.write_u32(p2 as u32);
+                }
+
+                Ok(0)
+            },
+            &Instruction::LOR => self.write_u8(0x81),
+            &Instruction::LREM => self.write_u8(0x71),
+            &Instruction::LRETURN => self.write_u8(0xad),
+            &Instruction::LSHL => self.write_u8(0x79),
+            &Instruction::LSHR => self.write_u8(0x7b),
+            &Instruction::LSTORE(value) => self.write_u8(0x37).and(self.write_u8(value)),
+            &Instruction::LSTORE_0 => self.write_u8(0x3f),
+            &Instruction::LSTORE_1 => self.write_u8(0x40),
+            &Instruction::LSTORE_2 => self.write_u8(0x41),
+            &Instruction::LSTORE_3 => self.write_u8(0x42),
+            &Instruction::LSUB => self.write_u8(0x65),
+            &Instruction::LUSHR => self.write_u8(0x7d),
+            &Instruction::LXOR => self.write_u8(0x83),
+            &Instruction::MONITORENTER => self.write_u8(0xc2),
+            &Instruction::MONITOREXIT => self.write_u8(0xc3),
+            &Instruction::MULTIANEWARRAY(a, b) => self.write_u8(0xc5).and(self.write_u16(a)).and(self.write_u8(b)),
+            &Instruction::NEW(value) => self.write_u8(0xbb).and(self.write_u16(value)),
+            &Instruction::NEWARRAY(value) => self.write_u8(0xbc).and(self.write_u8(value)),
+            &Instruction::NOP => self.write_u8(0x00),
+            &Instruction::POP => self.write_u8(0x57),
+            &Instruction::POP2 => self.write_u8(0x58),
+            &Instruction::PUTFIELD(value) => self.write_u8(0xb5).and(self.write_u16(value)),
+            &Instruction::PUTSTATIC(value) => self.write_u8(0xb3).and(self.write_u16(value)),
+            &Instruction::RET(value) => self.write_u8(0xa9).and(self.write_u8(value)),
+            &Instruction::RETURN => self.write_u8(0xb1),
+            &Instruction::SALOAD => self.write_u8(0x35),
+            &Instruction::SASTORE => self.write_u8(0x56),
+            &Instruction::SIPUSH(value) => self.write_u8(0x11).and(self.write_u16(value)),
+            &Instruction::SWAP => self.write_u8(0x5f),
+            //TABLESWITCH(i32, i32, i32, Vec<i32>),
+            &Instruction::TABLESWITCH(a, b, c, ref d) => {
+                self.write_u8(0xaa);
+
+                let padding = (4 - ((offset + 1) % 4)) % 4;
+
+                for _ in 0..padding {
+                    self.write_u8(0);
+                }
+
+                self.write_u32(a as u32);
+                self.write_u32(b as u32);
+                self.write_u32(c as u32);
+
+                for &v in d {
+                    self.write_u32(v as u32);
+                }
+
+                Ok(0)
+            },
+            &Instruction::ILOAD_W(value) => self.write_u16(0xc415).and(self.write_u16(value)),
+            &Instruction::FLOAD_W(value) => self.write_u16(0xc417).and(self.write_u16(value)),
+            &Instruction::ALOAD_W(value) => self.write_u16(0xc419).and(self.write_u16(value)),
+            &Instruction::LLOAD_W(value) => self.write_u16(0xc416).and(self.write_u16(value)),
+            &Instruction::DLOAD_W(value) => self.write_u16(0xc418).and(self.write_u16(value)),
+            &Instruction::ISTORE_W(value) => self.write_u16(0xc436).and(self.write_u16(value)),
+            &Instruction::FSTORE_W(value) => self.write_u16(0xc438).and(self.write_u16(value)),
+            &Instruction::ASTORE_W(value) => self.write_u16(0xc43a).and(self.write_u16(value)),
+            &Instruction::LSTORE_W(value) => self.write_u16(0xc437).and(self.write_u16(value)),
+            &Instruction::DSTORE_W(value) => self.write_u16(0xc439).and(self.write_u16(value)),
+            &Instruction::RET_W(value) => self.write_u16(0xc4a9).and(self.write_u16(value)),
+            &Instruction::IINC_W(a, b) => self.write_u16(0xc484).and(self.write_u16(a)).and(self.write_u16(b as u16)),
+            _ => self.write_u8(0xFF)
+        }.ok().unwrap_or(0)
+    }
+
+    fn write_exception_handlers(&mut self, exception_table: &Vec<ExceptionHandler>) -> Result<usize, Error> {
+        self.write_u16(exception_table.len() as u16)
+            .and(exception_table.iter().fold(Ok(0), |acc, x| {
+                self.write_u16(x.start_pc).and(self.write_u16(x.end_pc)).and(self.write_u16(x.handler_pc)).and(self.write_u16(x.catch_type.idx as u16))
+            }))
     }
 
     pub fn write_n(&mut self, bytes: &Vec<u8>) -> Result<usize, Error> {
