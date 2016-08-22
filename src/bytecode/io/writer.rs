@@ -131,13 +131,58 @@ impl<'a> ClassWriter<'a> {
                 .and(self.write_exception_handlers(exception_table))
                 .and(self.write_attributes(attributes, cp))
             },
-            &Attribute::StackMapTable(ref table) => self.write_u16(cp.get_utf8_index("StackMapTable") as u16).and(self.write_stack_map_table(table, cp)),
+            &Attribute::StackMapTable(ref table) => self.write_stack_map_table(table, cp),
             _ => Ok(0)
         }
     }
 
     fn write_stack_map_table(&mut self, table: &Vec<StackMapFrame>, cp: &ConstantPool) -> Result<usize, Error> {
-        self.write_u16(cp.get_utf8_index("StackMapTable") as u16).and(self.write_u32(2 + table.iter().map(|st| st.len()).fold(0, |acc, x| acc + x) as u32))
+        // attribute_name_index
+        self.write_u16(cp.get_utf8_index("StackMapTable") as u16)
+            // attribute_length = number_of_entries length (2) + sum of entries' length
+            .and(self.write_u32(2 + table.iter().map(|st| st.len()).fold(0, |acc, x| acc + x) as u32))
+            // number_of_entries
+            .and(self.write_u16(table.len() as u16))
+            // entries
+            .and(table.iter().fold(Ok(0), |acc, x| {
+                match x {
+                    &StackMapFrame::SameFrame { tag } => self.write_u8(tag),
+                    &StackMapFrame::SameLocals1StackItemFrame{ tag, ref stack } => self.write_u8(tag).and(self.write_verification_type(stack)),
+                    &StackMapFrame::SameLocals1StackItemFrameExtended { offset_delta, ref stack } => self.write_u8(247).and(self.write_u16(offset_delta)).and(self.write_verification_type(stack)),
+                    &StackMapFrame::ChopFrame { tag, offset_delta } => self.write_u8(tag).and(self.write_u16(offset_delta)),
+                    &StackMapFrame::SameFrameExtended { offset_delta } => self.write_u8(251).and(self.write_u16(offset_delta)),
+                    &StackMapFrame::AppendFrame { tag, offset_delta, ref locals } => self.write_u8(tag).and(self.write_u16(offset_delta)).and(locals.iter().fold(Ok(0), |acc, x| self.write_verification_type(x))),
+                    &StackMapFrame::FullFrame { offset_delta, ref locals, ref stack } => {
+                        // full frame tag
+                        self.write_u8(255)
+                            // offset_delta
+                            .and(self.write_u16(offset_delta))
+                            // number_of_locals
+                            .and(self.write_u16(locals.len() as u16))
+                            // locals
+                            .and(locals.iter().fold(Ok(0), |acc, x| self.write_verification_type(x)))
+                            // number_of_stack_items
+                            .and(self.write_u16(stack.len() as u16))
+                            // stack
+                            .and(stack.iter().fold(Ok(0), |acc, x| self.write_verification_type(x)))
+                    },
+                    &StackMapFrame::FutureUse { tag } => self.write_u8(tag)
+                }
+            }))
+    }
+
+    fn write_verification_type(&mut self, info: &VerificationType) -> Result<usize, Error> {
+        match info {
+            &VerificationType::Top => self.write_u8(0),
+            &VerificationType::Integer => self.write_u8(1),
+            &VerificationType::Float => self.write_u8(2),
+            &VerificationType::Long => self.write_u8(4),
+            &VerificationType::Double => self.write_u8(3),
+            &VerificationType::Null => self.write_u8(5),
+            &VerificationType::UninitializedThis => self.write_u8(6),
+            &VerificationType::Object { ref cpool_index } => self.write_u8(7).and(self.write_u16(cpool_index.idx as u16)),
+            &VerificationType::Uninitialized { offset } => self.write_u8(8).and(self.write_u16(offset))
+        }
     }
 
     fn write_instructions(&mut self, instructions: &Vec<Instruction>) -> Result<usize, Error> {
@@ -231,7 +276,7 @@ impl<'a> ClassWriter<'a> {
             &Instruction::FNEG => self.write_u8(0x76),
             &Instruction::FREM => self.write_u8(0x72),
             &Instruction::FRETURN => self.write_u8(0xae),
-            &Instruction::FSTORE(value) => self.write_u8(0x38),
+            &Instruction::FSTORE(value) => self.write_u8(0x38).and(self.write_u8(value)),
             &Instruction::FSTORE_0 => self.write_u8(0x43),
             &Instruction::FSTORE_1 => self.write_u8(0x44),
             &Instruction::FSTORE_2 => self.write_u8(0x45),
@@ -327,17 +372,17 @@ impl<'a> ClassWriter<'a> {
             &Instruction::LNEG => self.write_u8(0x75),
             //LOOKUPSWITCH(i32, Vec<(i32, i32)>),
             &Instruction::LOOKUPSWITCH(a, ref l) => {
-                self.write_u8(0xab);
+                let _ = self.write_u8(0xab);
                 let padding = (4 - ((offset + 1) % 4)) % 4;
 
                 for _ in 0..padding {
-                    self.write_u8(0);
+                    let _ = self.write_u8(0);
                 }
 
                 let padding = (4 - ((offset + 1) % 4)) % 4;
 
                 for _ in 0..padding {
-                    self.write_u8(0);
+                    let _ = self.write_u8(0);
                 }
 
                 self.write_u32(a as u32);
@@ -418,7 +463,10 @@ impl<'a> ClassWriter<'a> {
     fn write_exception_handlers(&mut self, exception_table: &Vec<ExceptionHandler>) -> Result<usize, Error> {
         self.write_u16(exception_table.len() as u16)
             .and(exception_table.iter().fold(Ok(0), |acc, x| {
-                self.write_u16(x.start_pc).and(self.write_u16(x.end_pc)).and(self.write_u16(x.handler_pc)).and(self.write_u16(x.catch_type.idx as u16))
+                self.write_u16(x.start_pc)
+                .and(self.write_u16(x.end_pc))
+                .and(self.write_u16(x.handler_pc))
+                .and(self.write_u16(x.catch_type.idx as u16))
             }))
     }
 

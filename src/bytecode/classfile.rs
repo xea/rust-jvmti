@@ -352,19 +352,28 @@ pub enum Attribute {
 
 #[derive(Debug)]
 pub enum StackMapFrame {
-    SameFrame,
-    SameLocals1StackItemFrame { stack: VerificationType },
+    SameFrame { tag: u8 },
+    SameLocals1StackItemFrame { tag: u8, stack: VerificationType },
     SameLocals1StackItemFrameExtended { offset_delta: u16, stack: VerificationType },
-    ChopFrame { offset_delta: u16 },
+    ChopFrame { tag: u8, offset_delta: u16 },
     SameFrameExtended { offset_delta: u16 },
-    AppendFrame { offset_delta: u16, locals: Vec<VerificationType> },
+    AppendFrame { tag: u8, offset_delta: u16, locals: Vec<VerificationType> },
     FullFrame { offset_delta: u16, locals: Vec<VerificationType>, stack: Vec<VerificationType> },
-    FutureUse
+    FutureUse { tag: u8 }
 }
 
 impl StackMapFrame {
     pub fn len(&self) -> usize {
-        0
+        match self {
+            &StackMapFrame::SameFrame { tag: _ } => 1,
+            &StackMapFrame::SameLocals1StackItemFrame{ tag: _, ref stack } => 1 + stack.len(),
+            &StackMapFrame::SameLocals1StackItemFrameExtended { offset_delta: _, ref stack } => 3 + stack.len(),
+            &StackMapFrame::ChopFrame { tag: _, offset_delta: _ } => 3,
+            &StackMapFrame::SameFrameExtended { offset_delta: _ } => 3,
+            &StackMapFrame::AppendFrame { tag: _, offset_delta: _, ref locals } => 3 + locals.iter().fold(0, |acc, x| acc + x.len()),
+            &StackMapFrame::FullFrame { offset_delta: _, ref locals, ref stack } => 7 + locals.iter().fold(0, |acc, x| acc + x.len()) + stack.iter().fold(0, |acc, x| acc + x.len()),
+            &StackMapFrame::FutureUse { tag: _ } => 0
+        }
     }
 }
 
@@ -376,9 +385,19 @@ pub enum VerificationType {
     Long,
     Double,
     Null,
-    Uninitializedthis,
+    UninitializedThis,
     Object { cpool_index: ConstantPoolIndex },
     Uninitialized { offset: u16 }
+}
+
+impl VerificationType {
+    pub fn len(&self) -> usize {
+        match self {
+            &VerificationType::Object { cpool_index: _ } => 3,
+            &VerificationType::Uninitialized { offset: _ } => 3,
+            _ => 1
+        }
+    }
 }
 
 #[derive(Debug)]

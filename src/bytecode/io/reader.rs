@@ -601,19 +601,19 @@ impl ClassReader {
                                 3 => VerificationType::Double,
                                 4 => VerificationType::Long,
                                 5 => VerificationType::Null,
-                                6 => VerificationType::Uninitializedthis,
+                                6 => VerificationType::UninitializedThis,
                                 7 => VerificationType::Object { cpool_index: ConstantPoolIndex::new(r.get_u16() as usize ) },
                                 8 => VerificationType::Uninitialized { offset: r.get_u16() },
                                 _ => VerificationType::Top
                             };
 
                             match frame_type {
-                                0...63 => StackMapFrame::SameFrame,
-                                64...127 => StackMapFrame::SameLocals1StackItemFrame { stack: read_verification_type(&mut reader) },
+                                tag@0...63 => StackMapFrame::SameFrame { tag: tag },
+                                tag@64...127 => StackMapFrame::SameLocals1StackItemFrame { tag: tag, stack: read_verification_type(&mut reader) },
                                 247 => StackMapFrame::SameLocals1StackItemFrameExtended { offset_delta: reader.get_u16(), stack: read_verification_type(&mut reader) },
-                                248...250 => StackMapFrame::ChopFrame { offset_delta: reader.get_u16() },
+                                tag@248...250 => StackMapFrame::ChopFrame { tag: tag, offset_delta: reader.get_u16() },
                                 251 => StackMapFrame::SameFrameExtended { offset_delta: reader.get_u16() },
-                                i@252...254 => StackMapFrame::AppendFrame { offset_delta: reader.get_u16(), locals: (0..i - 251).map(|_| read_verification_type(&mut reader)).collect() },
+                                tag@252...254 => StackMapFrame::AppendFrame { tag: tag, offset_delta: reader.get_u16(), locals: (0..tag - 251).map(|_| read_verification_type(&mut reader)).collect() },
                                 255 => StackMapFrame::FullFrame { offset_delta: reader.get_u16(), locals: {
                                     let n = reader.get_u16();
                                     (0..n).map(|_| read_verification_type(&mut reader)).collect()
@@ -621,7 +621,7 @@ impl ClassReader {
                                     let n = reader.get_u16();
                                     (0..n).map(|_| read_verification_type(&mut reader)).collect()
                                 }},
-                                _ => StackMapFrame::FutureUse,
+                                tag@_ => StackMapFrame::FutureUse { tag: tag },
                             }
                         }).collect()
                     })),
