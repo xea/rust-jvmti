@@ -629,7 +629,7 @@ impl ClassReader {
                         let n = reader.get_u16();
                         (0..n).map(|_| ConstantPoolIndex::new(reader.get_u16() as usize)).collect()
                         })),
-                    "InnerClass" => Some(Attribute::InnerClass({
+                    "InnerClasses" => Some(Attribute::InnerClasses({
                         let n = reader.get_u16();
                         (0..n).map(|_| InnerClass {
                             inner_class_info_index: ConstantPoolIndex::new(reader.get_u16() as usize),
@@ -643,7 +643,7 @@ impl ClassReader {
                     "Signature" => Some(Attribute::Signature(ConstantPoolIndex::new(reader.get_u16() as usize))),
                     "SourceFile" => Some(Attribute::SourceFile(ConstantPoolIndex::new(reader.get_u16() as usize))),
                     "SourceDebugExtension" => Some(Attribute::SourceDebugExtension(reader.get_bytes())),
-                    "LineNumberTable" => Some(Attribute::LineNumbeTable({
+                    "LineNumberTable" => Some(Attribute::LineNumberTable({
                         let n = reader.get_u16();
                         (0..n).map(|_| LineNumberTable {
                             start_pc: reader.get_u16(),
@@ -660,9 +660,9 @@ impl ClassReader {
                             index: reader.get_u16()
                         }).collect()
                     })),
-                    "LocalVariableTypeTable" => Some(Attribute::LocalVariableTableType({
+                    "LocalVariableTypeTable" => Some(Attribute::LocalVariableTypeTable({
                         let n = reader.get_u16();
-                        (0..n).map(|_| LocalVariableTableType {
+                        (0..n).map(|_| LocalVariableTypeTable {
                             start_pc: reader.get_u16(),
                             length: reader.get_u16(),
                             name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
@@ -792,15 +792,15 @@ impl ClassReader {
         let tag = reader.get_u8();
 
         match tag {
-            66 /* B */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
-            67 /* C */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
-            68 /* D */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
-            70 /* F */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
-            73 /* I */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
-            74 /* J */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
-            83 /* S */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
-            90 /* Z */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
-            115 /* s */ => ElementValue::ConstantValue(ConstantPoolIndex::new(reader.get_u16() as usize)),
+            66 /* B */ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(reader.get_u16() as usize)),
+            67 /* C */ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(reader.get_u16() as usize)),
+            68 /* D */ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(reader.get_u16() as usize)),
+            70 /* F */ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(reader.get_u16() as usize)),
+            73 /* I */ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(reader.get_u16() as usize)),
+            74 /* J */ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(reader.get_u16() as usize)),
+            83 /* S */ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(reader.get_u16() as usize)),
+            90 /* Z */ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(reader.get_u16() as usize)),
+            115 /* s */ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(reader.get_u16() as usize)),
             101 /* e */ => ElementValue::Enum {
                 type_name_index: ConstantPoolIndex::new(reader.get_u16() as usize),
                 const_name_index: ConstantPoolIndex::new(reader.get_u16() as usize) },
@@ -810,7 +810,7 @@ impl ClassReader {
                 let n = reader.get_u16();
                 (0..n).map(|_| ClassReader::read_element_value(reader)).collect()
             }),
-            _ => ElementValue::ConstantValue(ConstantPoolIndex::new(0)) // TODO this deserves a better error handling
+            _ => ElementValue::ConstantValue(tag, ConstantPoolIndex::new(0)) // TODO this deserves a better error handling
         }
     }
 

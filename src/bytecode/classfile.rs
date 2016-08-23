@@ -328,15 +328,15 @@ pub enum Attribute {
     Code { max_stack: u16, max_locals: u16, code: Vec<Instruction>, exception_table: Vec<ExceptionHandler>, attributes: Vec<Attribute> },
     StackMapTable(Vec<StackMapFrame>),
     Exceptions(Vec<ConstantPoolIndex>),
-    InnerClass(Vec<InnerClass>),
+    InnerClasses(Vec<InnerClass>),
     EnclosingMethod { class_index: ConstantPoolIndex, method_index: ConstantPoolIndex },
     Synthetic,
     Signature(ConstantPoolIndex),
     SourceFile(ConstantPoolIndex),
     SourceDebugExtension(Vec<u8>),
-    LineNumbeTable(Vec<LineNumberTable>),
+    LineNumberTable(Vec<LineNumberTable>),
     LocalVariableTable(Vec<LocalVariableTable>),
-    LocalVariableTableType(Vec<LocalVariableTableType>),
+    LocalVariableTypeTable(Vec<LocalVariableTypeTable>),
     Deprecated,
     RuntimeVisibleAnnotations(Vec<Annotation>),
     RuntimeInvisibleAnnotations(Vec<Annotation>),
@@ -432,7 +432,7 @@ pub struct LocalVariableTable {
 }
 
 #[derive(Debug)]
-pub struct LocalVariableTableType {
+pub struct LocalVariableTypeTable {
     pub start_pc: u16,
     pub length: u16,
     pub name_index: ConstantPoolIndex,
@@ -446,20 +446,43 @@ pub struct Annotation {
     pub element_value_pairs: Vec<ElementValuePair>
 }
 
+impl Annotation {
+    pub fn len(&self) -> usize {
+        self.element_value_pairs.iter().fold(2, |acc, x| acc + x.len())
+    }
+}
+
 #[derive(Debug)]
 pub struct ElementValuePair {
     pub element_name_index: ConstantPoolIndex,
     pub value: ElementValue
 }
 
+impl ElementValuePair {
+    pub fn len(&self) -> usize {
+        2 + self.value.len()
+    }
+}
 
 #[derive(Debug)]
 pub enum ElementValue {
-    ConstantValue(ConstantPoolIndex),
+    ConstantValue(u8, ConstantPoolIndex),
     Enum { type_name_index: ConstantPoolIndex, const_name_index: ConstantPoolIndex },
     ClassInfo(ConstantPoolIndex),
     Annotation(Annotation),
     Array(Vec<ElementValue>)
+}
+
+impl ElementValue {
+    pub fn len(&self) -> usize {
+        match self {
+            &ElementValue::ConstantValue(_, _) => 3,
+            &ElementValue::Enum { type_name_index: _, const_name_index: _ } => 5,
+            &ElementValue::ClassInfo(_) => 3,
+            &ElementValue::Annotation(ref annotation) => 1 + annotation.len(),
+            &ElementValue::Array(ref table) => table.iter().fold(3, |acc, x| acc + x.len())
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -503,10 +526,17 @@ pub struct BootstrapMethod {
     pub bootstrap_arguments: Vec<ConstantPoolIndex>
 }
 
+impl BootstrapMethod {
+}
+
 #[derive(Debug)]
 pub struct MethodParameter {
     pub name_index: ConstantPoolIndex,
     pub access_flags: AccessFlags
+}
+
+impl MethodParameter {
+    pub fn len(&self) -> usize { 4 }
 }
 
 #[allow(non_camel_case_types)]
