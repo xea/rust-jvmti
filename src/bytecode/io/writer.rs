@@ -56,6 +56,7 @@ impl<'a> ClassWriter<'a> {
             &Constant::InterfaceMethodRef { class_index: ref c_idx, name_and_type_index: ref n_idx } => self.write_u8(11).and(self.write_u16(c_idx.idx as u16)).and(self.write_u16(n_idx.idx as u16)),
             &Constant::NameAndType { name_index: ref n_idx, descriptor_index: ref d_idx } => self.write_u8(12).and(self.write_u16(n_idx.idx as u16)).and(self.write_u16(d_idx.idx as u16)),
             &Constant::MethodHandle { reference_kind: ref kind, reference_index: ref r_idx } => self.write_u8(15).and(self.write_u8(kind.to_u8())).and(self.write_u16(r_idx.idx as u16)),
+            &Constant::InvokeDynamic { bootstrap_method_attr_index: ref m_idx, name_and_type_index: ref n_idx } => self.write_u8(18).and(self.write_u16(m_idx.idx as u16)).and(self.write_u16(n_idx.idx as u16)),
             &Constant::Placeholder => Ok(0),
             _ => Err(Error::new(ErrorKind::InvalidData, "Unknown constant detected"))
         }
@@ -224,6 +225,8 @@ impl<'a> ClassWriter<'a> {
                 self.write_u16(cp.get_utf8_index("BootstrapMethods") as u16)
                 // attribute_length
                 .and(self.write_u32(table.iter().fold(2, |acc, method| acc + 4 + method.bootstrap_arguments.len() as u32 * 2)))
+                // num_bootstrap_methods
+                .and(self.write_u16(table.len() as u16))
                 // bootstrap_methods
                 .and(table.iter().fold(Ok(0), |_, method| {
                     // bootstrap_method_ref

@@ -461,7 +461,7 @@ impl ClassReader {
             0x68 => Instruction::IMUL,
             0x74 => Instruction::INEG,
             0xc1 => Instruction::INSTANCEOF(reader.get_u16()),
-            0xba => Instruction::INVOKEDYNAMIC(reader.get_u16()),
+            0xba => (Instruction::INVOKEDYNAMIC(reader.get_u16()), reader.get_u16()).0,
             0xb9 => (Instruction::INVOKEINTERFACE(reader.get_u16(), reader.get_u8()), reader.get_u8()).0,
             0xb7 => Instruction::INVOKESPECIAL(reader.get_u16()),
             0xb8 => Instruction::INVOKESTATIC(reader.get_u16()),
