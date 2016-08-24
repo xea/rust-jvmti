@@ -157,14 +157,14 @@ impl<'a> ClassWriter<'a> {
             &Attribute::LineNumberTable(ref table) => self.write_u16(cp.get_utf8_index("LineNumberTable") as u16).and(self.write_u32(2 + table.len() as u32 * 4)).and(self.write_u16(table.len() as u16)).and(table.iter().fold(Ok(0), |_, x| {
                 self.write_u16(x.start_pc).and(self.write_u16(x.line_number))
             })),
-            &Attribute::LocalVariableTable(ref table) => self.write_u16(cp.get_utf8_index("LocalVariableTable") as u16).and(self.write_u32(2 + table.len() as u32 * 10)).and(table.iter().fold(Ok(0), |_, x| {
+            &Attribute::LocalVariableTable(ref table) => self.write_u16(cp.get_utf8_index("LocalVariableTable") as u16).and(self.write_u32(2 + table.len() as u32 * 10)).and(self.write_u16(table.len() as u16)).and(table.iter().fold(Ok(0), |_, x| {
                 self.write_u16(x.start_pc)
                 .and(self.write_u16(x.length))
                 .and(self.write_u16(x.name_index.idx as u16))
                 .and(self.write_u16(x.descriptor_index.idx as u16))
                 .and(self.write_u16(x.index))
             })),
-            &Attribute::LocalVariableTypeTable(ref table) => self.write_u16(cp.get_utf8_index("LocalVariableTypeTable") as u16).and(self.write_u32(2 + table.len() as u32 * 10)).and(table.iter().fold(Ok(0), |_, x| {
+            &Attribute::LocalVariableTypeTable(ref table) => self.write_u16(cp.get_utf8_index("LocalVariableTypeTable") as u16).and(self.write_u32(2 + table.len() as u32 * 10)).and(self.write_u16(table.len() as u16)).and(table.iter().fold(Ok(0), |_, x| {
                 self.write_u16(x.start_pc)
                 .and(self.write_u16(x.length))
                 .and(self.write_u16(x.name_index.idx as u16))
