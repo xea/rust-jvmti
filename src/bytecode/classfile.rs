@@ -448,7 +448,7 @@ pub struct Annotation {
 
 impl Annotation {
     pub fn len(&self) -> usize {
-        self.element_value_pairs.iter().fold(2, |acc, x| acc + x.len())
+        4 + self.element_value_pairs.len() * 2 + self.element_value_pairs.iter().fold(0, |acc, x| acc + x.len())
     }
 }
 

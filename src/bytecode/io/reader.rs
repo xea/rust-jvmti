@@ -309,12 +309,21 @@ impl ClassReader {
     }
 
     fn parse_code(len: usize, reader: &mut BlockReader) -> Vec<Instruction> {
+        /*
         let read_bytes: Cell<usize> = Cell::new(0);
 
         (0..len).take_while(|_| read_bytes.get() < len).map(|_| {
             let instruction = ClassReader::parse_instruction(reader, read_bytes.get());
 
             read_bytes.set(read_bytes.get() + instruction.len());
+            instruction
+        }).collect()*/
+        let read_bytes: Cell<usize> = Cell::new(0);
+
+        (0..len).take_while(|_| read_bytes.get() < len).map(|_| {
+            let instruction = ClassReader::parse_instruction(reader, read_bytes.get());
+
+            read_bytes.set(reader.position());
             instruction
         }).collect()
     }
@@ -836,20 +845,24 @@ impl ClassReader {
 
 // TODO remove pub after testing
 pub struct BlockReader<'a> {
-    source: &'a mut Read
+    source: &'a mut Read,
+    position: usize
 }
 
 impl<'a> BlockReader<'a> {
 
     pub fn new<T>(source: &'a mut T) -> BlockReader where T: Read {
-        BlockReader { source: source }
+        BlockReader { source: source, position: 0 }
     }
 
     pub fn read_u64(&mut self) -> Result<u64, Error> {
         let mut buf: [u8; 8] = [0; 8];
 
         match self.source.read_exact(&mut buf) {
-            Ok(_) => Ok(
+            Ok(_) => {
+                self.position += 8;
+
+                Ok(
                 ((buf[0] as u64) << 56) +
                 ((buf[1] as u64) << 48) +
                 ((buf[2] as u64) << 40) +
@@ -857,7 +870,8 @@ impl<'a> BlockReader<'a> {
                 ((buf[4] as u64) << 24) +
                 ((buf[5] as u64) << 16) +
                 ((buf[6] as u64) << 8) +
-                buf[7] as u64),
+                buf[7] as u64)
+            },
             Err(err) => Err(err)
         }
     }
@@ -871,11 +885,14 @@ impl<'a> BlockReader<'a> {
         let mut buf: [u8; 4] = [0; 4];
 
         match self.source.read_exact(&mut buf) {
-            Ok(_) => Ok(
+            Ok(_) => {
+                self.position += 4;
+                Ok(
                 ((buf[0] as u32) << 24) +
                 ((buf[1] as u32) << 16) +
                 ((buf[2] as u32) << 8) +
-                buf[3] as u32),
+                buf[3] as u32)
+            },
             Err(err) => Err(err)
         }
     }
@@ -889,7 +906,10 @@ impl<'a> BlockReader<'a> {
         let mut buf: [u8; 2] = [0; 2];
 
         match self.source.read_exact(&mut buf) {
-            Ok(_) => Ok(((buf[0] as u16) << 8) + buf[1] as u16),
+            Ok(_) => {
+                self.position += 2;
+                Ok(((buf[0] as u16) << 8) + buf[1] as u16)
+            },
             Err(err) => Err(err)
         }
     }
@@ -902,7 +922,10 @@ impl<'a> BlockReader<'a> {
         let mut buf: [u8; 1] = [0; 1];
 
         match self.source.read_exact(&mut buf) {
-            Ok(_) => Ok(buf[0]),
+            Ok(_) => {
+                self.position += 1;
+                Ok(buf[0])
+            },
             Err(err) => Err(err)
         }
     }
@@ -915,7 +938,10 @@ impl<'a> BlockReader<'a> {
         let mut tmp: Vec<u8> = Vec::with_capacity(count);
 
         match self.source.take(count as u64).read_to_end(&mut tmp) {
-            Ok(_) => Ok(tmp),
+            Ok(_) => {
+                self.position += count;
+                Ok(tmp)
+            },
             Err(err) => Err(err)
         }
     }
@@ -931,7 +957,10 @@ impl<'a> BlockReader<'a> {
         let mut tmp: Vec<u8> = vec![];
 
         match self.source.read_to_end(&mut tmp) {
-            Ok(_) => Ok(tmp),
+            Ok(_) => {
+                self.position += tmp.len();
+                Ok(tmp)
+            },
             Err(err) => Err(err)
         }
     }
@@ -942,6 +971,10 @@ impl<'a> BlockReader<'a> {
         let _ = self.source.read_to_end(&mut tmp);
 
         tmp
+    }
+
+    pub fn position(&self) -> usize {
+        self.position
     }
 }
 
