@@ -208,11 +208,11 @@ impl<'a> ClassWriter<'a> {
                 // parameter_annotations
                 .and(table.iter().fold(Ok(0), |_, ann_table| self.write_u16(ann_table.len() as u16).and(ann_table.iter().fold(Ok(0), |_, ann| self.write_annotation(ann, cp)))))
             },
-            &Attribute::RuntimeVisibleTypeAnnotations(ref table) => {
+            &Attribute::RuntimeVisibleTypeAnnotations(_ /*ref table*/) => {
                 // TODO
                 self.write_u32(1)
             },
-            &Attribute::RuntimeInvisibleTypeAnnotations(ref table) => {
+            &Attribute::RuntimeInvisibleTypeAnnotations(_ /*ref table*/) => {
                 // TODO
                 self.write_u16(2)
             },
@@ -319,7 +319,7 @@ impl<'a> ClassWriter<'a> {
 
     fn write_instructions(&mut self, instructions: &Vec<Instruction>) -> Result<usize, Error> {
         let mut target: Vec<u8> = vec![];
-        let written_bytes = {
+        let _ /*written_bytes*/ = {
             let mut instr_writer = ClassWriter::new(&mut target);
 
             instructions.iter().fold(0 as usize, |counter, instr| {
@@ -336,15 +336,15 @@ impl<'a> ClassWriter<'a> {
             &Instruction::AALOAD => self.write_u8(0x32),
             &Instruction::AASTORE => self.write_u8(0x53),
             &Instruction::ACONST_NULL => self.write_u8(0x01),
-            &Instruction::ALOAD(value) => self.write_u8(0x19).and(self.write_u8(value)),
+            &Instruction::ALOAD(value) => self.write_u8(0x19).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::ALOAD_0 => self.write_u8(0x2a),
             &Instruction::ALOAD_1 => self.write_u8(0x2b),
             &Instruction::ALOAD_2 => self.write_u8(0x2c),
             &Instruction::ALOAD_3 => self.write_u8(0x2d),
-            &Instruction::ANEWARRAY(b) => self.write_u8(0xbd).and(self.write_u16(b)),
+            &Instruction::ANEWARRAY(b) => self.write_u8(0xbd).and(self.write_u16(b)).and(Ok(3)),
             &Instruction::ARETURN => self.write_u8(0xb0),
             &Instruction::ARRAYLENGTH => self.write_u8(0xbe),
-            &Instruction::ASTORE(value) => self.write_u8(0x3a).and(self.write_u8(value)),
+            &Instruction::ASTORE(value) => self.write_u8(0x3a).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::ASTORE_0 => self.write_u8(0x4b),
             &Instruction::ASTORE_1 => self.write_u8(0x4c),
             &Instruction::ASTORE_2 => self.write_u8(0x4d),
@@ -352,10 +352,10 @@ impl<'a> ClassWriter<'a> {
             &Instruction::ATHROW => self.write_u8(0xbf),
             &Instruction::BALOAD => self.write_u8(0x33),
             &Instruction::BASTORE => self.write_u8(0x54),
-            &Instruction::BIPUSH => self.write_u8(0x10),
+            &Instruction::BIPUSH(value) => self.write_u8(0x10).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::CALOAD => self.write_u8(0x34),
             &Instruction::CASTORE => self.write_u8(0x55),
-            &Instruction::CHECKCAST(value) => self.write_u8(0xc0).and(self.write_u16(value)),
+            &Instruction::CHECKCAST(value) => self.write_u8(0xc0).and(self.write_u16(value)).and(Ok(3)),
             &Instruction::D2F => self.write_u8(0x90),
             &Instruction::D2I => self.write_u8(0x8e),
             &Instruction::D2L => self.write_u8(0x8f),
@@ -367,7 +367,7 @@ impl<'a> ClassWriter<'a> {
             &Instruction::DCONST_0 => self.write_u8(0x0e),
             &Instruction::DCONST_1 => self.write_u8(0x0f),
             &Instruction::DDIV => self.write_u8(0x6f),
-            &Instruction::DLOAD(value) => self.write_u8(0x18).and(self.write_u8(value)),
+            &Instruction::DLOAD(value) => self.write_u8(0x18).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::DLOAD_0 => self.write_u8(0x26),
             &Instruction::DLOAD_1 => self.write_u8(0x27),
             &Instruction::DLOAD_2 => self.write_u8(0x28),
@@ -376,7 +376,7 @@ impl<'a> ClassWriter<'a> {
             &Instruction::DNEG => self.write_u8(0x77),
             &Instruction::DREM => self.write_u8(0x73),
             &Instruction::DRETURN => self.write_u8(0xaf),
-            &Instruction::DSTORE(value) => self.write_u8(0x39).and(self.write_u8(value)),
+            &Instruction::DSTORE(value) => self.write_u8(0x39).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::DSTORE_0 => self.write_u8(0x47),
             &Instruction::DSTORE_1 => self.write_u8(0x48),
             &Instruction::DSTORE_2 => self.write_u8(0x49),
@@ -400,7 +400,7 @@ impl<'a> ClassWriter<'a> {
             &Instruction::FCONST_1 => self.write_u8(0x0c),
             &Instruction::FCONST_2 => self.write_u8(0x0d),
             &Instruction::FDIV => self.write_u8(0x6e),
-            &Instruction::FLOAD(value) => self.write_u8(0x17).and(self.write_u8(value)),
+            &Instruction::FLOAD(value) => self.write_u8(0x17).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::FLOAD_0 => self.write_u8(0x22),
             &Instruction::FLOAD_1 => self.write_u8(0x23),
             &Instruction::FLOAD_2 => self.write_u8(0x24),
@@ -409,16 +409,16 @@ impl<'a> ClassWriter<'a> {
             &Instruction::FNEG => self.write_u8(0x76),
             &Instruction::FREM => self.write_u8(0x72),
             &Instruction::FRETURN => self.write_u8(0xae),
-            &Instruction::FSTORE(value) => self.write_u8(0x38).and(self.write_u8(value)),
+            &Instruction::FSTORE(value) => self.write_u8(0x38).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::FSTORE_0 => self.write_u8(0x43),
             &Instruction::FSTORE_1 => self.write_u8(0x44),
             &Instruction::FSTORE_2 => self.write_u8(0x45),
             &Instruction::FSTORE_3 => self.write_u8(0x46),
             &Instruction::FSUB => self.write_u8(0x66),
-            &Instruction::GETFIELD(value) => self.write_u8(0xb4).and(self.write_u16(value)),
-            &Instruction::GETSTATIC(value) => self.write_u8(0xb2).and(self.write_u16(value)),
-            &Instruction::GOTO(value) => self.write_u8(0xa7).and(self.write_u16(value as u16)),
-            &Instruction::GOTO_W(value) => self.write_u8(0xc8).and(self.write_u32(value as u32)),
+            &Instruction::GETFIELD(value) => self.write_u8(0xb4).and(self.write_u16(value)).and(Ok(3)),
+            &Instruction::GETSTATIC(value) => self.write_u8(0xb2).and(self.write_u16(value)).and(Ok(3)),
+            &Instruction::GOTO(value) => self.write_u8(0xa7).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::GOTO_W(value) => self.write_u8(0xc8).and(self.write_u32(value as u32)).and(Ok(5)),
             &Instruction::I2B => self.write_u8(0x91),
             &Instruction::I2C => self.write_u8(0x92),
             &Instruction::I2D => self.write_u8(0x87),
@@ -437,42 +437,42 @@ impl<'a> ClassWriter<'a> {
             &Instruction::ICONST_4 => self.write_u8(0x07),
             &Instruction::ICONST_5 => self.write_u8(0x08),
             &Instruction::IDIV => self.write_u8(0x6c),
-            &Instruction::IF_ACMPEQ(value) => self.write_u8(0xa5).and(self.write_u16(value as u16)),
-            &Instruction::IF_ACMPNE(value) => self.write_u8(0xa6).and(self.write_u16(value as u16)),
-            &Instruction::IF_ICMPEQ(value) => self.write_u8(0x9f).and(self.write_u16(value as u16)),
-            &Instruction::IF_ICMPNE(value) => self.write_u8(0xa0).and(self.write_u16(value as u16)),
-            &Instruction::IF_ICMPLT(value) => self.write_u8(0xa1).and(self.write_u16(value as u16)),
-            &Instruction::IF_ICMPGE(value) => self.write_u8(0xa2).and(self.write_u16(value as u16)),
-            &Instruction::IF_ICMPGT(value) => self.write_u8(0xa3).and(self.write_u16(value as u16)),
-            &Instruction::IF_ICMPLE(value) => self.write_u8(0xa4).and(self.write_u16(value as u16)),
-            &Instruction::IFEQ(value) => self.write_u8(0x99).and(self.write_u16(value as u16)),
-            &Instruction::IFNE(value) => self.write_u8(0x9a).and(self.write_u16(value as u16)),
-            &Instruction::IFLT(value) => self.write_u8(0x9b).and(self.write_u16(value as u16)),
-            &Instruction::IFGE(value) => self.write_u8(0x9c).and(self.write_u16(value as u16)),
-            &Instruction::IFGT(value) => self.write_u8(0x9d).and(self.write_u16(value as u16)),
-            &Instruction::IFLE(value) => self.write_u8(0x9e).and(self.write_u16(value as u16)),
-            &Instruction::IFNONNULL(value) => self.write_u8(0xc7).and(self.write_u16(value as u16)),
-            &Instruction::IFNULL(value) => self.write_u8(0xc6).and(self.write_u16(value as u16)),
-            &Instruction::IINC(a, b) => self.write_u8(0x84).and(self.write_u8(a)).and(self.write_u8(b as u8)),
-            &Instruction::ILOAD(value) => self.write_u8(0x15).and(self.write_u8(value)),
+            &Instruction::IF_ACMPEQ(value) => self.write_u8(0xa5).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IF_ACMPNE(value) => self.write_u8(0xa6).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IF_ICMPEQ(value) => self.write_u8(0x9f).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IF_ICMPNE(value) => self.write_u8(0xa0).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IF_ICMPLT(value) => self.write_u8(0xa1).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IF_ICMPGE(value) => self.write_u8(0xa2).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IF_ICMPGT(value) => self.write_u8(0xa3).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IF_ICMPLE(value) => self.write_u8(0xa4).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IFEQ(value) => self.write_u8(0x99).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IFNE(value) => self.write_u8(0x9a).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IFLT(value) => self.write_u8(0x9b).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IFGE(value) => self.write_u8(0x9c).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IFGT(value) => self.write_u8(0x9d).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IFLE(value) => self.write_u8(0x9e).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IFNONNULL(value) => self.write_u8(0xc7).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IFNULL(value) => self.write_u8(0xc6).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::IINC(a, b) => self.write_u8(0x84).and(self.write_u8(a)).and(self.write_u8(b as u8)).and(Ok(3)),
+            &Instruction::ILOAD(value) => self.write_u8(0x15).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::ILOAD_0 => self.write_u8(0x1a),
             &Instruction::ILOAD_1 => self.write_u8(0x1b),
             &Instruction::ILOAD_2 => self.write_u8(0x1c),
             &Instruction::ILOAD_3 => self.write_u8(0x1d),
             &Instruction::IMUL => self.write_u8(0x68),
             &Instruction::INEG => self.write_u8(0x74),
-            &Instruction::INSTANCEOF(value) => self.write_u8(0xc1).and(self.write_u16(value)),
-            &Instruction::INVOKEDYNAMIC(value) => self.write_u8(0xba).and(self.write_u16(value)).and(self.write_u16(0)),
-            &Instruction::INVOKEINTERFACE(a, b) => self.write_u8(0xb9).and(self.write_u16(a)).and(self.write_u8(b)).and(self.write_u8(0)),
-            &Instruction::INVOKESPECIAL(value) => self.write_u8(0xb7).and(self.write_u16(value)),
-            &Instruction::INVOKESTATIC(value) => self.write_u8(0xb8).and(self.write_u16(value)),
-            &Instruction::INVOKEVIRTUAL(value) => self.write_u8(0xb6).and(self.write_u16(value)),
+            &Instruction::INSTANCEOF(value) => self.write_u8(0xc1).and(self.write_u16(value)).and(Ok(3)),
+            &Instruction::INVOKEDYNAMIC(value) => self.write_u8(0xba).and(self.write_u16(value)).and(self.write_u16(0)).and(Ok(5)),
+            &Instruction::INVOKEINTERFACE(a, b) => self.write_u8(0xb9).and(self.write_u16(a)).and(self.write_u8(b)).and(self.write_u8(0)).and(Ok(5)),
+            &Instruction::INVOKESPECIAL(value) => self.write_u8(0xb7).and(self.write_u16(value)).and(Ok(3)),
+            &Instruction::INVOKESTATIC(value) => self.write_u8(0xb8).and(self.write_u16(value)).and(Ok(3)),
+            &Instruction::INVOKEVIRTUAL(value) => self.write_u8(0xb6).and(self.write_u16(value)).and(Ok(3)),
             &Instruction::IOR => self.write_u8(0x80),
             &Instruction::IREM => self.write_u8(0x70),
             &Instruction::IRETURN => self.write_u8(0xac),
             &Instruction::ISHL => self.write_u8(0x78),
             &Instruction::ISHR => self.write_u8(0x7a),
-            &Instruction::ISTORE(value) => self.write_u8(0x36).and(self.write_u8(value)),
+            &Instruction::ISTORE(value) => self.write_u8(0x36).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::ISTORE_0 => self.write_u8(0x3b),
             &Instruction::ISTORE_1 => self.write_u8(0x3c),
             &Instruction::ISTORE_2 => self.write_u8(0x3d),
@@ -480,8 +480,8 @@ impl<'a> ClassWriter<'a> {
             &Instruction::ISUB => self.write_u8(0x64),
             &Instruction::IUSHR => self.write_u8(0x7c),
             &Instruction::IXOR => self.write_u8(0x82),
-            &Instruction::JSR(value) => self.write_u8(0xa8).and(self.write_u16(value as u16)),
-            &Instruction::JSR_W(value) => self.write_u8(0xc9).and(self.write_u32(value as u32)),
+            &Instruction::JSR(value) => self.write_u8(0xa8).and(self.write_u16(value as u16)).and(Ok(3)),
+            &Instruction::JSR_W(value) => self.write_u8(0xc9).and(self.write_u32(value as u32)).and(Ok(5)),
             &Instruction::L2D => self.write_u8(0x8a),
             &Instruction::L2F => self.write_u8(0x89),
             &Instruction::L2I => self.write_u8(0x88),
@@ -492,9 +492,9 @@ impl<'a> ClassWriter<'a> {
             &Instruction::LCMP => self.write_u8(0x94),
             &Instruction::LCONST_0 => self.write_u8(0x09),
             &Instruction::LCONST_1 => self.write_u8(0x0a),
-            &Instruction::LDC(value) => self.write_u8(0x12).and(self.write_u8(value)),
-            &Instruction::LDC_W(value) => self.write_u8(0x13).and(self.write_u16(value)),
-            &Instruction::LDC2_W(value) => self.write_u8(0x14).and(self.write_u16(value)),
+            &Instruction::LDC(value) => self.write_u8(0x12).and(self.write_u8(value)).and(Ok(2)),
+            &Instruction::LDC_W(value) => self.write_u8(0x13).and(self.write_u16(value)).and(Ok(3)),
+            &Instruction::LDC2_W(value) => self.write_u8(0x14).and(self.write_u16(value)).and(Ok(3)),
             &Instruction::LDIV => self.write_u8(0x6d),
             &Instruction::LLOAD => self.write_u8(0x16),
             &Instruction::LLOAD_0 => self.write_u8(0x1e),
@@ -503,16 +503,11 @@ impl<'a> ClassWriter<'a> {
             &Instruction::LLOAD_3 => self.write_u8(0x21),
             &Instruction::LMUL => self.write_u8(0x69),
             &Instruction::LNEG => self.write_u8(0x75),
-            //LOOKUPSWITCH(i32, Vec<(i32, i32)>),
             &Instruction::LOOKUPSWITCH(a, ref l) => {
                 let _ = self.write_u8(0xab);
-                let padding = (4 - ((offset + 1) % 4)) % 4;
-
-                for _ in 0..padding {
-                    let _ = self.write_u8(0);
-                }
 
                 let padding = (4 - ((offset + 1) % 4)) % 4;
+
 
                 for _ in 0..padding {
                     let _ = self.write_u8(0);
@@ -526,14 +521,16 @@ impl<'a> ClassWriter<'a> {
                     let _ = self.write_u32(p2 as u32);
                 }
 
-                Ok(0)
+                let len = 9 + padding + l.len() * 8;
+
+                Ok(len)
             },
             &Instruction::LOR => self.write_u8(0x81),
             &Instruction::LREM => self.write_u8(0x71),
             &Instruction::LRETURN => self.write_u8(0xad),
             &Instruction::LSHL => self.write_u8(0x79),
             &Instruction::LSHR => self.write_u8(0x7b),
-            &Instruction::LSTORE(value) => self.write_u8(0x37).and(self.write_u8(value)),
+            &Instruction::LSTORE(value) => self.write_u8(0x37).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::LSTORE_0 => self.write_u8(0x3f),
             &Instruction::LSTORE_1 => self.write_u8(0x40),
             &Instruction::LSTORE_2 => self.write_u8(0x41),
@@ -543,19 +540,19 @@ impl<'a> ClassWriter<'a> {
             &Instruction::LXOR => self.write_u8(0x83),
             &Instruction::MONITORENTER => self.write_u8(0xc2),
             &Instruction::MONITOREXIT => self.write_u8(0xc3),
-            &Instruction::MULTIANEWARRAY(a, b) => self.write_u8(0xc5).and(self.write_u16(a)).and(self.write_u8(b)),
-            &Instruction::NEW(value) => self.write_u8(0xbb).and(self.write_u16(value)),
-            &Instruction::NEWARRAY(value) => self.write_u8(0xbc).and(self.write_u8(value)),
+            &Instruction::MULTIANEWARRAY(a, b) => self.write_u8(0xc5).and(self.write_u16(a)).and(self.write_u8(b)).and(Ok(4)),
+            &Instruction::NEW(value) => self.write_u8(0xbb).and(self.write_u16(value)).and(Ok(3)),
+            &Instruction::NEWARRAY(value) => self.write_u8(0xbc).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::NOP => self.write_u8(0x00),
             &Instruction::POP => self.write_u8(0x57),
             &Instruction::POP2 => self.write_u8(0x58),
-            &Instruction::PUTFIELD(value) => self.write_u8(0xb5).and(self.write_u16(value)),
-            &Instruction::PUTSTATIC(value) => self.write_u8(0xb3).and(self.write_u16(value)),
-            &Instruction::RET(value) => self.write_u8(0xa9).and(self.write_u8(value)),
+            &Instruction::PUTFIELD(value) => self.write_u8(0xb5).and(self.write_u16(value)).and(Ok(3)),
+            &Instruction::PUTSTATIC(value) => self.write_u8(0xb3).and(self.write_u16(value)).and(Ok(3)),
+            &Instruction::RET(value) => self.write_u8(0xa9).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::RETURN => self.write_u8(0xb1),
             &Instruction::SALOAD => self.write_u8(0x35),
             &Instruction::SASTORE => self.write_u8(0x56),
-            &Instruction::SIPUSH(value) => self.write_u8(0x11).and(self.write_u16(value)),
+            &Instruction::SIPUSH(value) => self.write_u8(0x11).and(self.write_u16(value)).and(Ok(3)),
             &Instruction::SWAP => self.write_u8(0x5f),
             //TABLESWITCH(i32, i32, i32, Vec<i32>),
             &Instruction::TABLESWITCH(a, b, c, ref d) => {
@@ -575,20 +572,20 @@ impl<'a> ClassWriter<'a> {
                     let _ = self.write_u32(v as u32);
                 }
 
-                Ok(0)
+                Ok(13 + padding + d.len() * 4)
             },
-            &Instruction::ILOAD_W(value) => self.write_u16(0xc415).and(self.write_u16(value)),
-            &Instruction::FLOAD_W(value) => self.write_u16(0xc417).and(self.write_u16(value)),
-            &Instruction::ALOAD_W(value) => self.write_u16(0xc419).and(self.write_u16(value)),
-            &Instruction::LLOAD_W(value) => self.write_u16(0xc416).and(self.write_u16(value)),
-            &Instruction::DLOAD_W(value) => self.write_u16(0xc418).and(self.write_u16(value)),
-            &Instruction::ISTORE_W(value) => self.write_u16(0xc436).and(self.write_u16(value)),
-            &Instruction::FSTORE_W(value) => self.write_u16(0xc438).and(self.write_u16(value)),
-            &Instruction::ASTORE_W(value) => self.write_u16(0xc43a).and(self.write_u16(value)),
-            &Instruction::LSTORE_W(value) => self.write_u16(0xc437).and(self.write_u16(value)),
-            &Instruction::DSTORE_W(value) => self.write_u16(0xc439).and(self.write_u16(value)),
-            &Instruction::RET_W(value) => self.write_u16(0xc4a9).and(self.write_u16(value)),
-            &Instruction::IINC_W(a, b) => self.write_u16(0xc484).and(self.write_u16(a)).and(self.write_u16(b as u16)),
+            &Instruction::ILOAD_W(value) => self.write_u16(0xc415).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::FLOAD_W(value) => self.write_u16(0xc417).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::ALOAD_W(value) => self.write_u16(0xc419).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::LLOAD_W(value) => self.write_u16(0xc416).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::DLOAD_W(value) => self.write_u16(0xc418).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::ISTORE_W(value) => self.write_u16(0xc436).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::FSTORE_W(value) => self.write_u16(0xc438).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::ASTORE_W(value) => self.write_u16(0xc43a).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::LSTORE_W(value) => self.write_u16(0xc437).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::DSTORE_W(value) => self.write_u16(0xc439).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::RET_W(value) => self.write_u16(0xc4a9).and(self.write_u16(value)).and(Ok(4)),
+            &Instruction::IINC_W(a, b) => self.write_u16(0xc484).and(self.write_u16(a)).and(self.write_u16(b as u16)).and(Ok(6)),
             _ => self.write_u8(0xFF)
         }.ok().unwrap_or(0)
     }

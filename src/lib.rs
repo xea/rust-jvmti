@@ -29,6 +29,12 @@ pub mod thread;
 pub mod util;
 pub mod version;
 
+/*
+ * TODO The functions below are essentially parts of an actual client implementation. Because this
+ * implementation is highly experimental and incomplete they shall remain here for a while but
+ * they will have to find a new home, eventually
+ */
+
 fn on_method_entry(event: MethodInvocationEvent) {
     //println!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name);
 
@@ -82,12 +88,11 @@ fn on_monitor_contended_entered(thread: Thread) {
 }
 
 fn on_class_file_load() {
-
 }
 
 ///
-/// `Agent_OnLoad` is the actual entry point of the agent code and it is directly called by the
-/// Java Virtual Machine.
+/// `Agent_OnLoad` is the actual entry point of the agent code and it is called by the
+/// Java Virtual Machine directly.
 ///
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]

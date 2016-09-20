@@ -495,9 +495,9 @@ pub struct TypeAnnotation {
 
 #[derive(Debug)]
 pub enum TargetInfo {
-    TypeParameter,
-    SuperType,
-    TypeParameterBound,
+    TypeParameter { idx: u8 },
+    SuperType { idx: u16 },
+    TypeParameterBound { param_idx: u8, bound_index: u8 },
     Empty,
     MethodFormalParameter,
     Throws,
@@ -561,7 +561,7 @@ pub enum Instruction {
     ATHROW,
     BALOAD,
     BASTORE,
-    BIPUSH,
+    BIPUSH(u8),
     CALOAD,
     CASTORE,
     CHECKCAST(u16),

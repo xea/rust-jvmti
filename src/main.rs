@@ -6,6 +6,8 @@ use std::io::{stdout};
 
 use jvmti::bytecode::*;
 
+// The main program is a simple interface to access the bytecode parsing and generating
+// functionality and as such, it's not intended for actual use.
 fn main() {
     if let (Some(action), Some(class_name)) = (env::args().nth(1), env::args().nth(2)) {
         match File::open(class_name) {
@@ -31,5 +33,4 @@ fn main() {
     } else {
         println!("Invalid arguments. Usage: jvmti [read|write] <Class file>")
     }
-
 }

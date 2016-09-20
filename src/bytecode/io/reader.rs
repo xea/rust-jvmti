@@ -351,7 +351,7 @@ impl ClassReader {
             0xbf => Instruction::ATHROW,
             0x33 => Instruction::BALOAD,
             0x54 => Instruction::BASTORE,
-            0x10 => Instruction::BIPUSH,
+            0x10 => Instruction::BIPUSH(reader.get_u8()),
             0x34 => Instruction::CALOAD,
             0x55 => Instruction::CASTORE,
             0xc0 => Instruction::CHECKCAST(reader.get_u16()),
@@ -503,10 +503,12 @@ impl ClassReader {
             0x69 => Instruction::LMUL,
             0x75 => Instruction::LNEG,
             0xab => {
-                Instruction::LOOKUPSWITCH(reader.get_u32() as i32, {
-                    let padding = (4 - ((current_offset + 1) % 4)) % 4;
-                    let _ = reader.get_n(padding);
-                    let n = reader.get_u32();
+                let padding = (4 - ((current_offset + 1) % 4)) % 4;
+                let _ = reader.get_n(padding);
+                let default =  reader.get_u32() as i32;
+                let n = reader.get_u32();
+
+                Instruction::LOOKUPSWITCH(default, {
                     (0..n).map(|_| (reader.get_u32() as i32, reader.get_u32() as i32)).collect()
                 })
             },
@@ -751,15 +753,15 @@ impl ClassReader {
         TypeAnnotation {
             target_info: match reader.get_u8() {
                 // type parameter declaration of generic class or interface
-                0x00 => TargetInfo::TypeParameter,
+                0x00 => TargetInfo::TypeParameter { idx: reader.get_u8() },
                 // type parameter declaration of generic method or constructor
-                0x01 => TargetInfo::TypeParameter,
+                0x01 => TargetInfo::TypeParameter { idx: reader.get_u8() },
                 // type in extends or implements clause of class declaration (including the direct superclass or direct superinterface of an anonymous class declaration), or in extends clause of interface declaration
-                0x10 => TargetInfo::SuperType,
+                0x10 => TargetInfo::SuperType { idx: reader.get_u16() },
                 // type in bound of type parameter declaration of generic class or interface
-                0x11 => TargetInfo::TypeParameterBound,
+                0x11 => TargetInfo::TypeParameterBound { param_idx: reader.get_u8(), bound_index: reader.get_u8() },
                 // type in bound of type parameter declaration of generic method or constructor
-                0x12 => TargetInfo::TypeParameterBound,
+                0x12 => TargetInfo::TypeParameterBound { param_idx: reader.get_u8(), bound_index: reader.get_u8() },
                 // type in field declaration
                 0x13 => TargetInfo::Empty,
                 // return type of method, or type of newly constructed object

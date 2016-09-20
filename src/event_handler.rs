@@ -8,12 +8,11 @@ use super::native::*;
 use super::native::jvmti_native::*;
 use super::runtime::*;
 use libc::{c_char, c_uchar, c_void};
-use std::mem;
 use std::mem::size_of;
 use std::ptr;
 use super::util::stringify;
 use super::bytecode::*;
-use std::io::{ Cursor, Read, Write, Error };
+use std::io::{ Cursor };
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
@@ -34,7 +33,18 @@ pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     field_modification: None,
     garbage_collection_start: None,
     garbage_collection_finish: None,
-    class_file_load_hook: None
+    class_file_load_hook: None,
+    class_load: None,
+    class_prepare: None,
+    single_step: None,
+    frame_pop: None,
+    breakpoint: None,
+    native_method_bind: None,
+    compiled_method_load: None,
+    compiled_method_unload: None,
+    dynamic_code_generated: None,
+    data_dump_request: None,
+    resource_exhausted: None
 };
 
 pub fn register_vm_init_callback(callback: Option<FnVMInit>) {
@@ -427,7 +437,7 @@ unsafe extern "C" fn local_cb_class_file_load_hook(jvmti_env: JVMTIEnvPtr, jni_e
             raw_data.set_len(class_data_len as usize);
 
             let mut cursor = Cursor::new(raw_data);
-            let mut class_result = ClassReader::read_class(&mut cursor);
+            let class_result = ClassReader::read_class(&mut cursor);
 
             match class_result {
                 Ok(classfile) => {

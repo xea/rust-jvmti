@@ -8,6 +8,7 @@ pub type FnVMInit = fn() -> ();
 pub type FnVMDeath = fn() -> ();
 pub type FnVMStart = fn() -> ();
 pub type FnVMObjectAlloc = fn(event: ObjectAllocationEvent) -> ();
+pub type FnVMObjectFree = fn() -> ();
 pub type FnThreadStart = fn(thread: Thread) -> ();
 pub type FnThreadEnd = fn(thread: Thread) -> ();
 pub type FnException = fn() -> ();
@@ -21,6 +22,17 @@ pub type FnFieldModification = fn() -> ();
 pub type FnGarbageCollectionStart = fn() -> ();
 pub type FnGarbageCollectionFinish = fn() -> ();
 pub type FnClassFileLoad = fn() -> ();
+pub type FnClassLoad = fn() -> ();
+pub type FnClassPrepare = fn() -> ();
+pub type FnSingleStep = fn() -> ();
+pub type FnFramePop = fn() -> ();
+pub type FnBreakpoint = fn() -> ();
+pub type FnNativeMethodBind = fn() -> ();
+pub type FnCompiledMethodLoad = fn() -> ();
+pub type FnCompiledMethodUnload = fn() -> ();
+pub type FnDynamicCodeGenerated = fn() -> ();
+pub type FnResourceExhausted = fn() -> ();
+pub type FnDataDumpRequest = fn() -> ();
 
 ///
 /// `VMEvent` represents events that can occur in JVM applications. These events can be handled
@@ -32,6 +44,7 @@ pub enum VMEvent {
     VMInit = JVMTI_EVENT_VM_INIT as isize,
     VMDeath = JVMTI_EVENT_VM_DEATH as isize,
     VMObjectAlloc = JVMTI_EVENT_VM_OBJECT_ALLOC as isize,
+    VMObjectFree = JVMTI_EVENT_OBJECT_FREE as isize,
     VMStart = JVMTI_EVENT_VM_START as isize,
     MethodEntry = JVMTI_EVENT_METHOD_ENTRY as isize,
     MethodExit = JVMTI_EVENT_METHOD_EXIT as isize,
@@ -85,7 +98,18 @@ pub struct EventCallbacks {
     pub field_modification: Option<FnFieldModification>,
     pub garbage_collection_start: Option<FnGarbageCollectionStart>,
     pub garbage_collection_finish: Option<FnGarbageCollectionFinish>,
-    pub class_file_load_hook: Option<FnClassFileLoad>
+    pub class_file_load_hook: Option<FnClassFileLoad>,
+    pub class_load: Option<FnClassLoad>,
+    pub class_prepare: Option<FnClassPrepare>,
+    pub single_step: Option<FnSingleStep>,
+    pub frame_pop: Option<FnFramePop>,
+    pub breakpoint: Option<FnBreakpoint>,
+    pub native_method_bind: Option<FnNativeMethodBind>,
+    pub compiled_method_load: Option<FnCompiledMethodLoad>,
+    pub compiled_method_unload: Option<FnCompiledMethodUnload>,
+    pub dynamic_code_generated: Option<FnDynamicCodeGenerated>,
+    pub data_dump_request: Option<FnDataDumpRequest>,
+    pub resource_exhausted: Option<FnResourceExhausted>
 }
 
 impl EventCallbacks {

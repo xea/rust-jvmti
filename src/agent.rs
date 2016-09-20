@@ -15,9 +15,7 @@ pub struct Agent {
 
 impl Agent {
 
-    ///
     /// Create a newly initialised but blank JVM `Agent` instance using the provided Java VM pointer.
-    ///
     pub fn new(vm: JavaVMPtr) -> Agent {
         let jvm_agent = JVMAgent::new(vm);
 
@@ -33,7 +31,6 @@ impl Agent {
 
     }
 
-    ///
     /// Create a newly initialised but blank JVM `Agent` instance using the provided JVM agent.
     pub fn new_from(jvm: Box<JVMF>) -> Agent {
 
@@ -48,6 +45,7 @@ impl Agent {
         }
     }
 
+    /// Return JVMTI version being used
     pub fn get_version(&self) -> VersionNumber {
         self.environment.get_version_number()
     }
