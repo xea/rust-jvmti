@@ -752,28 +752,44 @@ impl ClassReader {
     fn read_type_annotation(reader: &mut BlockReader) -> TypeAnnotation {
         TypeAnnotation {
             target_info: match reader.get_u8() {
-                // type parameter declaration of generic class or interface
-                0x00 => TargetInfo::TypeParameter { idx: reader.get_u8() },
-                // type parameter declaration of generic method or constructor
-                0x01 => TargetInfo::TypeParameter { idx: reader.get_u8() },
+                // 0x00 type parameter declaration of generic class or interface
+                // 0x01 type parameter declaration of generic method or constructor
+                subtype @ 0x00...0x01 => TargetInfo::TypeParameter { subtype: subtype, idx: reader.get_u8() },
                 // type in extends or implements clause of class declaration (including the direct superclass or direct superinterface of an anonymous class declaration), or in extends clause of interface declaration
                 0x10 => TargetInfo::SuperType { idx: reader.get_u16() },
-                // type in bound of type parameter declaration of generic class or interface
-                0x11 => TargetInfo::TypeParameterBound { param_idx: reader.get_u8(), bound_index: reader.get_u8() },
-                // type in bound of type parameter declaration of generic method or constructor
-                0x12 => TargetInfo::TypeParameterBound { param_idx: reader.get_u8(), bound_index: reader.get_u8() },
-                // type in field declaration
-                0x13 => TargetInfo::Empty,
-                // return type of method, or type of newly constructed object
-                0x14 => TargetInfo::Empty,
-                // receiver type of method or constructor
-                0x15 => TargetInfo::Empty,
+                // 0x11 type in bound of type parameter declaration of generic class or interface
+                // 0x12 type in bound of type parameter declaration of generic method or constructor
+                subtype @ 0x11...0x12 => TargetInfo::TypeParameterBound { subtype: subtype, param_idx: reader.get_u8(), bound_index: reader.get_u8() },
+                // 0x13 type in field declaration
+                // 0x14 return type of method, or type of newly constructed object
+                // 0x15 receiver type of method or constructor
+                subtype @ 0x13...0x15 => TargetInfo::Empty { subtype: subtype },
                 // type in formal parameter declaration of method, constructor, or lambda expression
-                0x16 => TargetInfo::MethodFormalParameter,
+                0x16 => TargetInfo::MethodFormalParameter { idx: reader.get_u8() },
                 // type in throws clause of method or constructor
-                0x17 => TargetInfo::Throws,
+                0x17 => TargetInfo::Throws { idx: reader.get_u16() },
+                // 0x40 type in local variable declaration
+                // 0x41 type in resource variable declaration
+                subtype @ 0x40...0x41 => TargetInfo::LocalVar { subtype: subtype, target: {
+                    let count = reader.get_u16();
+
+                                        //u2 start_pc;    u2 length;        u2 index;
+                    (0..count).map(|_| (reader.get_u16(), reader.get_u16(), reader.get_u16())).collect()
+                }},
+                // type in exception parameter declaration
+                0x42 => TargetInfo::Catch { idx: reader.get_u16() },
+                // 0x43 type in instanceof expression
+                // 0x44 type in new expression
+                // 0x45 type in method reference expression using ::new
+                // 0x46 type in method reference expression using ::Identifier
+                subtype @ 0x43...0x46 => TargetInfo::Offset { subtype: subtype, idx: reader.get_u16() },
+                // 0x48 type argument for generic constructor in new expression or explicit constructor invocation statement
+                // 0x49 type argument for generic method in method invocation expression
+                // 0x4A type argument for generic constructor in method reference expression using ::new
+                // 0x4B type argument for generic method in method reference expression using ::Identifier
+                subtype @ 0x47...0x4b => TargetInfo::TypeArgument { subtype: subtype, offset: reader.get_u16(), type_arg_idx: reader.get_u8() },
                 // TODO replace the below fallback branch with proper error handling
-                _ => TargetInfo::Empty
+                _ => TargetInfo::Empty { subtype: 0 }
             },
             target_path: TypePath {
                 path: {

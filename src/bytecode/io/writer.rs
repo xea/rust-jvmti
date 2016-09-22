@@ -208,13 +208,23 @@ impl<'a> ClassWriter<'a> {
                 // parameter_annotations
                 .and(table.iter().fold(Ok(0), |_, ann_table| self.write_u16(ann_table.len() as u16).and(ann_table.iter().fold(Ok(0), |_, ann| self.write_annotation(ann, cp)))))
             },
-            &Attribute::RuntimeVisibleTypeAnnotations(_ /*ref table*/) => {
-                // TODO
-                self.write_u32(1)
+            &Attribute::RuntimeVisibleTypeAnnotations(ref table) => {
+                self.write_u16(cp.get_utf8_index("RuntimeVisibleTypeAnnotations") as u16)
+                // attribute_length
+                .and(self.write_u32(table.iter().fold(2, |acc, x| acc + x.len() as u32)))
+                // num_annotations
+                .and(self.write_u16(table.len() as u16))
+                // annotations
+                .and(table.iter().fold(Ok(0), |_, x| self.write_type_annotation(x, cp)))
             },
-            &Attribute::RuntimeInvisibleTypeAnnotations(_ /*ref table*/) => {
-                // TODO
-                self.write_u16(2)
+            &Attribute::RuntimeInvisibleTypeAnnotations(ref table) => {
+                self.write_u16(cp.get_utf8_index("RuntimeInvisibleTypeAnnotations") as u16)
+                // attribute_length
+                .and(self.write_u32(table.iter().fold(2, |acc, x| acc + x.len() as u32)))
+                // num_annotations
+                .and(self.write_u16(table.len() as u16))
+                // annotations
+                .and(table.iter().fold(Ok(0), |_, x| self.write_type_annotation(x, cp)))
             },
             &Attribute::AnnotationDefault(ref value) => {
                 self.write_u16(cp.get_utf8_index("AnnotationDefault") as u16)
@@ -314,6 +324,35 @@ impl<'a> ClassWriter<'a> {
         // num_element_value_pairs
         .and(self.write_u16(annotation.element_value_pairs.len() as u16))
         // element_value_pairs
+        .and(annotation.element_value_pairs.iter().fold(Ok(0), |_, x| self.write_element_value_pair(x, cp)))
+    }
+
+    fn write_type_annotation(&mut self, annotation: &TypeAnnotation, cp: &ConstantPool) -> Result<usize, Error> {
+        // target_type
+        self.write_u8(annotation.target_info.subtype())
+        // target_info
+        .and({
+            match &annotation.target_info {
+                &TargetInfo::TypeParameter { subtype: _, idx } => self.write_u8(idx),
+                &TargetInfo::SuperType { idx } => self.write_u16(idx),
+                &TargetInfo::TypeParameterBound { subtype: _, param_idx, bound_index } => self.write_u8(param_idx).and(self.write_u8(bound_index)),
+                &TargetInfo::Empty { subtype: _ } => Ok(0),
+                &TargetInfo::MethodFormalParameter { idx } => self.write_u8(idx),
+                &TargetInfo::Throws { idx } => self.write_u16(idx),
+                &TargetInfo::LocalVar { subtype: _, ref target } => self.write_u16(target.len() as u16).and(target.iter().fold(Ok(0), |_, x| self.write_u16(x.0).and(self.write_u16(x.1)).and(self.write_u16(x.2)))),
+                &TargetInfo::Catch { idx } => self.write_u16(idx),
+                &TargetInfo::Offset { subtype: _, idx } => self.write_u16(idx),
+                &TargetInfo::TypeArgument { subtype: _, offset, type_arg_idx } => self.write_u16(offset).and(self.write_u8(type_arg_idx))
+            }
+        })
+        .and({
+            // path_length
+            self.write_u8(annotation.target_path.path.len() as u8)
+            // path
+            .and(annotation.target_path.path.iter().fold(Ok(0), |_, x| self.write_u8(x.0.value()).and(self.write_u8(x.1))))
+        })
+        .and(self.write_u16(annotation.type_index.idx as u16))
+        .and(self.write_u16(annotation.element_value_pairs.len() as u16))
         .and(annotation.element_value_pairs.iter().fold(Ok(0), |_, x| self.write_element_value_pair(x, cp)))
     }
 

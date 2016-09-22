@@ -448,7 +448,8 @@ pub struct Annotation {
 
 impl Annotation {
     pub fn len(&self) -> usize {
-        4 + self.element_value_pairs.len() * 2 + self.element_value_pairs.iter().fold(0, |acc, x| acc + x.len())
+        4 + self.element_value_pairs.iter().fold(0, |acc, x| acc + x.len())
+        //4 + self.element_value_pairs.len() * 2 + self.element_value_pairs.iter().fold(0, |acc, x| acc + x.len())
     }
 }
 
@@ -493,23 +494,67 @@ pub struct TypeAnnotation {
     pub element_value_pairs: Vec<ElementValuePair>
 }
 
+impl TypeAnnotation {
+    pub fn len(&self) -> usize {
+        5 + self.target_info.len() + self.target_path.len() + self.element_value_pairs.iter().fold(0, |acc, x| acc + x.len())
+    }
+}
+
 #[derive(Debug)]
 pub enum TargetInfo {
-    TypeParameter { idx: u8 },
+    TypeParameter { subtype: u8, idx: u8 },
     SuperType { idx: u16 },
-    TypeParameterBound { param_idx: u8, bound_index: u8 },
-    Empty,
-    MethodFormalParameter,
-    Throws,
-    LocalVar,
-    Catch,
-    Offset,
-    TypeArgument
+    TypeParameterBound { subtype: u8, param_idx: u8, bound_index: u8 },
+    Empty { subtype: u8 },
+    MethodFormalParameter { idx: u8 },
+    Throws { idx: u16 },
+    LocalVar { subtype: u8, target: Vec<(u16, u16, u16)> },
+    Catch { idx: u16 },
+    Offset { subtype: u8, idx: u16 },
+    TypeArgument { subtype: u8, offset: u16, type_arg_idx: u8 }
+}
+
+impl TargetInfo {
+    pub fn len(&self) -> usize {
+        match self {
+            &TargetInfo::TypeParameter { subtype: _, idx: _ } => 1,
+            &TargetInfo::SuperType { idx: _ } => 2,
+            &TargetInfo::TypeParameterBound { subtype: _, param_idx: _, bound_index: _ } => 2,
+            &TargetInfo::Empty { subtype: _ } => 0,
+            &TargetInfo::MethodFormalParameter { idx: _ } => 1,
+            &TargetInfo::Throws { idx: _ } => 2,
+            &TargetInfo::LocalVar { subtype: _, ref target } => { 2 + target.len() * 6 },
+            &TargetInfo::Catch { idx: _ } => 2,
+            &TargetInfo::Offset { subtype: _, idx: _ } => 2,
+            &TargetInfo::TypeArgument { subtype: _, offset: _, type_arg_idx: _ } => 3
+        }
+    }
+
+    pub fn subtype(&self) -> u8 {
+        match self {
+            &TargetInfo::TypeParameter { subtype, idx: _ } => subtype,
+            &TargetInfo::SuperType { idx: _ } => 0x10,
+            &TargetInfo::TypeParameterBound { subtype, param_idx: _, bound_index: _ } => subtype,
+            &TargetInfo::Empty { subtype } => subtype,
+            &TargetInfo::MethodFormalParameter { idx: _ } => 0x16,
+            &TargetInfo::Throws { idx: _ } => 0x17,
+            &TargetInfo::LocalVar { subtype, target: _ } => subtype,
+            &TargetInfo::Catch { idx: _ } => 0x42,
+            &TargetInfo::Offset { subtype, idx: _ } => subtype,
+            &TargetInfo::TypeArgument { subtype, offset: _, type_arg_idx: _ } => subtype
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct TypePath {
     pub path: Vec<(TypePathKind, u8)>
+}
+
+impl TypePath {
+    pub fn len(&self) -> usize {
+        1 + self.path.len() * 2
+    }
 }
 
 #[derive(Debug)]
@@ -518,6 +563,17 @@ pub enum TypePathKind {
     Nested, // Annotation is deeper in a nested type
     Wildcard, // Annotation is on the bound of a wildcard type argument of a parameterized type
     TypeArgument // Annotation is on a type argument of a parameterized type
+}
+
+impl TypePathKind {
+    pub fn value(&self) -> u8 {
+        match self {
+            &TypePathKind::Array => 0,
+            &TypePathKind::Nested => 1,
+            &TypePathKind::Wildcard => 2,
+            &TypePathKind::TypeArgument => 3,
+        }
+    }
 }
 
 #[derive(Debug)]
