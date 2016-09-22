@@ -2,7 +2,7 @@ extern crate jvmti;
 
 use std::env;
 use std::fs::File;
-use std::io::{stdout};
+//use std::io::{stdout};
 
 use jvmti::bytecode::*;
 
@@ -17,9 +17,13 @@ fn main() {
                         match action.as_str() {
                             "read" => println!("{}", format!("{:#?}", class)),
                             "write" => {
-                                let mut out = stdout();
-                                let mut writer = ClassWriter::new(&mut out);
-                                let _ = writer.write_class(&class);
+                                if let Ok(mut outfile) = File::create(format!("{}.out.class", env::args().nth(2).unwrap_or(String::from("tmp.out.class")))) {
+                                    //let mut out = stdout();
+                                    let mut writer = ClassWriter::new(&mut outfile);
+                                    let _ = writer.write_class(&class);
+                                } else {
+                                    println!("Can't open output file");
+                                }
                             },
                             _ => println!("Unknown action: {}", action)
                         }

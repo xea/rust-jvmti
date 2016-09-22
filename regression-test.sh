@@ -1,8 +1,15 @@
 #!/bin/bash
 
+function clean_test_data {
+    find ./test-data -name "*.out.class" -exec rm -f {} \;
+}
+
+clean_test_data
+
 find ./test-data -name "*.class" | while read CLASSFILE; do
-    OUTFILE="${CLASSFILE}.class"
-    ./target/debug/jvmti write $CLASSFILE > $OUTFILE
+    echo "Checking ${CLASSFILE}"
+    OUTFILE="${CLASSFILE}.out.class"
+    ./target/debug/jvmti write $CLASSFILE 
     HASHES=`md5 -q $CLASSFILE $OUTFILE | paste -s -d " " -`
     read -r -a RESULT <<< $HASHES
 
