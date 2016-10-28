@@ -43,6 +43,7 @@ _Medium term ideas_
 _Long term ideas (wishes, cough)_
 
 * Ability to trace other JVM languages (Scala, Clojure, Frege, Kotlin, etc)
+* Ability to process creepy stuff like AspectJ and other BCI stuff
 
 _(to be continued...)_
 
