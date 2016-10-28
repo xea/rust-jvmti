@@ -27,7 +27,7 @@ JVM functionality via Rust and byte code instrumentation using Java code.
 
 _Short(ish) term plans_
 
-* Clean the initial code design up a bit 
+* Clean the initial code design up a bit
 * Make data collection and JVM callbacks work in parallel so that it doesn't block Java calls
 * Higher level API for accessing JVMTI/JNI functionality
 * JVM byte code instrumentation/transformation
@@ -42,7 +42,7 @@ _Medium term ideas_
 
 _Long term ideas (wishes, cough)_
 
-* Ability to trace other JVM languages (Scala, Closure, Frege, etc)
+* Ability to trace other JVM languages (Scala, Clojure, Frege, Kotlin, etc)
 
 _(to be continued...)_
 

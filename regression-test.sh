@@ -1,7 +1,13 @@
 #!/bin/bash
 
+BASEDIR=./test-data
+
+if [ ! -z $1 ]; then
+    BASEDIR=$1
+fi
+
 function clean_test_data {
-    find ./test-data -name "*.out.class" -exec rm -f {} \;
+    find $BASEDIR -name "*.out.class" -exec rm -f {} \;
 }
 
 clean_test_data
