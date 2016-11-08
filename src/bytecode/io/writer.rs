@@ -535,7 +535,7 @@ impl<'a> ClassWriter<'a> {
             &Instruction::LDC_W(value) => self.write_u8(0x13).and(self.write_u16(value)).and(Ok(3)),
             &Instruction::LDC2_W(value) => self.write_u8(0x14).and(self.write_u16(value)).and(Ok(3)),
             &Instruction::LDIV => self.write_u8(0x6d),
-            &Instruction::LLOAD => self.write_u8(0x16),
+            &Instruction::LLOAD(value) => self.write_u8(0x16).and(self.write_u8(value)).and(Ok(2)),
             &Instruction::LLOAD_0 => self.write_u8(0x1e),
             &Instruction::LLOAD_1 => self.write_u8(0x1f),
             &Instruction::LLOAD_2 => self.write_u8(0x20),

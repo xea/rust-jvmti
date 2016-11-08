@@ -495,7 +495,7 @@ impl ClassReader {
             0x13 => Instruction::LDC_W(reader.get_u16()),
             0x14 => Instruction::LDC2_W(reader.get_u16()),
             0x6d => Instruction::LDIV,
-            0x16 => Instruction::LLOAD,
+            0x16 => Instruction::LLOAD(reader.get_u8()),
             0x1e => Instruction::LLOAD_0,
             0x1f => Instruction::LLOAD_1,
             0x20 => Instruction::LLOAD_2,
