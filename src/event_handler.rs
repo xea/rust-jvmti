@@ -18,6 +18,7 @@ pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
     vm_death: None,
     vm_object_alloc: None,
+    vm_object_free: None,
     vm_start: None,
     method_entry: None,
     method_exit: None,
@@ -57,6 +58,10 @@ pub fn register_vm_death_callback(callback: Option<FnVMDeath>) {
 
 pub fn register_vm_object_alloc_callback(callback: Option<FnVMObjectAlloc>) {
     unsafe { CALLBACK_TABLE.vm_object_alloc = callback; }
+}
+
+pub fn register_vm_object_free_callback(callback: Option<FnVMObjectFree>) {
+    unsafe { CALLBACK_TABLE.vm_object_free = callback; }
 }
 
 pub fn register_vm_start_callback(callback: Option<FnVMStart>) {

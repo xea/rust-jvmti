@@ -21,6 +21,7 @@ pub mod environment;
 pub mod error;
 pub mod event;
 pub mod event_handler;
+pub mod instrumentation;
 pub mod method;
 pub mod native;
 pub mod options;

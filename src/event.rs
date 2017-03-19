@@ -83,6 +83,7 @@ pub struct EventCallbacks {
     pub vm_init: Option<FnVMInit>,
     pub vm_death: Option<FnVMDeath>,
     pub vm_object_alloc: Option<FnVMObjectAlloc>,
+    pub vm_object_free: Option<FnVMObjectFree>,
     pub vm_start: Option<FnVMStart>,
     pub method_entry: Option<FnMethodEntry>,
     pub method_exit: Option<FnMethodExit>,

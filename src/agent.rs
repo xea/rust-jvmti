@@ -67,6 +67,7 @@ impl Agent {
                 match self.environment.set_event_callbacks(self.callbacks.clone()) {
                     None => {
                         self.environment.set_event_notification_mode(VMEvent::VMObjectAlloc, self.callbacks.vm_object_alloc.is_some());
+                        self.environment.set_event_notification_mode(VMEvent::VMObjectFree, self.callbacks.vm_object_free.is_some());
                         self.environment.set_event_notification_mode(VMEvent::VMStart, self.callbacks.vm_start.is_some());
                         self.environment.set_event_notification_mode(VMEvent::VMInit, self.callbacks.vm_init.is_some());
                         self.environment.set_event_notification_mode(VMEvent::VMDeath, self.callbacks.vm_death.is_some());
@@ -118,6 +119,11 @@ impl Agent {
     pub fn on_vm_object_alloc(&mut self, handler: Option<FnVMObjectAlloc>) {
         self.callbacks.vm_object_alloc = handler;
         self.capabilities.can_generate_vm_object_alloc_events = handler.is_some();
+    }
+
+    pub fn on_vm_object_free(&mut self, handler: Option<FnVMObjectFree>) {
+        self.callbacks.vm_object_free = handler;
+        self.capabilities.can_generate_object_free_events = handler.is_some();
     }
 
     pub fn on_thread_start(&mut self, handler: Option<FnThreadStart>) {
