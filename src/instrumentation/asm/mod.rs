@@ -9,7 +9,8 @@ pub enum ClassfileVersion {
 }
 
 pub struct Class {
-    version: ClassfileVersion
+    version: ClassfileVersion,
+    constant_pool: ConstantPool
 }
 
 impl Class {
@@ -17,7 +18,8 @@ impl Class {
         const DEFAULT_VERSION: ClassfileVersion = ClassfileVersion::Java1_8;
 
         Class {
-            version: DEFAULT_VERSION
+            version: DEFAULT_VERSION,
+            constant_pool: ConstantPool::new()
         }
     }
 
@@ -36,7 +38,14 @@ impl Class {
             Java1_9 => 53
         };
 
+        cf.version.minor_version = 0;
+
         cf
+    }
+
+    /// Return mutable reference to stored constant pool
+    pub fn constant_pool(&mut self) -> &mut ConstantPool {
+        &mut self.constant_pool
     }
 }
 
@@ -48,7 +57,20 @@ impl ConstantPool {
         ConstantPool {}
     }
 
+    pub fn add_utf8_constant(&mut self, content: String) {
+
+    }
+
     pub fn add_string_constant(&mut self, content: String) {
 
+    }
+}
+
+pub struct Method {
+}
+
+impl Method {
+    pub fn new() -> Method {
+        Method {}
     }
 }

@@ -3,6 +3,7 @@ extern crate libc;
 
 mod bytecode;
 mod environment;
+mod instrumentation;
 
 /*
 mod agent;
