@@ -12,15 +12,21 @@ function clean_test_data {
 
 clean_test_data
 
-find ./test-data -name "*.class" | while read CLASSFILE; do
+CLASSCOUNT=0
+FAILCOUNT=0
+
+find -H ./test-data -name "*.class" | while read CLASSFILE; do
     echo "Checking ${CLASSFILE}"
     OUTFILE="${CLASSFILE}.out.class"
     RESULTS="regression-results"
-    ./target/debug/jvmti write $CLASSFILE 
+    ./target/release/jvmti write $CLASSFILE 
     HASHES=`md5 -q $CLASSFILE $OUTFILE | paste -s -d " " -`
     read -r -a RESULT <<< $HASHES
 
+    CLASSCOUNT=$((CLASSCOUNT + 1))
+
     if [ "${RESULT[0]}" != "${RESULT[1]}" ]; then
+        FAILCOUNT=$((FAILCOUNT + 1))
         echo " ---------------------- Mismatch found: ${RESULT[0]} ${RESULT[1]} ${CLASSFILE} -----------------------"
         javap -v $CLASSFILE > ./tmp-compare-1
         javap -v $OUTFILE > ./tmp-compare-2
@@ -29,3 +35,5 @@ find ./test-data -name "*.class" | while read CLASSFILE; do
 
     rm -f $OUTFILE ./tmp-compare-1 ./tmp-compare-2
 done
+
+echo "Classes found: ${CLASSCOUNT} Errors: $FAILCOUNT"
