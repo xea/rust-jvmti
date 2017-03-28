@@ -6,7 +6,7 @@ description = "JVM Monitoring and profiling agent"
 keywords = [ "java", "jvm", "jvmti", "debugger" ]
 
 [lib]
-crate_type = [ "dylib", "rlib" ]
+crate_type = [ "cdylib", "dylib", "rlib" ]
 
 [dependencies]
 libc = "0.2.*"

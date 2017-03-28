@@ -11,6 +11,10 @@ pub struct ObjectAllocationEvent {
     pub size: i64
 }
 
+pub struct ObjectFreeEvent {
+    
+}
+
 pub struct MethodInvocationEvent {
     pub method_id: MethodId,
     pub method_sig: MethodSignature,

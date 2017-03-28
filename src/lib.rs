@@ -91,6 +91,22 @@ fn on_monitor_contended_entered(thread: Thread) {
 fn on_class_file_load() {
 }
 
+fn on_garbage_collection_start() {
+    println!("GC Start: {:?}", std::time::Instant::now());
+}
+
+fn on_garbage_collection_finish() {
+    println!("GC Finish: {:?}", std::time::Instant::now());
+}
+
+fn on_object_alloc(event: ObjectAllocationEvent) {
+    println!("Object allocation: (size: {})", event.size);
+}
+
+fn on_object_free() {
+    println!("Object free: ");
+}
+
 ///
 /// `Agent_OnLoad` is the actual entry point of the agent code and it is called by the
 /// Java Virtual Machine directly.
@@ -103,6 +119,10 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
 
     let mut agent = Agent::new(vm);
 
+    agent.on_garbage_collection_finish(Some(on_garbage_collection_start));
+    agent.on_garbage_collection_finish(Some(on_garbage_collection_finish));
+    agent.on_vm_object_alloc(Some(on_object_alloc));
+    agent.on_vm_object_free(Some(on_object_free));
     //agent.on_method_entry(Some(on_method_entry));
     //agent.on_method_exit(Some(on_method_exit));
     //agent.on_thread_start(Some(on_thread_start));
