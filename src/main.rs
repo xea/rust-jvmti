@@ -5,8 +5,9 @@ use std::fs::File;
 //use std::io::{stdout};
 
 use jvmti::bytecode::*;
+use jvmti::bytecode::printer::*;
 
-fn main() {
+fn main2() {
     let class = Classfile::new();
 
     if let Ok(mut outfile) = File::create("RustEmpty.class") {
@@ -17,7 +18,7 @@ fn main() {
 
 // The main program is a simple interface to access the bytecode parsing and generating
 // functionality and as such, it's not intended for actual use.
-fn main2() {
+fn main() {
     if let (Some(action), Some(class_name)) = (env::args().nth(1), env::args().nth(2)) {
         match File::open(class_name.clone()) {
             Ok(mut file) => {
@@ -25,6 +26,7 @@ fn main2() {
                     Ok(class) => {
                         match action.as_str() {
                             "read" => println!("{}", format!("{:#?}", class)),
+                            "print" => println!("{}", ClassfilePrinter::render_lines(&class).iter().map(|line| format!("{}\n", line)).fold(String::new(), |mut acc, x| { acc.push_str(x.as_str()); acc})),
                             "counts" => println!("Class: {} Field count: {} Method count: {}", class_name, class.fields.len(), class.methods.len()),
                             "methods" => show_methods(class, class_name),
                             "write" => write_class(&class),

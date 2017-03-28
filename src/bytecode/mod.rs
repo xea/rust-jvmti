@@ -3,6 +3,7 @@ pub use self::io::*;
 
 pub mod classfile;
 pub mod io;
+pub mod printer;
 
 /*
 
