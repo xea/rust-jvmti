@@ -61,12 +61,12 @@ impl ClassfilePrinter {
             &Constant::Float(value) => format!("Float               {}", value),
             &Constant::Long(value) => format!("Long               {}", value),
             &Constant::Double(value) => format!("Double              {}", value),
-            &Constant::Class(ref index) => format!("Class              #{:<24}// {}", index.idx, ClassfilePrinter::resolve_utf8(index, pool)),
-            &Constant::FieldRef { class_index: ref ci, name_and_type_index: ref ni } => format!("FieldRef           {:<24} // {}.{}", format!("#{}.#{}", ci.idx, ni.idx), ClassfilePrinter::resolve_class(ci, pool), ClassfilePrinter::resolve_name_and_type(ni, &pool)),
-            &Constant::MethodRef { class_index: ref ci, name_and_type_index: ref ni } => format!("MethodRef          {:<24} // {}.{}", format!("#{}.#{}", ci.idx, ni.idx), ClassfilePrinter::resolve_class(ci, pool), ClassfilePrinter::resolve_name_and_type(ni, pool)),
-            &Constant::InterfaceMethodRef { class_index: ref ci, name_and_type_index: ref ni } => format!("InterfaceMethodRef {:<24} // {}.{}", format!("#{}.#{}", ci.idx, ni.idx), ClassfilePrinter::resolve_class(ci, pool), ClassfilePrinter::resolve_name_and_type(ni, pool)),
-            &Constant::String(ref cpi) => format!("String             #{:<24}// {}", cpi.idx, ClassfilePrinter::resolve_utf8(cpi, pool)),
-            &Constant::NameAndType { name_index: ref ni, descriptor_index: ref dp } => format!("NameAndType        {:<24} // {}:{}", format!("#{}.#{}", ni.idx, dp.idx), ClassfilePrinter::resolve_utf8(ni, pool), ClassfilePrinter::resolve_utf8(dp, pool)),
+            &Constant::Class(ref index) => format!("Class              #{:<14}// {}", index.idx, ClassfilePrinter::resolve_utf8(index, pool)),
+            &Constant::FieldRef { class_index: ref ci, name_and_type_index: ref ni } => format!("FieldRef           {:<14} // {}.{}", format!("#{}.#{}", ci.idx, ni.idx), ClassfilePrinter::resolve_class(ci, pool), ClassfilePrinter::resolve_name_and_type(ni, &pool)),
+            &Constant::MethodRef { class_index: ref ci, name_and_type_index: ref ni } => format!("MethodRef          {:<14} // {}.{}", format!("#{}.#{}", ci.idx, ni.idx), ClassfilePrinter::resolve_class(ci, pool), ClassfilePrinter::resolve_name_and_type(ni, pool)),
+            &Constant::InterfaceMethodRef { class_index: ref ci, name_and_type_index: ref ni } => format!("InterfaceMethodRef {:<14} // {}.{}", format!("#{}.#{}", ci.idx, ni.idx), ClassfilePrinter::resolve_class(ci, pool), ClassfilePrinter::resolve_name_and_type(ni, pool)),
+            &Constant::String(ref cpi) => format!("String             #{:<14}// {}", cpi.idx, ClassfilePrinter::resolve_utf8(cpi, pool)),
+            &Constant::NameAndType { name_index: ref ni, descriptor_index: ref dp } => format!("NameAndType        {:<14} // {}:{}", format!("#{}:#{}", ni.idx, dp.idx), ClassfilePrinter::resolve_utf8(ni, pool), ClassfilePrinter::resolve_utf8(dp, pool)),
             &Constant::MethodHandle { reference_kind: ref kind, reference_index: ref ri } => format!("MethodHandle       {} #{}", ClassfilePrinter::resolve_reference_kind(kind), ri.idx),
             &Constant::MethodType(ref cpi) => format!("MethodType         #{}", cpi.idx),
             &Constant::InvokeDynamic { bootstrap_method_attr_index: ref bi, name_and_type_index: ref ni } => format!("InvokeDynamic      #{}.{}", bi.idx, ClassfilePrinter::resolve_name_and_type(ni, pool)),
@@ -129,12 +129,7 @@ impl ClassfilePrinter {
         lines.push(format!("  {}()", ClassfilePrinter::resolve_utf8(&method.name_index, cp)));
         lines.push(format!("    Descriptor: {}", ClassfilePrinter::resolve_utf8(&method.descriptor_index, cp)));
         // TODO display access flags
-        lines.push(String::from("    Code: "));
-
-        let _: Vec<()> = method.attributes.iter()/*.filter(|attr| match attr {
-            &&Attribute::Code { max_stack: _, max_locals: _, code: _, exception_table: _, attributes: _ } => true,
-            _ => false
-        })*/.flat_map(|code_attr| ClassfilePrinter::render_attribute(code_attr, cp)).map(|line| lines.push(line)).collect();
+        let _: Vec<()> = method.attributes.iter().flat_map(|code_attr| ClassfilePrinter::render_attribute(code_attr, cp)).map(|line| lines.push(line)).collect();
 
         lines.push(String::from(""));
 
@@ -145,9 +140,10 @@ impl ClassfilePrinter {
         let mut lines = vec![];
 
         match code {
-            &Attribute::Code { max_stack: ref ms, max_locals: ref ml, code: ref c, exception_table: ref et, attributes: ref at } => {
+            &Attribute::Code { max_stack: ref ms, max_locals: ref ml, code: ref c, exception_table: ref et, attributes: ref attributes } => {
                 let mut instr_pointer: usize = 0;
 
+                lines.push(String::from("    Code: "));
                 lines.push(format!("      stack={} locals={} args={}", ms, ml, "???"));
                 let _: Vec<()> = c.iter().map(|instr| (instr.len(), match instr {
                     &Instruction::AALOAD => format!("aaload"),
@@ -158,6 +154,7 @@ impl ClassfilePrinter {
                     &Instruction::ALOAD_1 => format!("aload_1"),
                     &Instruction::ALOAD_2 => format!("aload_2"),
                     &Instruction::ALOAD_3 => format!("aload_3"),
+                    &Instruction::ASTORE(value) => format!("astore {}", value),
                     &Instruction::ATHROW => format!("athrow"),
                     &Instruction::BALOAD => format!("baload"),
                     &Instruction::BASTORE => format!("bastore"),
@@ -359,27 +356,22 @@ impl ClassfilePrinter {
                     &Instruction::WTF(value) => format!("wtf {}", value),
                     _ => format!("instr")
                 })).map(|line| {
-                    lines.push(format!("     {:>4} {}", instr_pointer, line.1));
+                    lines.push(format!("     {:>4}: {}", instr_pointer, line.1));
                     instr_pointer = instr_pointer + line.0
                 }).collect();
+
+                let _: Vec<()> = attributes.iter().flat_map(|att| ClassfilePrinter::render_attribute(att, cp)).map(|line| format!("  {}", line)).map(|line| lines.push(line)).collect();
             },
             &Attribute::LineNumberTable(ref table) => {
                 lines.push(String::from("    LineNumberTable"));
 
-                let _: Vec<()> = ClassfilePrinter::render_line_number_table(table).iter().map(|line_number| lines.push(format!("  {}", line_number))).collect();
+                let _: Vec<()> = ClassfilePrinter::render_line_number_table(table).iter().map(|line_number| lines.push(format!("      {}", line_number))).collect();
             },
-            &Attribute::ConstantValue(ref cpi) => {
-                lines.push(format!("    ConstantValue #{}", cpi.idx));
-            },
-            &Attribute::StackMapTable(_) => {
-                lines.push(format!("    StackMapTable"));
-            },
-            &Attribute::AnnotationDefault(_) => {
-                lines.push(format!("    AnnotationDefault"));
-            },
-            &Attribute::BootstrapMethods(_) => {
-                lines.push(format!("    BootstrapMethods"));
-            },
+            &Attribute::ConstantValue(ref cpi) => { lines.push(format!("    ConstantValue #{}", cpi.idx)); },
+            &Attribute::StackMapTable(_) => { lines.push(format!("    StackMapTable")); },
+            &Attribute::AnnotationDefault(_) => { lines.push(format!("    AnnotationDefault")); },
+            &Attribute::BootstrapMethods(_) => { lines.push(format!("    BootstrapMethods")); },
+            &Attribute::Deprecated => { lines.push(format!("    Deprecated")); },
             _ => {
                 lines.push(format!("RandomAttribute"));
                 ()
@@ -391,6 +383,6 @@ impl ClassfilePrinter {
     }
 
     pub fn render_line_number_table(table: &Vec<LineNumberTable>) -> Vec<String> {
-        table.iter().map(|line| format!("{} {}", line.start_pc, line.line_number)).collect()
+        table.iter().map(|line| format!("line {}: {}", line.line_number, line.start_pc)).collect()
     }
 }
