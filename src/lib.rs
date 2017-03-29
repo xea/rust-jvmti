@@ -2,10 +2,14 @@ extern crate libc;
 #[macro_use]
 extern crate lazy_static;
 extern crate time;
+extern crate toml;
+#[macro_use]
+extern crate serde_derive;
 
 use agent::Agent;
 use bytecode::classfile::Constant;
 use bytecode::io::ClassWriter;
+use config::Config;
 use context::static_context;
 use native::{JavaVMPtr, MutString, VoidPtr, ReturnValue};
 use options::Options;
@@ -18,6 +22,7 @@ pub mod agent;
 pub mod bytecode;
 pub mod capabilities;
 pub mod class;
+pub mod config;
 pub mod context;
 pub mod emulator;
 pub mod environment;
@@ -93,8 +98,11 @@ fn on_monitor_contended_entered(thread: Thread) {
 }
 
 fn on_class_file_load(event: ClassFileLoadEvent) -> Option<Vec<u8>> {
-    println!("Caught class file load request");
-
+    if let Ok(cfg) = static_context().config.read() {
+        if (*cfg).active_classes.iter().any(|item| event.class_name.as_str() == item) {
+        }
+    }
+/*
     let output_class: Vec<u8> = vec![];
     let mut write_cursor = Cursor::new(output_class);
 
@@ -120,6 +128,8 @@ fn on_class_file_load(event: ClassFileLoadEvent) -> Option<Vec<u8>> {
     } else {
         None
     }
+    */
+    None
 }
 
 fn on_garbage_collection_start() {
@@ -148,13 +158,18 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
     let options = Options::parse(stringify(options));
     println!("Starting up as {}", options.agent_id);
 
+    if let Some(config) = Config::read_config() {
+        println!("Setting configuration");
+        static_context().set_config(config);
+    }
+
     let mut agent = Agent::new(vm);
 
-    agent.on_garbage_collection_finish(Some(on_garbage_collection_start));
-    agent.on_garbage_collection_finish(Some(on_garbage_collection_finish));
-    agent.on_vm_object_alloc(Some(on_object_alloc));
-    agent.on_vm_object_free(Some(on_object_free));
-    agent.on_class_file_load(Some(on_class_file_load));
+    //agent.on_garbage_collection_finish(Some(on_garbage_collection_start));
+    //agent.on_garbage_collection_finish(Some(on_garbage_collection_finish));
+    //agent.on_vm_object_alloc(Some(on_object_alloc));
+    //agent.on_vm_object_free(Some(on_object_free));
+    //agent.on_class_file_load(Some(on_class_file_load));
     //agent.on_method_entry(Some(on_method_entry));
     //agent.on_method_exit(Some(on_method_exit));
     //agent.on_thread_start(Some(on_thread_start));
@@ -163,7 +178,7 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
     //agent.on_monitor_waited(Some(on_monitor_waited));
     //agent.on_monitor_contended_enter(Some(on_monitor_contended_enter));
     //agent.on_monitor_contended_entered(Some(on_monitor_contended_entered));
-    //agent.on_class_file_load(Some(on_class_file_load));
+    agent.on_class_file_load(Some(on_class_file_load));
 
     agent.update();
 

@@ -1,9 +1,11 @@
 use super::capabilities::Capabilities;
+use super::config::Config;
 use super::environment::jvm::{JVMF, JVMAgent};
 use super::environment::jvmti::JVMTI;
 use super::event::*;
 use super::error::*;
 use super::native::JavaVMPtr;
+use super::options::Options;
 use super::version::VersionNumber;
 
 pub struct Agent {
@@ -33,7 +35,6 @@ impl Agent {
 
     /// Create a newly initialised but blank JVM `Agent` instance using the provided JVM agent.
     pub fn new_from(jvm: Box<JVMF>) -> Agent {
-
         match jvm.get_environment() {
             Ok(environment) => Agent {
                 jvm: jvm,

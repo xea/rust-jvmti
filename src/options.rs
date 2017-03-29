@@ -5,7 +5,8 @@ use std::collections::HashMap;
 ///
 pub struct Options {
     pub agent_id: String,
-    pub custom_args: HashMap<String, String>
+    pub custom_args: HashMap<String, String>,
+    pub config_location: Option<String>
 }
 
 impl Options {
@@ -33,6 +34,7 @@ impl Options {
         println!("Parsing key: {} -> {}", key, value);
         match key {
             "agentid" => { options.agent_id = value.to_string(); },
+            "config" => { options.config_location = Some(value.to_string()); },
             _ => { options.custom_args.insert(key.to_string(), value.to_string()); }
         }
     }
@@ -47,7 +49,8 @@ impl Options {
     pub fn default() -> Options {
         Options {
             agent_id: "jvmti".to_string(),
-            custom_args: HashMap::new()
+            custom_args: HashMap::new(),
+            config_location: None
         }
     }
 }

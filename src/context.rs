@@ -1,3 +1,4 @@
+use super::config::Config;
 use super::thread::ThreadId;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -23,13 +24,24 @@ pub fn static_context() -> &'static AgentContext {
 }
 
 pub struct AgentContext {
-    context: Arc<RwLock<Context>>
+    context: Arc<RwLock<Context>>,
+    pub config: Arc<RwLock<Config>>
 }
 
 impl AgentContext {
     pub fn new() -> AgentContext {
         AgentContext {
-            context: Arc::new(RwLock::new(Context::new()))
+            context: Arc::new(RwLock::new(Context::new())),
+            config: Arc::new(RwLock::new(Config::default()))
+        }
+    }
+
+    pub fn set_config(&self, config: Config) {
+        match self.config.write() {
+            Ok(mut cfg) => {
+                *cfg = config;
+            },
+            Err(_) => { /* TODO */ }
         }
     }
 
