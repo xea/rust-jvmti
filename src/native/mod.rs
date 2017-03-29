@@ -7,7 +7,7 @@
 ///
 extern crate libc;
 
-use libc::{c_char, c_void};
+use libc::{c_char, c_void, c_uchar};
 
 // Mutable pointer to a JVMTI Environment
 pub type JVMTIEnvPtr = *mut jvmti_native::jvmtiEnv;
@@ -21,12 +21,14 @@ pub type ReturnValue = jvmti_native::jint;
 pub type VoidPtr = *mut c_void;
 pub type RawString = *const c_char;
 pub type MutString = *mut c_char;
+pub type MutByteArray = *mut c_uchar;
 pub type JavaInstance = jvmti_native::Struct__jobject;
 /// Typed alias to pointers to Java objects
 pub type JavaObject = *mut JavaInstance;
 pub type JavaThread = jvmti_native::jthread;
 pub type JavaClass = jvmti_native::jclass;
 pub type JavaMethod = jvmti_native::jmethodID;
+pub type JavaLong = jvmti_native::jlong;
 pub type TagId = jvmti_native::jlong;
 pub type JavaVersionNumber = jvmti_native::jint;
 

@@ -22,6 +22,7 @@ pub mod error;
 pub mod event;
 pub mod event_handler;
 pub mod instrumentation;
+pub mod mem;
 pub mod method;
 pub mod native;
 pub mod options;
@@ -88,7 +89,10 @@ fn on_monitor_contended_entered(thread: Thread) {
     }
 }
 
-fn on_class_file_load() {
+fn on_class_file_load(event: ClassFileLoadEvent) -> Option<Vec<u8>> {
+    println!("Caught class file load request");
+
+    Some(event.byte_code)
 }
 
 fn on_garbage_collection_start() {
@@ -123,6 +127,7 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
     agent.on_garbage_collection_finish(Some(on_garbage_collection_finish));
     agent.on_vm_object_alloc(Some(on_object_alloc));
     agent.on_vm_object_free(Some(on_object_free));
+    agent.on_class_file_load(Some(on_class_file_load));
     //agent.on_method_entry(Some(on_method_entry));
     //agent.on_method_exit(Some(on_method_exit));
     //agent.on_thread_start(Some(on_thread_start));

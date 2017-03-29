@@ -3,11 +3,12 @@ use super::super::class::{ClassId, ClassSignature, JavaType};
 use super::super::error::{wrap_error, NativeError};
 use super::super::event::{EventCallbacks, VMEvent};
 use super::super::event_handler::*;
+use super::super::mem::MemoryAllocation;
 use super::super::method::{MethodId, MethodSignature};
 use super::super::thread::{ThreadId, Thread};
 use super::super::util::stringify;
 use super::super::version::VersionNumber;
-use super::super::native::{MutString, JavaClass, JavaObject, JavaInstance, JavaThread, JVMTIEnvPtr};
+use super::super::native::{MutString, MutByteArray, JavaClass, JavaObject, JavaInstance, JavaLong, JavaThread, JVMTIEnvPtr};
 use super::super::native::jvmti_native::{Struct__jvmtiThreadInfo, jvmtiCapabilities};
 use std::ptr;
 
@@ -34,6 +35,8 @@ pub trait JVMTI {
     fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError>;
     fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError>;
     fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError>;
+    fn allocate(&self, len: usize) -> Result<MemoryAllocation, NativeError>;
+    fn deallocate(&self);
 }
 
 pub struct JVMTIEnvironment {
@@ -191,5 +194,22 @@ impl JVMTI for JVMTIEnvironment {
                 err @ _ => Err(err)
             }
         }
+    }
+
+    fn allocate(&self, len: usize) -> Result<MemoryAllocation, NativeError> {
+        let size: JavaLong = len as JavaLong;
+        let mut ptr: MutByteArray = ptr::null_mut();
+        let mem_ptr: *mut MutByteArray = &mut ptr;
+
+        unsafe {
+            match wrap_error((**self.jvmti).Allocate.unwrap()(self.jvmti, size, mem_ptr)) {
+                NativeError::NoError => Ok(MemoryAllocation { ptr: ptr, len: len }),
+                err @ _ => Err(err)
+            }
+        }
+    }
+
+    fn deallocate(&self) {
+
     }
 }

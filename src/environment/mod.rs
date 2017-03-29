@@ -4,6 +4,7 @@ use super::capabilities::Capabilities;
 use super::class::{ClassId, ClassSignature};
 use super::error::NativeError;
 use super::event::{EventCallbacks, VMEvent};
+use super::mem::MemoryAllocation;
 use super::method::{MethodId, MethodSignature};
 use super::native::{JavaObject, JavaThread};
 use super::thread::Thread;
@@ -63,6 +64,14 @@ impl JVMTI for Environment {
 
     fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError> {
         self.jvmti.get_class_signature(class_id)
+    }
+
+    fn allocate(&self, len: usize) -> Result<MemoryAllocation, NativeError> {
+        self.jvmti.allocate(len)
+    }
+
+    fn deallocate(&self) {
+        self.jvmti.deallocate()
     }
 }
 

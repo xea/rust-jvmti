@@ -1,5 +1,7 @@
 use super::super::bytecode::classfile::Classfile as ClassfileImpl;
 
+pub mod transformer;
+
 pub enum ClassfileVersion {
     Java1_5,
     Java1_6,
@@ -74,5 +76,5 @@ impl Method {
         Method {}
     }
 
-    
+
 }

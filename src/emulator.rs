@@ -4,6 +4,7 @@ use super::error::NativeError;
 use super::environment::jvm::JVMF;
 use super::environment::jvmti::{JVMTI};
 use super::event::{EventCallbacks, VMEvent};
+use super::mem::MemoryAllocation;
 use super::method::{MethodId, MethodSignature};
 use super::native::JavaThread;
 use super::runtime::*;
@@ -97,5 +98,13 @@ impl JVMTI for JVMEmulator {
         match class_id.native_id as u64 {
             _ => Err(NativeError::NotImplemented)
         }
+    }
+
+    fn allocate(&self, len: usize) -> Result<MemoryAllocation, NativeError> {
+        Ok(MemoryAllocation { ptr: ::std::ptr::null_mut(), len: len })
+    }
+
+    fn deallocate(&self) {
+
     }
 }

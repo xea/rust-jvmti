@@ -12,7 +12,7 @@ pub struct ObjectAllocationEvent {
 }
 
 pub struct ObjectFreeEvent {
-    
+
 }
 
 pub struct MethodInvocationEvent {
@@ -24,3 +24,10 @@ pub struct MethodInvocationEvent {
 
 impl RuntimeEvent for ObjectAllocationEvent {}
 impl RuntimeEvent for MethodInvocationEvent {}
+
+pub struct ClassFileLoadEvent {
+    pub class_name: String,
+    pub byte_code: Vec<u8>
+}
+
+impl RuntimeEvent for ClassFileLoadEvent {}
