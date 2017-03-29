@@ -4,10 +4,13 @@ extern crate lazy_static;
 extern crate time;
 
 use agent::Agent;
+use bytecode::classfile::Constant;
+use bytecode::io::ClassWriter;
 use context::static_context;
 use native::{JavaVMPtr, MutString, VoidPtr, ReturnValue};
 use options::Options;
 use runtime::*;
+use std::io::Cursor;
 use thread::Thread;
 use util::stringify;
 
@@ -92,7 +95,31 @@ fn on_monitor_contended_entered(thread: Thread) {
 fn on_class_file_load(event: ClassFileLoadEvent) -> Option<Vec<u8>> {
     println!("Caught class file load request");
 
-    Some(event.byte_code)
+    let output_class: Vec<u8> = vec![];
+    let mut write_cursor = Cursor::new(output_class);
+
+    let mut new_class = event.class;
+
+    new_class.constant_pool.constants = new_class.constant_pool.constants.into_iter().map(|constant| {
+        match constant {
+            Constant::Utf8(bytes) => String::from_utf8(bytes.clone()).map(|string| match string.as_str() {
+                "Hello World" => Constant::Utf8(String::from("Lofasz").into_bytes()),
+                _ => Constant::Utf8(string.into_bytes())
+            }).unwrap_or(Constant::Utf8(bytes)),
+            other @ _ => other
+        }
+    }).collect();
+
+    let result = {
+        let mut writer = ClassWriter::new(&mut write_cursor);
+        writer.write_class(&new_class)
+    };
+
+    if let Ok(_) = result {
+        Some(write_cursor.into_inner())
+    } else {
+        None
+    }
 }
 
 fn on_garbage_collection_start() {

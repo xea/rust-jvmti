@@ -1,3 +1,4 @@
+use super::bytecode::Classfile;
 use super::class::{ClassId, ClassSignature};
 use super::method::{MethodId, MethodSignature};
 use super::thread::Thread;
@@ -27,7 +28,7 @@ impl RuntimeEvent for MethodInvocationEvent {}
 
 pub struct ClassFileLoadEvent {
     pub class_name: String,
-    pub byte_code: Vec<u8>
+    pub class: Classfile
 }
 
 impl RuntimeEvent for ClassFileLoadEvent {}
