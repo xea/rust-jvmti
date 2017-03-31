@@ -39,11 +39,14 @@ _Medium term ideas_
 
 * Some ugly but usable GUI to display the gathered statistics (I'm so bad at designing GUIs)
 * Separate store for collected data
+* DSL to generate custom JVM byte code in an efficient and type-safe manner
+* Java source parsing and AST support
 
 _Long term ideas (wishes, cough)_
 
 * Ability to trace other JVM languages (Scala, Clojure, Frege, Kotlin, etc)
 * Ability to process creepy stuff like AspectJ and other BCI stuff
+* Naive Java-to-native compilation (similarly to scala-native)
 
 _(to be continued...)_
 
