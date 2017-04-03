@@ -7,10 +7,12 @@ extern crate toml;
 extern crate serde_derive;
 
 use agent::Agent;
+use bytecode::printer::ClassfilePrinter;
 use bytecode::classfile::Constant;
 use bytecode::io::ClassWriter;
 use config::Config;
 use context::static_context;
+use instrumentation::asm::transformer::Transformer;
 use native::{JavaVMPtr, MutString, VoidPtr, ReturnValue};
 use options::Options;
 use runtime::*;
@@ -46,15 +48,22 @@ pub mod version;
  */
 
 fn on_method_entry(event: MethodInvocationEvent) {
-    //println!("[M-{}.{}::{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name);
+    let shall_record = match static_context().config.read() {
+        Ok(cfg) => (*cfg).entry_points.iter().any(|item| *item == format!("{}.{}.{}", event.class_sig.package, event.class_sig.name, event.method_sig.name) ), //event.class_name.as_str() == item),
+        _ => false
+    };
+
+    if !shall_record {
+        println!("[M-{}.{}{}]", event.class_sig.package, event.class_sig.name, event.method_sig.name);
+    }
 
     static_context().method_enter(&event.thread.id);
 }
 
 fn on_method_exit(event: MethodInvocationEvent) {
     match static_context().method_exit(&event.thread.id) {
-        Some(_) => (),
-        //Some(duration) => println!("Method {} exited after {}", event.method_sig.name, duration),
+        //Some(_) => (),
+        Some(duration) => println!("Method {} exited after {}", event.method_sig.name, duration),
         None => println!("Method has no start: {}", event.method_sig.name)
     }
 }
@@ -97,10 +106,20 @@ fn on_monitor_contended_entered(thread: Thread) {
     }
 }
 
-fn on_class_file_load(event: ClassFileLoadEvent) -> Option<Vec<u8>> {
-    if let Ok(cfg) = static_context().config.read() {
-        if (*cfg).active_classes.iter().any(|item| event.class_name.as_str() == item) {
+fn on_class_file_load(mut event: ClassFileLoadEvent) -> Option<Vec<u8>> {
+    let shall_transform = match static_context().config.read() {
+        Ok(cfg) => (*cfg).entry_points.iter().any(|item| item.starts_with(event.class_name.as_str())), //event.class_name.as_str() == item),
+        _ => false
+    };
+
+    if shall_transform {
+        {
+            let mut transformer = Transformer::new(&mut event.class);
+            let result = transformer.ensure_constant(Constant::Utf8(String::from("Cde").into_bytes()));
+
+            println!("Result: {:?}", result);
         }
+        let _: Vec<()> = ClassfilePrinter::render_lines(&event.class).iter().map(|line| println!("{}", line)).collect();
     }
 /*
     let output_class: Vec<u8> = vec![];
@@ -145,7 +164,7 @@ fn on_object_alloc(event: ObjectAllocationEvent) {
 }
 
 fn on_object_free() {
-    println!("Object free: ");
+    println!("Object free");
 }
 
 ///
@@ -165,20 +184,20 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
 
     let mut agent = Agent::new(vm);
 
-    //agent.on_garbage_collection_finish(Some(on_garbage_collection_start));
+    //agent.on_garbage_collection_start(Some(on_garbage_collection_start));
     //agent.on_garbage_collection_finish(Some(on_garbage_collection_finish));
     //agent.on_vm_object_alloc(Some(on_object_alloc));
     //agent.on_vm_object_free(Some(on_object_free));
     //agent.on_class_file_load(Some(on_class_file_load));
     //agent.on_method_entry(Some(on_method_entry));
     //agent.on_method_exit(Some(on_method_exit));
-    //agent.on_thread_start(Some(on_thread_start));
-    //agent.on_thread_end(Some(on_thread_end));
-    //agent.on_monitor_wait(Some(on_monitor_wait));
-    //agent.on_monitor_waited(Some(on_monitor_waited));
-    //agent.on_monitor_contended_enter(Some(on_monitor_contended_enter));
-    //agent.on_monitor_contended_entered(Some(on_monitor_contended_entered));
-    agent.on_class_file_load(Some(on_class_file_load));
+    agent.on_thread_start(Some(on_thread_start));
+    agent.on_thread_end(Some(on_thread_end));
+    agent.on_monitor_wait(Some(on_monitor_wait));
+    agent.on_monitor_waited(Some(on_monitor_waited));
+    agent.on_monitor_contended_enter(Some(on_monitor_contended_enter));
+    agent.on_monitor_contended_entered(Some(on_monitor_contended_entered));
+    //agent.on_class_file_load(Some(on_class_file_load));
 
     agent.update();
 

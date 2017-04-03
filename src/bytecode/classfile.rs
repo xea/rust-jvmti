@@ -120,6 +120,23 @@ impl ConstantPool {
         self.constants.get(idx.idx)
     }
 
+    pub fn has_constant(&self, constant: &Constant) -> bool {
+        self.constants.iter().any(|item| *constant == *item)
+    }
+
+    pub fn add_constant(&mut self, constant: Constant) -> ConstantPoolIndex {
+        self.constants.push(constant);
+        ConstantPoolIndex::new(self.cp_len())
+    }
+
+    pub fn get_constant_index(&self, constant: &Constant) -> Option<ConstantPoolIndex> {
+        if self.has_constant(constant) {
+            Some(ConstantPoolIndex::new(self.constants.iter().take_while(|item| **item != *constant).map(|item| item.cp_size()).fold(1, |acc, x| acc + x)))
+        } else {
+            None
+        }
+    }
+
     pub fn cp_len(&self) -> usize {
         //self.constants.iter().fold(0, |acc, x| acc + x.cp_size())
         self.constants.len()
@@ -134,7 +151,7 @@ impl Default for ConstantPool {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq)]
 pub struct ConstantPoolIndex {
     pub idx: usize
 }
@@ -145,7 +162,7 @@ impl ConstantPoolIndex {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Constant {
     Utf8(Vec<u8>),
     Integer(u32),
@@ -176,7 +193,7 @@ impl Constant {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ReferenceKind {
     GetField = 1,
     GetStatic = 2,

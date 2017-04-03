@@ -382,7 +382,7 @@ impl ClassfilePrinter {
                 lines.push(String::from("    LocalVariableTypeTable"));
                 let _: Vec<()> = table.iter().map(|var_type| ClassfilePrinter::render_local_variable_type(var_type)).map(|line| lines.push(format!("    {}", line))).collect();
             },
-            &Attribute::Deprecated => { lines.push(format!("    Deprecated")); },
+            &Attribute::Deprecated => { lines.push(format!("    Deprecated")); },1
             _ => {
                 lines.push(format!("RandomAttribute"));
                 ()

@@ -49,14 +49,14 @@ public class Test extends Simple implements Consumer<String> {
                 synchronized(object) {
                     System.out.println("    [" + Thread.currentThread().getName() + "] Owning the monitor, before sleep");
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(2000);
                     } catch (Exception e) {
                     }
 //                    System.out.println("    [" + Thread.currentThread().getName() + "] Owning the monitor, after sleep");
                 }
 
                 try {
-                    Thread.sleep(300);
+                    Thread.sleep(2300);
                 } catch (Exception e) {
                 }
 //                System.out.println("    [" + Thread.currentThread().getName() + "] After acquiring the monitor");

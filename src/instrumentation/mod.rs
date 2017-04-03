@@ -1,6 +1,6 @@
 use super::bytecode::classfile::*;
 
-mod asm;
+pub mod asm;
 
 pub enum JavaType {
     Boolean,
