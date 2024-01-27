@@ -249,7 +249,10 @@ impl<'a> ClassWriter<'a> {
             },
             &Attribute::MethodParameters(ref table) => {
                 self.write_u16(cp.get_utf8_index("MethodParameters") as u16)
+                //attribute_length
                 .and(self.write_u32(1 + table.len() as u32 * 4))
+                //parameters_count
+                .and(self.write_u8(table.len() as u8))
                 .and(table.iter().fold(Ok(0), |_, p| self.write_u16(p.name_index.idx as u16).and(self.write_u16(p.access_flags.flags as u16))))
             }
         }
